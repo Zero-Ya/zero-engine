@@ -2,8 +2,6 @@
 
 #include "Event.h"
 
-#include <sstream>
-
 namespace ZEngine {
 
 	class ZE_API WindowResizeEvent : public Event

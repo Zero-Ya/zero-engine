@@ -15,6 +15,10 @@ target_sources(Game PRIVATE
 
 target_link_libraries(Game PRIVATE Engine)
 
+target_precompile_headers(Game PRIVATE
+	${CMAKE_SOURCE_DIR}/Engine/src/zepch.h
+)
+
 target_include_directories(Game PRIVATE
 	${CMAKE_SOURCE_DIR}/Engine/dependencies/spdlog/include
 	${CMAKE_SOURCE_DIR}/Engine/src

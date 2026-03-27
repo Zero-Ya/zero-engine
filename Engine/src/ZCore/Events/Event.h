@@ -2,9 +2,6 @@
 
 #include "ZCore/Core.h"
 
-#include <string>
-#include <functional>
-
 namespace ZEngine {
 
 	enum class EventType {
