@@ -41,6 +41,7 @@ target_compile_definitions(Game PRIVATE
 if(MSVC)
 	target_compile_options(Engine PRIVATE
 		/utf-8
+		#/MDd
 	)
 	target_compile_options(Game PRIVATE
 		/utf-8

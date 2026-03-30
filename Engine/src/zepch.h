@@ -12,6 +12,8 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include "ZCore/Log.h"
+
 #ifdef ZE_PLATFORM_WINDOWS
 	#include <Windows.h>
 #endif
