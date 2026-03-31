@@ -30,6 +30,9 @@ set(H_FILES
 
 	src/ZCore/Layer.h
 	src/ZCore/LayerStack.h
+
+	src/ZCore/ImGui/ImGuiLayer.h
+	src/ZCore/ImGui/ImGuiLayer.cpp
 )
 
 target_sources(Engine
@@ -41,6 +44,8 @@ target_sources(Engine
 		BASE_DIRS src
 		FILES
 			${H_FILES}
+			src/ZCore/ImGui/ImGuiVulkanUtil.h
+			src/ZCore/ImGui/ImGuiVulkanUtil.cpp
 )
 
 # Precompiled headers
@@ -53,7 +58,9 @@ target_include_directories(Engine PRIVATE
 	src
 	dependencies/spdlog/include
 	dependencies/GLFW/include
+	dependencies/imgui
 	dependencies/vulkan/Include
+	dependencies/glm
 )
 
 # GLFW
@@ -64,5 +71,6 @@ target_link_libraries(Engine PRIVATE
 	glfw
 )
 
+# Vulkan
 find_package(Vulkan REQUIRED)
 target_link_libraries(Engine PRIVATE Vulkan::Vulkan)

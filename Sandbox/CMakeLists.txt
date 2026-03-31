@@ -1,5 +1,5 @@
 # Executable
-add_executable(Game)
+add_executable(Sandbox)
 
 function (copy_dlls target)
 	add_custom_command (
@@ -9,20 +9,20 @@ function (copy_dlls target)
 	)
 endfunction ()
 
-target_sources(Game PRIVATE
-	src/GameApp.cpp
+target_sources(Sandbox PRIVATE
+	src/SandboxApp.cpp
 )
 
-target_link_libraries(Game PRIVATE Engine)
+target_link_libraries(Sandbox PRIVATE Engine)
 
-target_precompile_headers(Game PRIVATE
+target_precompile_headers(Sandbox PRIVATE
 	${CMAKE_SOURCE_DIR}/Engine/src/zepch.h
 )
 
-target_include_directories(Game PRIVATE
+target_include_directories(Sandbox PRIVATE
 	${CMAKE_SOURCE_DIR}/Engine/dependencies/spdlog/include
 	${CMAKE_SOURCE_DIR}/Engine/src
 )
 
 # Copy dll to binary dir
-copy_dlls(Game)
+copy_dlls(Sandbox)

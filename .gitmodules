@@ -4,3 +4,10 @@
 [submodule "Engine/dependencies/GLFW"]
 	path = Engine/dependencies/GLFW
 	url = https://github.com/glfw/glfw.git
+[submodule "Engine/dependencies/imgui"]
+	path = Engine/dependencies/imgui
+	url = https://github.com/ocornut/imgui.git
+	branch = docking
+[submodule "Engine/dependencies/glm"]
+	path = Engine/dependencies/glm
+	url = https://github.com/g-truc/glm.git

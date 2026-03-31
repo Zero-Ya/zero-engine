@@ -14,10 +14,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Subdirectories (sub-projects)
 add_subdirectory(Engine)
-add_subdirectory(Game)
+add_subdirectory(Sandbox)
 
 # Set startup project
-set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Game)
+set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Sandbox)
 
 # Preprocessor definitions
 target_compile_definitions(Engine PRIVATE
@@ -29,7 +29,7 @@ target_compile_definitions(Engine PRIVATE
 	# $<$<CONFIG:Dist>:ZE_DIST> 
 )
 
-target_compile_definitions(Game PRIVATE
+target_compile_definitions(Sandbox PRIVATE
 	ZE_PLATFORM_WINDOWS
 
 	$<$<CONFIG:Debug>:ZE_DEBUG> 
@@ -41,9 +41,9 @@ target_compile_definitions(Game PRIVATE
 if(MSVC)
 	target_compile_options(Engine PRIVATE
 		/utf-8
-		#/MDd
+		$<$<CONFIG:Debug>:/MDd>
 	)
-	target_compile_options(Game PRIVATE
+	target_compile_options(Sandbox PRIVATE
 		/utf-8
 	)
 endif()
