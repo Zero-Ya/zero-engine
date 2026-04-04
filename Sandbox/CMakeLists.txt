@@ -13,12 +13,14 @@ target_sources(Sandbox PRIVATE
 	src/SandboxApp.cpp
 )
 
+# Link sandbox with engine
 target_link_libraries(Sandbox PRIVATE Engine)
 
 target_precompile_headers(Sandbox PRIVATE
 	${CMAKE_SOURCE_DIR}/Engine/src/zepch.h
 )
 
+# Includes
 target_include_directories(Sandbox PRIVATE
 	${CMAKE_SOURCE_DIR}/Engine/dependencies/spdlog/include
 	${CMAKE_SOURCE_DIR}/Engine/src

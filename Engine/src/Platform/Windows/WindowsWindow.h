@@ -2,7 +2,6 @@
 
 #include "ZCore/Window.h"
 
-//#define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
 namespace ZEngine {
@@ -23,6 +22,8 @@ namespace ZEngine {
 	private:
 		virtual void Init(const WindowProps& props);
 		virtual void Shutdown();
+
+		virtual void* GetNativeWindow() const { return m_Window; }
 	private:
 		GLFWwindow* m_Window;
 

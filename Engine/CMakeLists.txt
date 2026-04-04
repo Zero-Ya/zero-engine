@@ -31,21 +31,22 @@ set(H_FILES
 	src/ZCore/Layer.h
 	src/ZCore/LayerStack.h
 
-	src/ZCore/ImGui/ImGuiLayer.h
-	src/ZCore/ImGui/ImGuiLayer.cpp
+	#src/ZCore/ImGui/ImGuiLayer.h
+	#src/ZCore/ImGui/ImGuiLayer.cpp
 )
 
 target_sources(Engine
 	PRIVATE
 		${CPP_FILES}
+		#src/ZCore/ImGui/ImGuiVulkanUtil.cpp
 
 	PUBLIC
 		FILE_SET HEADERS
 		BASE_DIRS src
 		FILES
 			${H_FILES}
-			src/ZCore/ImGui/ImGuiVulkanUtil.h
-			src/ZCore/ImGui/ImGuiVulkanUtil.cpp
+			#src/ZCore/ImGui/ImGuiVulkanUtil.h
+			src/Platform/Vulkan/VulkanAPI.h
 )
 
 # Precompiled headers

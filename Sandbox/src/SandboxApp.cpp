@@ -21,7 +21,7 @@ public:
 class Game : public ZEngine::Application {
 public:
 	Game() {
-		PushLayer(new TestLayer());
+		//PushLayer(new TestLayer());
 	}
 
 	~Game() {

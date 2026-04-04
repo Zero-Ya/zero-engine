@@ -46,6 +46,7 @@ namespace ZEngine {
 		}
 
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+		glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 		m_Window = glfwCreateWindow((int)props.Width, (int)props.Height, m_Data.Title.c_str(), nullptr, nullptr);
 
 		glfwSetWindowUserPointer(m_Window, &m_Data);
@@ -133,6 +134,7 @@ namespace ZEngine {
 	void WindowsWindow::Shutdown()
 	{
 		glfwDestroyWindow(m_Window);
+		glfwTerminate();
 	}
 
 	void WindowsWindow::OnUpdate()

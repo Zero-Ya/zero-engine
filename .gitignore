@@ -4,6 +4,8 @@
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
 # Temporary files
+ImGuiVulkanUtil.h
+ImGuiVulkanUtil.cpp
 
 # User-specific files
 *.rsuser
@@ -36,10 +38,12 @@ bld/
 [Ll]ogs/
 build/
 
-# Other directories
+# Other directories or files
 bin/
 bin-int/
-vulkan/
+dependencies/vulkan/
+/Engine/dependencies/vulkan
+*.spv
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/

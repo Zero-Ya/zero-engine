@@ -36,6 +36,8 @@ namespace ZEngine {
 		void SetVSync(bool enabled);
 		bool IsVSync() const;
 
+		virtual void* GetNativeWindow() const = 0;
+
 		static Window* Create(const WindowProps& props = WindowProps());
 	};
 
