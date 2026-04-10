@@ -46,9 +46,7 @@ namespace ZEngine {
 		}
 
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-		glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 		m_Window = glfwCreateWindow((int)props.Width, (int)props.Height, m_Data.Title.c_str(), nullptr, nullptr);
-
 		glfwSetWindowUserPointer(m_Window, &m_Data);
 
 		// Set GLFW callbacks
@@ -67,7 +65,6 @@ namespace ZEngine {
 			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
 			WindowCloseEvent event;
 			data.EventCallback(event);
-
 		});
 
 		glfwSetKeyCallback(m_Window, [](GLFWwindow* window, int key, int scancode, int action, int mods) 
@@ -128,7 +125,6 @@ namespace ZEngine {
 			MouseMovedEvent event((float)xPos, (float)yPos);
 			data.EventCallback(event);
 		});
-
 	}
 
 	void WindowsWindow::Shutdown()
@@ -141,5 +137,4 @@ namespace ZEngine {
 	{
 		glfwPollEvents();
 	}
-
 }

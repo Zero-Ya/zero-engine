@@ -12,6 +12,16 @@
 #include <unordered_map>
 #include <unordered_set>
 
+// Vulkan stuff
+#include <assert.h>
+#include <cstdlib>
+#include <cstring>
+#include <fstream>
+#include <limits>
+#include <stdexcept>
+#include <array>
+#include <chrono>
+
 #include "ZCore/Log.h"
 
 #ifdef ZE_PLATFORM_WINDOWS

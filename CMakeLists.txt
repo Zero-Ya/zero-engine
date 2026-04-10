@@ -29,6 +29,7 @@ target_compile_definitions(Engine PRIVATE
 	# $<$<CONFIG:Dist>:ZE_DIST> 
 
 	PROJECT_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
+	ASSETS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/Sandbox/assets"
 )
 
 target_compile_definitions(Sandbox PRIVATE

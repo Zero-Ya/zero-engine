@@ -3,9 +3,11 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
-# Temporary files
+# Temp files
 ImGuiVulkanUtil.h
 ImGuiVulkanUtil.cpp
+VulkanAPI.cpp
+VulkanAPI.h
 
 # User-specific files
 *.rsuser

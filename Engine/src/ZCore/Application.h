@@ -8,6 +8,12 @@
 #include "Events/ApplicationEvent.h"
 
 namespace ZEngine {
+	class VulkanContext;
+	class VulkanSwapchain;
+	class VulkanPipelineManager;
+	class VulkanCommandManager;
+	class VulkanSyncManager;
+	class RenderFrame;
 
 	class ZE_API Application
 	{
@@ -34,6 +40,13 @@ namespace ZEngine {
 		LayerStack m_LayerStack;
 
 		static Application* s_Instance;
+
+		std::unique_ptr<VulkanContext> vk_Ctx;
+		std::unique_ptr<VulkanSwapchain> vk_Swapchain;
+		std::unique_ptr<VulkanPipelineManager> vk_PipelineManager;
+		std::unique_ptr<VulkanCommandManager> vk_CommandManager;
+		std::unique_ptr<VulkanSyncManager> vk_SyncManager;
+		std::unique_ptr<RenderFrame> frameRenderer;
 	};
 
 	// To be defined in CLIENT
