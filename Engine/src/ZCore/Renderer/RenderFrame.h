@@ -7,12 +7,19 @@
 #include "Platform/Vulkan/VulkanSyncManager.h"
 #include "Platform/Vulkan/VulkanPipelineManager.h"
 #include "Platform/Vulkan/VulkanCommandManager.h"
+#include "ResourceManager.h"
 
 namespace ZEngine {
 
 	class ZE_API RenderFrame {
 	public:
-		RenderFrame(VulkanContext* ctx, VulkanSwapchain* swapchain, VulkanSyncManager* sync, VulkanPipelineManager* pipeline, VulkanCommandManager* command);
+		RenderFrame(VulkanContext* ctx,
+					VulkanSwapchain* swapchain,
+					VulkanSyncManager* sync,
+					VulkanPipelineManager* pipeline,
+					VulkanCommandManager* command,
+					ResourceManager* resource);
+
 		~RenderFrame();
 
 		void drawFrame();
@@ -25,6 +32,7 @@ namespace ZEngine {
 		VulkanSyncManager* vk_SyncManager;
 		VulkanPipelineManager* vk_PipelineManager;
 		VulkanCommandManager* vk_CommandManager;
+		ResourceManager* resourceManager;
 
 		uint32_t frameIndex = 0;
 		bool framebufferResized = false;

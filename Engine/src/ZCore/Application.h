@@ -14,6 +14,7 @@ namespace ZEngine {
 	class VulkanCommandManager;
 	class VulkanSyncManager;
 	class RenderFrame;
+	class ResourceManager;
 
 	class ZE_API Application
 	{
@@ -47,6 +48,7 @@ namespace ZEngine {
 		std::unique_ptr<VulkanCommandManager> vk_CommandManager;
 		std::unique_ptr<VulkanSyncManager> vk_SyncManager;
 		std::unique_ptr<RenderFrame> frameRenderer;
+		std::unique_ptr<ResourceManager> resourceManager;
 	};
 
 	// To be defined in CLIENT

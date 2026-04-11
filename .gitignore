@@ -375,3 +375,4 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/Engine/src/Platform/Vulkan/VulkanAPI.h

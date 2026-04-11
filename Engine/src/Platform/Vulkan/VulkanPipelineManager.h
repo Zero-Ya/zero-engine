@@ -2,6 +2,7 @@
 
 #include "VulkanContext.h"
 #include "VulkanSwapchain.h"
+#include "ZCore/Renderer/ResourceManager.h"
 
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
@@ -9,38 +10,27 @@
 
 namespace ZEngine {
 
-	struct Vertex
-	{
-		glm::vec2 pos;
-		glm::vec3 color;
-		glm::vec2 texCoord;
-
-		static vk::VertexInputBindingDescription getBindingDescription() {
-			return { 0, sizeof(Vertex), vk::VertexInputRate::eVertex };
-		}
-
-		static std::array<vk::VertexInputAttributeDescription, 3> getAttributeDescriptions() {
-			return {
-				vk::VertexInputAttributeDescription(0, 0, vk::Format::eR32G32Sfloat, offsetof(Vertex, pos)),
-				vk::VertexInputAttributeDescription(1, 0, vk::Format::eR32G32B32Sfloat, offsetof(Vertex, color)),
-				vk::VertexInputAttributeDescription(2, 0, vk::Format::eR32G32Sfloat, offsetof(Vertex, texCoord))
-			};
-		}
-	};
-
 	class ZE_API VulkanPipelineManager {
 	public:
-		VulkanPipelineManager(VulkanContext* ctx, VulkanSwapchain* swapchain);
+		VulkanPipelineManager(VulkanContext* ctx, VulkanSwapchain* swapchain, ResourceManager* resource);
 		~VulkanPipelineManager();
 
 		vk::raii::Pipeline& getGraphicsPipeline() { return graphicsPipeline; };
+		vk::raii::PipelineLayout& getLayout() { return pipelineLayout; };
+
+		std::vector<vk::raii::DescriptorSet>& getDescriptorSets() { return descriptorSets; };
 
 		void createGraphicsPipeline();
+
+		void createDescriptorSetLayout();
+		void createDescriptorPool();
+		void createDescriptorSets();
 
 	private:
 		VulkanContext*						 vk_Ctx;
 		VulkanSwapchain*					 vk_Swapchain;
-											 
+		ResourceManager*					 resourceManager;
+
 		vk::raii::DescriptorSetLayout		 descriptorSetLayout = nullptr;
 		vk::raii::PipelineLayout			 pipelineLayout = nullptr;
 		vk::raii::Pipeline					 graphicsPipeline = nullptr;
@@ -48,9 +38,6 @@ namespace ZEngine {
 		vk::raii::DescriptorPool             descriptorPool = nullptr;
 		std::vector<vk::raii::DescriptorSet> descriptorSets;
 
-		void createDescriptorSetLayout();
-		void createDescriptorPool();
-		void createDescriptorSets();
 		vk::raii::ShaderModule createShaderModule(const std::vector<char>& code) const;
 	};
 

@@ -2,8 +2,8 @@
 
 namespace ZEngine {
 
-	RenderFrame::RenderFrame(VulkanContext* ctx, VulkanSwapchain* swapchain, VulkanSyncManager* sync, VulkanPipelineManager* pipeline, VulkanCommandManager* command)
-		: vk_Ctx(ctx), vk_Swapchain(swapchain), vk_SyncManager(sync), vk_PipelineManager(pipeline), vk_CommandManager(command)
+	RenderFrame::RenderFrame(VulkanContext* ctx, VulkanSwapchain* swapchain, VulkanSyncManager* sync, VulkanPipelineManager* pipeline, VulkanCommandManager* command, ResourceManager* resource)
+		: vk_Ctx(ctx), vk_Swapchain(swapchain), vk_SyncManager(sync), vk_PipelineManager(pipeline), vk_CommandManager(command), resourceManager(resource)
 	{
 	};
 
@@ -36,7 +36,7 @@ namespace ZEngine {
 			throw std::runtime_error("failed to acquire swap chain image!");
 		}
 
-		//updateUniformBuffer(frameIndex); // Wait until uniform buffer implementation
+		updateUniformBuffer(frameIndex);
 
 		// Only reset the fence if we are submitting work
 		vk_Ctx->getDevice().resetFences(*vk_SyncManager->getInFlightFences()[frameIndex]);
@@ -107,10 +107,10 @@ namespace ZEngine {
 		commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *vk_PipelineManager->getGraphicsPipeline());
 		commandBuffer.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(vk_Swapchain->getExtent().width), static_cast<float>(vk_Swapchain->getExtent().height), 0.0f, 1.0f));
 		commandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), vk_Swapchain->getExtent()));
-		//commandBuffer.bindVertexBuffers(0, *vertexBuffer, { 0 });
-		//commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelineLayout, 0, *descriptorSets[frameIndex], nullptr);
-		//commandBuffer.bindIndexBuffer(*indexBuffer, 0, vk::IndexTypeValue<decltype(indices)::value_type>::value);
-		commandBuffer.draw(3, 1, 0, 0);
+		commandBuffer.bindVertexBuffers(0, *resourceManager->getVertexBuffer(), {0});
+		commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, vk_PipelineManager->getLayout(), 0, *vk_PipelineManager->getDescriptorSets()[frameIndex], nullptr);
+		commandBuffer.bindIndexBuffer(*resourceManager->getIndexBuffer(), 0, vk::IndexTypeValue<decltype(indices)::value_type>::value);
+		commandBuffer.drawIndexed(indices.size(), 1, 0, 0, 0);
 		commandBuffer.endRendering();
 
 		// After rendering, transition the swapchain image to vk::ImageLayout::ePresentSrcKHR
@@ -124,6 +124,22 @@ namespace ZEngine {
 			vk::PipelineStageFlagBits2::eBottomOfPipe                  // dstStage
 		);
 		commandBuffer.end();
+	}
+
+	void RenderFrame::updateUniformBuffer(uint32_t currentImage)
+	{
+		static auto startTime = std::chrono::high_resolution_clock::now();
+
+		auto  currentTime = std::chrono::high_resolution_clock::now();
+		float time = std::chrono::duration<float>(currentTime - startTime).count();
+
+		UniformBufferObject ubo{};
+		ubo.model = rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		ubo.view = lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		ubo.proj = glm::perspective(glm::radians(45.0f), static_cast<float>(vk_Swapchain->getExtent().width) / static_cast<float>(vk_Swapchain->getExtent().height), 0.1f, 10.0f);
+		ubo.proj[1][1] *= -1;
+
+		memcpy(resourceManager->getUniformBuffersMapped()[currentImage], &ubo, sizeof(ubo));
 	}
 
 	void RenderFrame::transition_image_layout(
@@ -157,21 +173,4 @@ namespace ZEngine {
 			.pImageMemoryBarriers = &barrier };
 		vk_CommandManager->getCommandBuffers()[frameIndex].pipelineBarrier2(dependency_info);
 	}
-
-	//void RenderFrame::updateUniformBuffer(uint32_t currentImage)
-	//{
-	//	static auto startTime = std::chrono::high_resolution_clock::now();
-
-	//	auto  currentTime = std::chrono::high_resolution_clock::now();
-	//	float time = std::chrono::duration<float>(currentTime - startTime).count();
-
-	//	UniformBufferObject ubo{};
-	//	ubo.model = rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	//	ubo.view = lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	//	ubo.proj = glm::perspective(glm::radians(45.0f), static_cast<float>(swapChainExtent.width) / static_cast<float>(swapChainExtent.height), 0.1f, 10.0f);
-	//	ubo.proj[1][1] *= -1;
-
-	//	memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
-	//}
-
 }

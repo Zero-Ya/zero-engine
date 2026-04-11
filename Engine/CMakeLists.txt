@@ -39,7 +39,6 @@ target_sources(Engine
 	PRIVATE
 		${CPP_FILES}
 		#src/ZCore/ImGui/ImGuiVulkanUtil.cpp
-		#src/Platform/Vulkan/VulkanAPI.cpp
 		dependencies/stb/stb_image.cpp
 
 		src/Platform/Vulkan/VulkanContext.cpp
@@ -47,7 +46,9 @@ target_sources(Engine
 		src/Platform/Vulkan/VulkanPipelineManager.cpp
 		src/Platform/Vulkan/VulkanCommandManager.cpp
 		src/Platform/Vulkan/VulkanSyncManager.cpp
+
 		src/ZCore/Renderer/RenderFrame.cpp
+		src/ZCore/Renderer/ResourceManager.cpp
 
 	PUBLIC
 		FILE_SET HEADERS
@@ -55,14 +56,15 @@ target_sources(Engine
 		FILES
 			${H_FILES}
 			#src/ZCore/ImGui/ImGuiVulkanUtil.h
-			#src/Platform/Vulkan/VulkanAPI.h
 
 			src/Platform/Vulkan/VulkanContext.h
 			src/Platform/Vulkan/VulkanSwapchain.h
 			src/Platform/Vulkan/VulkanPipelineManager.h
 			src/Platform/Vulkan/VulkanCommandManager.h
 			src/Platform/Vulkan/VulkanSyncManager.h
+
 			src/ZCore/Renderer/RenderFrame.h
+			src/ZCore/Renderer/ResourceManager.h
 )
 
 # Precompiled headers

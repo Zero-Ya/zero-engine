@@ -4,7 +4,8 @@ namespace ZEngine {
 
 	static std::vector<char> readFile(const std::string& filename);
 
-	VulkanPipelineManager::VulkanPipelineManager(VulkanContext* ctx, VulkanSwapchain* swapchain) : vk_Ctx(ctx), vk_Swapchain(swapchain)
+	VulkanPipelineManager::VulkanPipelineManager(VulkanContext* ctx, VulkanSwapchain* swapchain, ResourceManager* resource) 
+		: vk_Ctx(ctx), vk_Swapchain(swapchain), resourceManager(resource)
 	{
 	}
 
@@ -29,14 +30,12 @@ namespace ZEngine {
 		vk::PipelineShaderStageCreateInfo fragShaderStageInfo{ .stage = vk::ShaderStageFlagBits::eFragment, .module = shaderModule, .pName = "fragMain" };
 		vk::PipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
 
-		//auto                                     bindingDescription = Vertex::getBindingDescription();
-		//auto                                     attributeDescriptions = Vertex::getAttributeDescriptions();
-		//vk::PipelineVertexInputStateCreateInfo   vertexInputInfo{ .vertexBindingDescriptionCount = 1,
-		//														 .pVertexBindingDescriptions = &bindingDescription,
-		//														 .vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size()),
-		//														 .pVertexAttributeDescriptions = attributeDescriptions.data() };
-
-		vk::PipelineVertexInputStateCreateInfo   vertexInputInfo;
+		auto                                     bindingDescription = Vertex::getBindingDescription();
+		auto                                     attributeDescriptions = Vertex::getAttributeDescriptions();
+		vk::PipelineVertexInputStateCreateInfo   vertexInputInfo{ .vertexBindingDescriptionCount = 1,
+																 .pVertexBindingDescriptions = &bindingDescription,
+																 .vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size()),
+																 .pVertexAttributeDescriptions = attributeDescriptions.data() };
 
 		vk::PipelineInputAssemblyStateCreateInfo inputAssembly{ .topology = vk::PrimitiveTopology::eTriangleList };
 		vk::PipelineViewportStateCreateInfo      viewportState{ .viewportCount = 1, .scissorCount = 1 };
@@ -45,7 +44,7 @@ namespace ZEngine {
 															.rasterizerDiscardEnable = vk::False,
 															.polygonMode = vk::PolygonMode::eFill,
 															.cullMode = vk::CullModeFlagBits::eBack,
-															.frontFace = vk::FrontFace::eClockwise, // change back to counter clockwise
+															.frontFace = vk::FrontFace::eCounterClockwise,
 															.depthBiasEnable = vk::False,
 															.lineWidth = 1.0f };
 
@@ -61,8 +60,7 @@ namespace ZEngine {
 		std::vector<vk::DynamicState>      dynamicStates = { vk::DynamicState::eViewport, vk::DynamicState::eScissor };
 		vk::PipelineDynamicStateCreateInfo dynamicState{ .dynamicStateCount = static_cast<uint32_t>(dynamicStates.size()), .pDynamicStates = dynamicStates.data() };
 
-		//vk::PipelineLayoutCreateInfo pipelineLayoutInfo{ .setLayoutCount = 1, .pSetLayouts = &*descriptorSetLayout, .pushConstantRangeCount = 0 };
-		vk::PipelineLayoutCreateInfo pipelineLayoutInfo{ .setLayoutCount = 0, .pushConstantRangeCount = 0 };
+		vk::PipelineLayoutCreateInfo pipelineLayoutInfo{ .setLayoutCount = 1, .pSetLayouts = &*descriptorSetLayout, .pushConstantRangeCount = 0 };
 		pipelineLayout = vk::raii::PipelineLayout(vk_Ctx->getDevice(), pipelineLayoutInfo);
 
 		vk::StructureChain<vk::GraphicsPipelineCreateInfo, vk::PipelineRenderingCreateInfo> pipelineCreateInfoChain = {
@@ -95,45 +93,45 @@ namespace ZEngine {
 		descriptorPool = vk::raii::DescriptorPool(vk_Ctx->getDevice(), poolInfo);
 	}
 
-	//void VulkanPipelineManager::createDescriptorSets()
-	//{
-	//	std::vector<vk::DescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, descriptorSetLayout);
-	//	vk::DescriptorSetAllocateInfo        allocInfo{
-	//			   .descriptorPool = descriptorPool,
-	//			   .descriptorSetCount = static_cast<uint32_t>(layouts.size()),
-	//			   .pSetLayouts = layouts.data() };
+	void VulkanPipelineManager::createDescriptorSets()
+	{
+		std::vector<vk::DescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, descriptorSetLayout);
+		vk::DescriptorSetAllocateInfo        allocInfo{
+				   .descriptorPool = descriptorPool,
+				   .descriptorSetCount = static_cast<uint32_t>(layouts.size()),
+				   .pSetLayouts = layouts.data() };
 
-	//	descriptorSets.clear();
-	//	descriptorSets = vk_Ctx->getDevice().allocateDescriptorSets(allocInfo);
+		descriptorSets.clear();
+		descriptorSets = vk_Ctx->getDevice().allocateDescriptorSets(allocInfo);
 
-	//	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-	//	{
-	//		vk::DescriptorBufferInfo bufferInfo{
-	//			.buffer = uniformBuffers[i],
-	//			.offset = 0,
-	//			.range = sizeof(UniformBufferObject) };
-	//		vk::DescriptorImageInfo imageInfo{
-	//			.sampler = textureSampler,
-	//			.imageView = textureImageView,
-	//			.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal };
-	//		std::array descriptorWrites{
-	//			vk::WriteDescriptorSet{
-	//				.dstSet = descriptorSets[i],
-	//				.dstBinding = 0,
-	//				.dstArrayElement = 0,
-	//				.descriptorCount = 1,
-	//				.descriptorType = vk::DescriptorType::eUniformBuffer,
-	//				.pBufferInfo = &bufferInfo},
-	//			vk::WriteDescriptorSet{
-	//				.dstSet = descriptorSets[i],
-	//				.dstBinding = 1,
-	//				.dstArrayElement = 0,
-	//				.descriptorCount = 1,
-	//				.descriptorType = vk::DescriptorType::eCombinedImageSampler,
-	//				.pImageInfo = &imageInfo} };
-	//		vk_Ctx->getDevice().updateDescriptorSets(descriptorWrites, {});
-	//	}
-	//}
+		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+		{
+			vk::DescriptorBufferInfo bufferInfo{
+				.buffer = resourceManager->getUniformBuffers()[i],
+				.offset = 0,
+				.range = sizeof(UniformBufferObject) };
+			vk::DescriptorImageInfo imageInfo{
+				.sampler = resourceManager->getTextureSampler(),
+				.imageView = resourceManager->getTextureImageView(),
+				.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal };
+			std::array descriptorWrites{
+				vk::WriteDescriptorSet{
+					.dstSet = descriptorSets[i],
+					.dstBinding = 0,
+					.dstArrayElement = 0,
+					.descriptorCount = 1,
+					.descriptorType = vk::DescriptorType::eUniformBuffer,
+					.pBufferInfo = &bufferInfo},
+				vk::WriteDescriptorSet{
+					.dstSet = descriptorSets[i],
+					.dstBinding = 1,
+					.dstArrayElement = 0,
+					.descriptorCount = 1,
+					.descriptorType = vk::DescriptorType::eCombinedImageSampler,
+					.pImageInfo = &imageInfo} };
+			vk_Ctx->getDevice().updateDescriptorSets(descriptorWrites, {});
+		}
+	}
 
 	[[nodiscard]] vk::raii::ShaderModule VulkanPipelineManager::createShaderModule(const std::vector<char>& code) const
 	{
