@@ -1,8 +1,10 @@
 #pragma once
 
 #include "VulkanContext.h"
+#include "ZCore/Renderer/ResourceManager.h"
 
 namespace ZEngine {
+	class ResourceManager;
 
 	class ZE_API VulkanSwapchain {
 	public:
@@ -10,6 +12,7 @@ namespace ZEngine {
 		~VulkanSwapchain();
 
 		void init();
+		void SetResourceManager(ResourceManager* resource) { resourceManager = resource; };
 
 		vk::raii::SwapchainKHR& getSwapchain() { return swapChain; };
 		std::vector<vk::Image> getImages() { return swapChainImages; };
@@ -24,8 +27,9 @@ namespace ZEngine {
 		void cleanupSwapChain();
 		void recreateSwapChain();
 	private:
-		VulkanContext* vk_Ctx;
+		VulkanContext* vk_Ctx = nullptr;
 		GLFWwindow* m_Window = nullptr;
+		ResourceManager* resourceManager = nullptr;
 
 		vk::raii::SwapchainKHR				 swapChain = nullptr;
 		std::vector<vk::Image>				 swapChainImages;

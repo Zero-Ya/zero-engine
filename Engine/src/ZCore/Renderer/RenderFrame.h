@@ -8,6 +8,7 @@
 #include "Platform/Vulkan/VulkanPipelineManager.h"
 #include "Platform/Vulkan/VulkanCommandManager.h"
 #include "ResourceManager.h"
+#include "ZCore/ImGui/ImGuiVulkanUtil.h"
 
 namespace ZEngine {
 
@@ -18,7 +19,8 @@ namespace ZEngine {
 					VulkanSyncManager* sync,
 					VulkanPipelineManager* pipeline,
 					VulkanCommandManager* command,
-					ResourceManager* resource);
+					ResourceManager* resource,
+					ImGuiVulkanUtil* imgui);
 
 		~RenderFrame();
 
@@ -33,19 +35,21 @@ namespace ZEngine {
 		VulkanPipelineManager* vk_PipelineManager;
 		VulkanCommandManager* vk_CommandManager;
 		ResourceManager* resourceManager;
+		ImGuiVulkanUtil* imguiUtil;
 
 		uint32_t frameIndex = 0;
 		bool framebufferResized = false;
 
 		void recordCommandBuffer(uint32_t imageIndex);
 		void transition_image_layout(
-			uint32_t                imageIndex,
+			vk::Image               image,
 			vk::ImageLayout         old_layout,
 			vk::ImageLayout         new_layout,
 			vk::AccessFlags2        src_access_mask,
 			vk::AccessFlags2        dst_access_mask,
 			vk::PipelineStageFlags2 src_stage_mask,
-			vk::PipelineStageFlags2 dst_stage_mask);
+			vk::PipelineStageFlags2 dst_stage_mask,
+			vk::ImageAspectFlags    image_aspect_flags);
 		void updateUniformBuffer(uint32_t currentImage);
 
 	};

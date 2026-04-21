@@ -5,7 +5,7 @@ namespace ZEngine {
 	static vk::SurfaceFormatKHR chooseSwapSurfaceFormat(std::vector<vk::SurfaceFormatKHR> const& availableFormats);
 	static vk::PresentModeKHR chooseSwapPresentMode(std::vector<vk::PresentModeKHR> const& availablePresentModes);
 
-	VulkanSwapchain::VulkanSwapchain(VulkanContext* ctx, GLFWwindow* window) : vk_Ctx(ctx), m_Window(window) 
+	VulkanSwapchain::VulkanSwapchain(VulkanContext* ctx, GLFWwindow* window) : vk_Ctx(ctx), m_Window(window)
 	{
 	}
 
@@ -81,6 +81,7 @@ namespace ZEngine {
 		cleanupSwapChain();
 		createSwapChain();
 		createImageViews();
+		resourceManager->createDepthResources();
 	}
 
 	static uint32_t chooseSwapMinImageCount(vk::SurfaceCapabilitiesKHR const& surfaceCapabilities)

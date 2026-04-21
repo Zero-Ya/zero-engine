@@ -23,7 +23,7 @@ namespace ZEngine {
 
 	void VulkanPipelineManager::createGraphicsPipeline()
 	{
-		vk::raii::ShaderModule shaderModule = createShaderModule(readFile(ASSETS_DIR"/shaders/slang.spv"));
+		vk::raii::ShaderModule shaderModule = createShaderModule(readFile(ASSETS_DIR"/shaders/shader.spv"));
 
 
 		vk::PipelineShaderStageCreateInfo vertShaderStageInfo{ .stage = vk::ShaderStageFlagBits::eVertex, .module = shaderModule, .pName = "vertMain" };
@@ -50,6 +50,13 @@ namespace ZEngine {
 
 		vk::PipelineMultisampleStateCreateInfo multisampling{ .rasterizationSamples = vk::SampleCountFlagBits::e1, .sampleShadingEnable = vk::False };
 
+		vk::PipelineDepthStencilStateCreateInfo depthStencil{
+		    .depthTestEnable       = vk::True,
+		    .depthWriteEnable      = vk::True,
+		    .depthCompareOp        = vk::CompareOp::eLess,
+		    .depthBoundsTestEnable = vk::False,
+		    .stencilTestEnable     = vk::False};
+
 		vk::PipelineColorBlendAttachmentState colorBlendAttachment{
 			.blendEnable = vk::False,
 			.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA };
@@ -63,6 +70,8 @@ namespace ZEngine {
 		vk::PipelineLayoutCreateInfo pipelineLayoutInfo{ .setLayoutCount = 1, .pSetLayouts = &*descriptorSetLayout, .pushConstantRangeCount = 0 };
 		pipelineLayout = vk::raii::PipelineLayout(vk_Ctx->getDevice(), pipelineLayoutInfo);
 
+		vk::Format depthFormat = resourceManager->findDepthFormat();
+
 		vk::StructureChain<vk::GraphicsPipelineCreateInfo, vk::PipelineRenderingCreateInfo> pipelineCreateInfoChain = {
 			{.stageCount = 2,
 			 .pStages = shaderStages,
@@ -71,11 +80,12 @@ namespace ZEngine {
 			 .pViewportState = &viewportState,
 			 .pRasterizationState = &rasterizer,
 			 .pMultisampleState = &multisampling,
+			 .pDepthStencilState = &depthStencil,
 			 .pColorBlendState = &colorBlending,
 			 .pDynamicState = &dynamicState,
 			 .layout = pipelineLayout,
 			 .renderPass = nullptr},
-			{.colorAttachmentCount = 1, .pColorAttachmentFormats = &vk_Swapchain->getFormat().format}};
+			{.colorAttachmentCount = 1, .pColorAttachmentFormats = &vk_Swapchain->getFormat().format, .depthAttachmentFormat = depthFormat}};
 
 		graphicsPipeline = vk::raii::Pipeline(vk_Ctx->getDevice(), nullptr, pipelineCreateInfoChain.get<vk::GraphicsPipelineCreateInfo>());
 	}

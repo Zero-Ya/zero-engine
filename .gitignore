@@ -4,10 +4,6 @@
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
 # Temp files
-ImGuiVulkanUtil.h
-ImGuiVulkanUtil.cpp
-VulkanAPI.cpp
-VulkanAPI.h
 
 # User-specific files
 *.rsuser
@@ -375,4 +371,5 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/Engine/src/Platform/Vulkan/VulkanAPI.h
 /Engine/src/Platform/Vulkan/VulkanAPI.h

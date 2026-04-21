@@ -2,9 +2,44 @@
 
 namespace ZEngine {
 
-	ResourceManager::ResourceManager(VulkanContext* ctx, VulkanCommandManager* command) : vk_Ctx(ctx), vk_CommandManager(command) {};
+	ResourceManager::ResourceManager(VulkanContext* ctx, VulkanCommandManager* command, VulkanSwapchain* swapchain) : vk_Ctx(ctx), vk_CommandManager(command), vk_Swapchain(swapchain) {}
 
-	ResourceManager::~ResourceManager() {};
+	ResourceManager::~ResourceManager() {}
+
+	void ResourceManager::createDepthResources()
+	{
+		vk::Format depthFormat = findDepthFormat();
+
+		createImage(vk_Swapchain->getExtent().width, vk_Swapchain->getExtent().height, depthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal, depthImage, depthImageMemory);
+		depthImageView = createImageView(depthImage, depthFormat, vk::ImageAspectFlagBits::eDepth);
+	}
+
+	vk::Format ResourceManager::findSupportedFormat(const std::vector<vk::Format>& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features)
+	{
+		auto formatIt = std::ranges::find_if(candidates, [&](auto const format) {
+			vk::FormatProperties props = vk_Ctx->getPhysicalDevice().getFormatProperties(format);
+			return (((tiling == vk::ImageTiling::eLinear) && ((props.linearTilingFeatures & features) == features)) ||
+				((tiling == vk::ImageTiling::eOptimal) && ((props.optimalTilingFeatures & features) == features)));
+			});
+		if (formatIt == candidates.end())
+		{
+			throw std::runtime_error("failed to find supported format!");
+		}
+		return *formatIt;
+	}
+
+	vk::Format ResourceManager::findDepthFormat()
+	{
+		return findSupportedFormat(
+			{ vk::Format::eD32Sfloat, vk::Format::eD32SfloatS8Uint, vk::Format::eD24UnormS8Uint },
+			vk::ImageTiling::eOptimal,
+			vk::FormatFeatureFlagBits::eDepthStencilAttachment);
+	}
+
+	bool ResourceManager::hasStencilComponent(vk::Format format)
+	{
+		return format == vk::Format::eD32SfloatS8Uint || format == vk::Format::eD24UnormS8Uint;
+	}
 
 	void ResourceManager::createTextureImage()
 	{
@@ -36,7 +71,7 @@ namespace ZEngine {
 
 	void ResourceManager::createTextureImageView()
 	{
-		textureImageView = createImageView(textureImage, vk::Format::eR8G8B8A8Srgb);
+		textureImageView = createImageView(textureImage, vk::Format::eR8G8B8A8Srgb, vk::ImageAspectFlagBits::eColor);
 	}
 
 	void ResourceManager::createTextureSampler()
@@ -216,13 +251,13 @@ namespace ZEngine {
 		endSingleTimeCommands(*commandBuffer);
 	}
 
-	vk::raii::ImageView ResourceManager::createImageView(vk::raii::Image& image, vk::Format format)
+	vk::raii::ImageView ResourceManager::createImageView(vk::raii::Image& image, vk::Format format, vk::ImageAspectFlags aspectFlags)
 	{
 		vk::ImageViewCreateInfo viewInfo{
 			.image = image,
 			.viewType = vk::ImageViewType::e2D,
 			.format = format,
-			.subresourceRange = {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1} };
+			.subresourceRange = {aspectFlags, 0, 1, 0, 1} };
 		return vk::raii::ImageView(vk_Ctx->getDevice(), viewInfo);
 	}
 

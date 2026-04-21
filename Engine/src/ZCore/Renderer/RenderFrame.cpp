@@ -2,8 +2,8 @@
 
 namespace ZEngine {
 
-	RenderFrame::RenderFrame(VulkanContext* ctx, VulkanSwapchain* swapchain, VulkanSyncManager* sync, VulkanPipelineManager* pipeline, VulkanCommandManager* command, ResourceManager* resource)
-		: vk_Ctx(ctx), vk_Swapchain(swapchain), vk_SyncManager(sync), vk_PipelineManager(pipeline), vk_CommandManager(command), resourceManager(resource)
+	RenderFrame::RenderFrame(VulkanContext* ctx, VulkanSwapchain* swapchain, VulkanSyncManager* sync, VulkanPipelineManager* pipeline, VulkanCommandManager* command, ResourceManager* resource, ImGuiVulkanUtil* imgui)
+		: vk_Ctx(ctx), vk_Swapchain(swapchain), vk_SyncManager(sync), vk_PipelineManager(pipeline), vk_CommandManager(command), resourceManager(resource), imguiUtil(imgui)
 	{
 	};
 
@@ -42,6 +42,7 @@ namespace ZEngine {
 		vk_Ctx->getDevice().resetFences(*vk_SyncManager->getInFlightFences()[frameIndex]);
 
 		vk_CommandManager->getCommandBuffers()[frameIndex].reset();
+
 		recordCommandBuffer(imageIndex);
 
 		vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
@@ -82,26 +83,49 @@ namespace ZEngine {
 
 		// Before starting rendering, transition the swapchain image to vk::ImageLayout::eColorAttachmentOptimal
 		transition_image_layout(
-			imageIndex,
+			vk_Swapchain->getImages()[imageIndex],
 			vk::ImageLayout::eUndefined,
 			vk::ImageLayout::eColorAttachmentOptimal,
 			{},                                                        // srcAccessMask (no need to wait for previous operations)
 			vk::AccessFlagBits2::eColorAttachmentWrite,                // dstAccessMask
 			vk::PipelineStageFlagBits2::eColorAttachmentOutput,        // srcStage
-			vk::PipelineStageFlagBits2::eColorAttachmentOutput         // dstStage
-		);
-		vk::ClearValue              clearColor = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f);
-		vk::RenderingAttachmentInfo attachmentInfo = {
-			.imageView = vk_Swapchain->getImageViews()[imageIndex],
-			.imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
-			.loadOp = vk::AttachmentLoadOp::eClear,
-			.storeOp = vk::AttachmentStoreOp::eStore,
-			.clearValue = clearColor };
+			vk::PipelineStageFlagBits2::eColorAttachmentOutput,        // dstStage
+			vk::ImageAspectFlagBits::eColor);
+		// Transition depth image to depth attachment optimal layout
+		transition_image_layout(
+			*resourceManager->getDepthImage(),
+			vk::ImageLayout::eUndefined,
+			vk::ImageLayout::eDepthAttachmentOptimal,
+			vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
+			vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
+			vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
+			vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
+			vk::ImageAspectFlagBits::eDepth);
+
+		// 3D scene rendering
+		vk::ClearValue clearColor = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f);
+		vk::ClearValue clearDepth = vk::ClearDepthStencilValue(1.0f, 0);
+
+		vk::RenderingAttachmentInfo colorAttachmentInfo = {
+		    .imageView   = vk_Swapchain->getImageViews()[imageIndex],
+		    .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
+		    .loadOp      = vk::AttachmentLoadOp::eClear,
+		    .storeOp     = vk::AttachmentStoreOp::eStore,
+		    .clearValue  = clearColor};
+
+		vk::RenderingAttachmentInfo depthAttachmentInfo = {
+		    .imageView   = resourceManager->getDepthImageView(),
+		    .imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
+		    .loadOp      = vk::AttachmentLoadOp::eClear,
+		    .storeOp     = vk::AttachmentStoreOp::eDontCare,
+		    .clearValue  = clearDepth};
+
 		vk::RenderingInfo renderingInfo = {
 			.renderArea = {.offset = {0, 0}, .extent = vk_Swapchain->getExtent()},
 			.layerCount = 1,
 			.colorAttachmentCount = 1,
-			.pColorAttachments = &attachmentInfo };
+			.pColorAttachments = &colorAttachmentInfo,
+			.pDepthAttachment = &depthAttachmentInfo };
 
 		commandBuffer.beginRendering(renderingInfo);
 		commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *vk_PipelineManager->getGraphicsPipeline());
@@ -113,15 +137,38 @@ namespace ZEngine {
 		commandBuffer.drawIndexed(indices.size(), 1, 0, 0, 0);
 		commandBuffer.endRendering();
 
+		imguiUtil->newFrame();
+
+		// Imgui rendering
+		vk::RenderingAttachmentInfo imguiColorAttachment{
+			.imageView = *vk_Swapchain->getImageViews()[imageIndex],
+			.imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
+			.loadOp = vk::AttachmentLoadOp::eLoad, // Load existing content
+			.storeOp = vk::AttachmentStoreOp::eStore
+		};
+		vk::RenderingInfo imguiRenderingInfo{
+		  .renderArea = vk::Rect2D({0, 0}, vk_Swapchain->getExtent()),
+		  .layerCount = 1,
+		  .colorAttachmentCount = 1,
+		  .pColorAttachments = &imguiColorAttachment,
+		  .pDepthAttachment = nullptr
+		};
+
+		commandBuffer.beginRendering(imguiRenderingInfo);
+		imguiUtil->drawFrame(commandBuffer, imageIndex, frameIndex);
+		commandBuffer.endRendering();
+		//
+
 		// After rendering, transition the swapchain image to vk::ImageLayout::ePresentSrcKHR
 		transition_image_layout(
-			imageIndex,
+			vk_Swapchain->getImages()[imageIndex],
 			vk::ImageLayout::eColorAttachmentOptimal,
 			vk::ImageLayout::ePresentSrcKHR,
 			vk::AccessFlagBits2::eColorAttachmentWrite,                // srcAccessMask
 			{},                                                        // dstAccessMask
 			vk::PipelineStageFlagBits2::eColorAttachmentOutput,        // srcStage
-			vk::PipelineStageFlagBits2::eBottomOfPipe                  // dstStage
+			vk::PipelineStageFlagBits2::eBottomOfPipe,                 // dstStage
+			vk::ImageAspectFlagBits::eColor
 		);
 		commandBuffer.end();
 	}
@@ -143,13 +190,14 @@ namespace ZEngine {
 	}
 
 	void RenderFrame::transition_image_layout(
-		uint32_t                imageIndex,
+		vk::Image               image,
 		vk::ImageLayout         old_layout,
 		vk::ImageLayout         new_layout,
 		vk::AccessFlags2        src_access_mask,
 		vk::AccessFlags2        dst_access_mask,
 		vk::PipelineStageFlags2 src_stage_mask,
-		vk::PipelineStageFlags2 dst_stage_mask)
+		vk::PipelineStageFlags2 dst_stage_mask,
+		vk::ImageAspectFlags    image_aspect_flags)
 	{
 		vk::ImageMemoryBarrier2 barrier = {
 			.srcStageMask = src_stage_mask,
@@ -160,9 +208,9 @@ namespace ZEngine {
 			.newLayout = new_layout,
 			.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
 			.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-			.image = vk_Swapchain->getImages()[imageIndex],
+			.image = image,
 			.subresourceRange = {
-				   .aspectMask = vk::ImageAspectFlagBits::eColor,
+				   .aspectMask = image_aspect_flags,
 				   .baseMipLevel = 0,
 				   .levelCount = 1,
 				   .baseArrayLayer = 0,
@@ -173,4 +221,5 @@ namespace ZEngine {
 			.pImageMemoryBarriers = &barrier };
 		vk_CommandManager->getCommandBuffers()[frameIndex].pipelineBarrier2(dependency_info);
 	}
+
 }

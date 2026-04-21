@@ -8,6 +8,9 @@
 #include "Platform/Vulkan/VulkanSyncManager.h"
 #include "Renderer/RenderFrame.h"
 #include "Renderer/ResourceManager.h"
+#include "ImGui/ImGuiVulkanUtil.h"
+
+#include "imgui.h"
 
 namespace ZEngine {
 
@@ -26,10 +29,20 @@ namespace ZEngine {
 		vk_Ctx = std::make_unique<VulkanContext>(window);
 		vk_Swapchain = std::make_unique<VulkanSwapchain>(vk_Ctx.get(), window);
 		vk_CommandManager = std::make_unique<VulkanCommandManager>(vk_Ctx.get());
-		resourceManager = std::make_unique<ResourceManager>(vk_Ctx.get(), vk_CommandManager.get());
+		resourceManager = std::make_unique<ResourceManager>(vk_Ctx.get(), vk_CommandManager.get(), vk_Swapchain.get());
+		vk_Swapchain->SetResourceManager(resourceManager.get());
 		vk_PipelineManager = std::make_unique<VulkanPipelineManager>(vk_Ctx.get(), vk_Swapchain.get(), resourceManager.get());
 		vk_SyncManager = std::make_unique< VulkanSyncManager>(vk_Ctx.get(), vk_Swapchain.get());
-		frameRenderer = std::make_unique< RenderFrame>(vk_Ctx.get(), vk_Swapchain.get(), vk_SyncManager.get(), vk_PipelineManager.get(), vk_CommandManager.get(), resourceManager.get());
+		imguiUtil = std::make_unique<ImGuiVulkanUtil>(vk_Ctx.get(), vk_Swapchain.get(), vk_CommandManager.get(), resourceManager.get(), vk_SyncManager.get());
+		frameRenderer = std::make_unique< RenderFrame>(
+			vk_Ctx.get(),
+			vk_Swapchain.get(),
+			vk_SyncManager.get(),
+			vk_PipelineManager.get(),
+			vk_CommandManager.get(),
+			resourceManager.get(),
+			imguiUtil.get()
+		);
 
 		vk_Ctx->init();
 		vk_Swapchain->init();
@@ -37,6 +50,9 @@ namespace ZEngine {
 		vk_PipelineManager->createDescriptorSetLayout();
 		vk_PipelineManager->createGraphicsPipeline();
 		vk_CommandManager->createCommandPool();
+
+		imguiUtil->init(vk_Swapchain->getExtent().width, vk_Swapchain->getExtent().height);
+		imguiUtil->initResources();
 
 		// Textures and buffers //
 
@@ -65,8 +81,7 @@ namespace ZEngine {
 	void Application::OnEvent(Event& e) {
 		EventDispatcher dispatcher(e);
 		dispatcher.Dispatch<WindowCloseEvent>(BIND_EVENT_FN(OnWindowClose));
-
-		//ZE_CORE_TRACE("{0}", e);
+		dispatcher.Dispatch<WindowResizeEvent>(BIND_EVENT_FN(OnWindowResize));
 
 		for (auto it = m_LayerStack.end(); it != m_LayerStack.begin(); ) {
 			(*--it)->OnEvent(e);
@@ -89,8 +104,12 @@ namespace ZEngine {
 	}
 
 	bool Application::OnWindowClose(WindowCloseEvent& e) {
-		frameRenderer->framebufferResize();
 		m_Running = false;
+		return true;
+	}
+
+	bool Application::OnWindowResize(WindowResizeEvent& e) {
+		frameRenderer->framebufferResize();
 		return true;
 	}
 }

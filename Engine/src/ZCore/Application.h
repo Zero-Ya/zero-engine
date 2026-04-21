@@ -15,6 +15,7 @@ namespace ZEngine {
 	class VulkanSyncManager;
 	class RenderFrame;
 	class ResourceManager;
+	class ImGuiVulkanUtil;
 
 	class ZE_API Application
 	{
@@ -35,6 +36,7 @@ namespace ZEngine {
 
 	private:
 		bool OnWindowClose(WindowCloseEvent& e);
+		bool OnWindowResize(WindowResizeEvent& e);
 
 		std::unique_ptr<Window> m_Window;
 		bool m_Running = true;
@@ -49,6 +51,7 @@ namespace ZEngine {
 		std::unique_ptr<VulkanSyncManager> vk_SyncManager;
 		std::unique_ptr<RenderFrame> frameRenderer;
 		std::unique_ptr<ResourceManager> resourceManager;
+		std::unique_ptr<ImGuiVulkanUtil> imguiUtil;
 	};
 
 	// To be defined in CLIENT

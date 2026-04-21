@@ -3,6 +3,16 @@ add_library(Engine SHARED)
 
 # All implementation files
 set(CPP_FILES
+	# dependencies files
+	dependencies/stb/stb_image.cpp
+
+	dependencies/imgui/imgui.cpp
+	dependencies/imgui/imgui_draw.cpp
+	dependencies/imgui/imgui_widgets.cpp
+	dependencies/imgui/imgui_tables.cpp
+	dependencies/imgui/imgui_demo.cpp
+	
+	#
 	src/ZCore/Application.cpp
 	src/ZCore/Log.cpp
 
@@ -10,6 +20,18 @@ set(CPP_FILES
 
 	src/ZCore/Layer.cpp
 	src/ZCore/LayerStack.cpp
+
+	#src/ZCore/ImGui/ImGuiLayer.cpp
+	src/ZCore/ImGui/ImGuiVulkanUtil.cpp
+
+	src/Platform/Vulkan/VulkanContext.cpp
+	src/Platform/Vulkan/VulkanSwapchain.cpp
+	src/Platform/Vulkan/VulkanPipelineManager.cpp
+	src/Platform/Vulkan/VulkanCommandManager.cpp
+	src/Platform/Vulkan/VulkanSyncManager.cpp
+
+	src/ZCore/Renderer/RenderFrame.cpp
+	src/ZCore/Renderer/ResourceManager.cpp
 )
 
 # All header files
@@ -32,39 +54,27 @@ set(H_FILES
 	src/ZCore/LayerStack.h
 
 	#src/ZCore/ImGui/ImGuiLayer.h
-	#src/ZCore/ImGui/ImGuiLayer.cpp
+	src/ZCore/ImGui/ImGuiVulkanUtil.h
+
+	src/Platform/Vulkan/VulkanContext.h
+	src/Platform/Vulkan/VulkanSwapchain.h
+	src/Platform/Vulkan/VulkanPipelineManager.h
+	src/Platform/Vulkan/VulkanCommandManager.h
+	src/Platform/Vulkan/VulkanSyncManager.h
+
+	src/ZCore/Renderer/RenderFrame.h
+	src/ZCore/Renderer/ResourceManager.h
 )
 
 target_sources(Engine
 	PRIVATE
 		${CPP_FILES}
-		#src/ZCore/ImGui/ImGuiVulkanUtil.cpp
-		dependencies/stb/stb_image.cpp
-
-		src/Platform/Vulkan/VulkanContext.cpp
-		src/Platform/Vulkan/VulkanSwapchain.cpp
-		src/Platform/Vulkan/VulkanPipelineManager.cpp
-		src/Platform/Vulkan/VulkanCommandManager.cpp
-		src/Platform/Vulkan/VulkanSyncManager.cpp
-
-		src/ZCore/Renderer/RenderFrame.cpp
-		src/ZCore/Renderer/ResourceManager.cpp
 
 	PUBLIC
 		FILE_SET HEADERS
 		BASE_DIRS src
 		FILES
 			${H_FILES}
-			#src/ZCore/ImGui/ImGuiVulkanUtil.h
-
-			src/Platform/Vulkan/VulkanContext.h
-			src/Platform/Vulkan/VulkanSwapchain.h
-			src/Platform/Vulkan/VulkanPipelineManager.h
-			src/Platform/Vulkan/VulkanCommandManager.h
-			src/Platform/Vulkan/VulkanSyncManager.h
-
-			src/ZCore/Renderer/RenderFrame.h
-			src/ZCore/Renderer/ResourceManager.h
 )
 
 # Precompiled headers
