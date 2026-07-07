@@ -1,8 +1,8 @@
 #include "WindowsWindow.h"
 
-#include "ZCore/Events/ApplicationEvent.h"
-#include "ZCore/Events/MouseEvent.h"
-#include "ZCore/Events/KeyEvent.h"
+#include "ZEngine/Events/ApplicationEvent.h"
+#include "ZEngine/Events/MouseEvent.h"
+#include "ZEngine/Events/KeyEvent.h"
 
 namespace ZEngine {
 
@@ -37,7 +37,6 @@ namespace ZEngine {
 
 		if (!s_GLFWInitialized)
 		{
-			// TODO: glfwTerminate on system shutdown
 			int success = glfwInit();
 			ZE_CORE_ASSERT(success, "Could not intialize GLFW!");
 			
@@ -91,6 +90,13 @@ namespace ZEngine {
 					break;
 				}
 			}
+		});
+
+		glfwSetCharCallback(m_Window, [](GLFWwindow* window, unsigned int keycode) {
+			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
+
+			KeyTypedEvent event(keycode);
+			data.EventCallback(event);
 		});
 
 		glfwSetMouseButtonCallback(m_Window, [](GLFWwindow* window, int button, int action, int mods) {

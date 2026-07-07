@@ -6,11 +6,11 @@
 #include "Platform/Vulkan/VulkanPipelineManager.h"
 #include "Platform/Vulkan/VulkanCommandManager.h"
 #include "Platform/Vulkan/VulkanSyncManager.h"
-#include "Renderer/RenderFrame.h"
-#include "Renderer/ResourceManager.h"
-#include "ImGui/ImGuiVulkanUtil.h"
+#include "ZEngine/Renderer/RenderFrame.h"
+#include "ZEngine/Renderer/ResourceManager.h"
+#include "ZEngine/ImGui/ImGuiVulkanUtil.h"
 
-#include "imgui.h"
+#include "Input.h"
 
 namespace ZEngine {
 
@@ -25,6 +25,10 @@ namespace ZEngine {
 		m_Window = std::unique_ptr<Window>(Window::Create());
 		m_Window->SetEventCallback(BIND_EVENT_FN(OnEvent));
 
+		//m_ImGuiLayer = new ImGuiLayer();
+		//PushOverlay(m_ImGuiLayer);
+
+		// Vulkan resources initialization
 		auto window = static_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow());
 		vk_Ctx = std::make_unique<VulkanContext>(window);
 		vk_Swapchain = std::make_unique<VulkanSwapchain>(vk_Ctx.get(), window);
@@ -40,24 +44,18 @@ namespace ZEngine {
 			vk_SyncManager.get(),
 			vk_PipelineManager.get(),
 			vk_CommandManager.get(),
-			resourceManager.get(),
-			imguiUtil.get()
+			resourceManager.get()
 		);
 
-		vk_Ctx->init();
+		vk_Ctx->Init();
 		vk_Swapchain->init();
 
 		vk_PipelineManager->createDescriptorSetLayout();
 		vk_PipelineManager->createGraphicsPipeline();
 		vk_CommandManager->createCommandPool();
 
-		imguiUtil->init(vk_Swapchain->getExtent().width, vk_Swapchain->getExtent().height);
-		imguiUtil->initResources();
-
 		// Textures and buffers //
-
 		resourceManager->init();
-
 		// //
 
 		vk_PipelineManager->createDescriptorPool();
@@ -72,10 +70,12 @@ namespace ZEngine {
 
 	void Application::PushLayer(Layer* layer) {
 		m_LayerStack.PushLayer(layer);
+		layer->OnAttach();
 	}
 
 	void Application::PushOverlay(Layer* layer) {
 		m_LayerStack.PushOverlay(layer);
+		layer->OnAttach();
 	}
 
 	void Application::OnEvent(Event& e) {
@@ -96,7 +96,17 @@ namespace ZEngine {
 			for (Layer* layer : m_LayerStack)
 				layer->OnUpdate();
 
-			frameRenderer->drawFrame();
+			//
+			currentImageIndex = frameRenderer->beginFrame();
+			frameRenderer->middleRecord(currentImageIndex);
+
+			for (Layer* layer : m_LayerStack) {
+				layer->OnRender();
+			}
+
+			frameRenderer->endFrame(currentImageIndex);
+			//
+
 			m_Window->OnUpdate();
 		}
 

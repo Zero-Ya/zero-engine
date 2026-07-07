@@ -1,11 +1,12 @@
 #pragma once
 
 #ifdef ZE_PLATFORM_WINDOWS
-	#ifdef ZE_BUILD_DLL
-		#define ZE_API __declspec(dllexport)
-	#else
-		#define ZE_API __declspec(dllimport)
-	#endif
+	//#ifdef ZE_BUILD_DLL
+	//	#define ZE_API __declspec(dllexport)
+	//#else
+	//	#define ZE_API __declspec(dllimport)
+	//#endif
+	#define ZE_API
 #else
 	#error Zero engine only supports Windows.
 #endif
@@ -19,3 +20,5 @@
 #endif
 
 #define BIT(x) (1 << x)
+
+#define ZE_BIND_EVENT_FN(fn) std::bind(&fn, this, std::placeholders::_1)

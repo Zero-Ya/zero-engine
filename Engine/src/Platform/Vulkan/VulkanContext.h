@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ZEngine/Renderer/GraphicsContext.h"
+
 #define VULKAN_HPP_NO_STRUCT_CONSTRUCTORS
 #include <vulkan/vulkan_raii.hpp>
 
@@ -18,7 +20,7 @@ namespace ZEngine {
 	constexpr bool enableValidationLayers = false;
 #endif
 
-	class ZE_API VulkanContext {
+	class VulkanContext : public GraphicsContext {
 	public:
 		VulkanContext(GLFWwindow* window);
 		~VulkanContext();
@@ -26,7 +28,7 @@ namespace ZEngine {
 		VulkanContext(const VulkanContext&) = delete;
 		VulkanContext& operator=(const VulkanContext&) = delete;
 
-		void init();
+		virtual void Init() override;
 
 		vk::raii::Instance& getInstance() { return instance; };
 		vk::raii::SurfaceKHR& getSurface() { return surface; };

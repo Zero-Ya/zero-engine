@@ -1,7 +1,7 @@
 #pragma once
 
 #include "VulkanContext.h"
-#include "ZCore/Renderer/ResourceManager.h"
+#include "ZEngine/Renderer/ResourceManager.h"
 
 namespace ZEngine {
 	class ResourceManager;

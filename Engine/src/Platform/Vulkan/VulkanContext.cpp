@@ -10,7 +10,7 @@ namespace ZEngine {
 
 	VulkanContext::~VulkanContext() {}
 
-	void VulkanContext::init()
+	void VulkanContext::Init()
 	{
 		createInstance();
 		setupDebugMessenger();

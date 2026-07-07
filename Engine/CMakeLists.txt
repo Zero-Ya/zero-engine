@@ -1,9 +1,8 @@
-# DLL
-add_library(Engine SHARED)
+# Static
+add_library(Engine STATIC)
 
-# All implementation files
-set(CPP_FILES
-	# dependencies files
+# Dependencies files
+set(DEPEN_FILES
 	dependencies/stb/stb_image.cpp
 
 	dependencies/imgui/imgui.cpp
@@ -11,71 +10,27 @@ set(CPP_FILES
 	dependencies/imgui/imgui_widgets.cpp
 	dependencies/imgui/imgui_tables.cpp
 	dependencies/imgui/imgui_demo.cpp
-	
-	#
-	src/ZCore/Application.cpp
-	src/ZCore/Log.cpp
-
-	src/Platform/Windows/WindowsWindow.cpp
-
-	src/ZCore/Layer.cpp
-	src/ZCore/LayerStack.cpp
-
-	#src/ZCore/ImGui/ImGuiLayer.cpp
-	src/ZCore/ImGui/ImGuiVulkanUtil.cpp
-
-	src/Platform/Vulkan/VulkanContext.cpp
-	src/Platform/Vulkan/VulkanSwapchain.cpp
-	src/Platform/Vulkan/VulkanPipelineManager.cpp
-	src/Platform/Vulkan/VulkanCommandManager.cpp
-	src/Platform/Vulkan/VulkanSyncManager.cpp
-
-	src/ZCore/Renderer/RenderFrame.cpp
-	src/ZCore/Renderer/ResourceManager.cpp
 )
 
-# All header files
-set(H_FILES
-	src/ZCore.h
-	src/ZCore/Application.h
-	src/ZCore/Core.h
-	src/ZCore/EntryPoint.h
-	src/ZCore/Log.h
-
-	src/ZCore/Events/ApplicationEvent.h
-	src/ZCore/Events/Event.h
-	src/ZCore/Events/KeyEvent.h
-	src/ZCore/Events/MouseEvent.h
-
-	src/ZCore/Window.h
-	src/Platform/Windows/WindowsWindow.h
-
-	src/ZCore/Layer.h
-	src/ZCore/LayerStack.h
-
-	#src/ZCore/ImGui/ImGuiLayer.h
-	src/ZCore/ImGui/ImGuiVulkanUtil.h
-
-	src/Platform/Vulkan/VulkanContext.h
-	src/Platform/Vulkan/VulkanSwapchain.h
-	src/Platform/Vulkan/VulkanPipelineManager.h
-	src/Platform/Vulkan/VulkanCommandManager.h
-	src/Platform/Vulkan/VulkanSyncManager.h
-
-	src/ZCore/Renderer/RenderFrame.h
-	src/ZCore/Renderer/ResourceManager.h
+# All implementation files
+file(GLOB_RECURSE MAIN_SOURCES CONFIGURE_DEPENDS
+	"src/ZEngine/*.h"
+	"src/ZEngine/*.cpp"
+	"src/ZEngine/*.c"
+	"src/Platform/Vulkan/*.h"
+	"src/Platform/Vulkan/*.cpp"
 )
 
-target_sources(Engine
-	PRIVATE
-		${CPP_FILES}
+# Only compile if the OS is Windows
+if(WIN32)
+    file(GLOB_RECURSE WINDOWS_SOURCES
+        "src/Platform/Windows/*.h" 
+        "src/Platform/Windows/*.cpp"
+    )
+    list(APPEND MAIN_SOURCES ${WINDOWS_SOURCES})
+endif()
 
-	PUBLIC
-		FILE_SET HEADERS
-		BASE_DIRS src
-		FILES
-			${H_FILES}
-)
+target_sources(Engine PRIVATE ${MAIN_SOURCES} ${DEPEN_FILES} "src/ZEngine.h" "src/zepch.h")
 
 # Precompiled headers
 target_precompile_headers(Engine PRIVATE

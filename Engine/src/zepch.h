@@ -22,7 +22,7 @@
 #include <array>
 #include <chrono>
 
-#include "ZCore/Log.h"
+#include "ZEngine/Core/Log.h"
 
 #ifdef ZE_PLATFORM_WINDOWS
 	#include <Windows.h>

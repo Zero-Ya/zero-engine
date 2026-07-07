@@ -4,8 +4,10 @@
 
 #include "Window.h"
 #include "LayerStack.h"
-#include "Events/Event.h"
-#include "Events/ApplicationEvent.h"
+#include "ZEngine/Events/Event.h"
+#include "ZEngine/Events/ApplicationEvent.h"
+
+#include "ZEngine/ImGui/ImGuiLayer.h"
 
 namespace ZEngine {
 	class VulkanContext;
@@ -34,11 +36,19 @@ namespace ZEngine {
 
 		inline static Application& Get() { return *s_Instance; }
 
+		// Temporary
+		VulkanSwapchain* getVk_Swapchain() { return vk_Swapchain.get(); };
+		RenderFrame* getRenderFrame() { return frameRenderer.get(); };
+		VulkanCommandManager* getVk_CommandManager() { return vk_CommandManager.get(); };
+		ImGuiVulkanUtil* getImGuiVulkanUtil() { return imguiUtil.get(); };
+		uint32_t currentImageIndex;
+
 	private:
 		bool OnWindowClose(WindowCloseEvent& e);
 		bool OnWindowResize(WindowResizeEvent& e);
 
 		std::unique_ptr<Window> m_Window;
+		//ImGuiLayer* m_ImGuiLayer;
 		bool m_Running = true;
 		LayerStack m_LayerStack;
 

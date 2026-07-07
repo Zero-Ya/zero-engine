@@ -1,7 +1,7 @@
 #pragma once
 
-#include "ZCore/Core.h"
-#include "ZCore/Events/Event.h"
+#include "ZEngine/Core/Core.h"
+#include "ZEngine/Events/Event.h"
 
 namespace ZEngine {
 	struct WindowProps
@@ -33,8 +33,6 @@ namespace ZEngine {
 
 		// Window attributes
 		virtual void SetEventCallback(const EventCallbackFn& callback) = 0;
-		void SetVSync(bool enabled);
-		bool IsVSync() const;
 
 		virtual void* GetNativeWindow() const = 0;
 

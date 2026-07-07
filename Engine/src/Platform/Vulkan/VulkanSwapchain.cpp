@@ -1,5 +1,7 @@
 #include "VulkanSwapchain.h"
 
+#include "imgui.h"
+
 namespace ZEngine {
 	static uint32_t chooseSwapMinImageCount(vk::SurfaceCapabilitiesKHR const& surfaceCapabilities);
 	static vk::SurfaceFormatKHR chooseSwapSurfaceFormat(std::vector<vk::SurfaceFormatKHR> const& availableFormats);
@@ -82,6 +84,11 @@ namespace ZEngine {
 		createSwapChain();
 		createImageViews();
 		resourceManager->createDepthResources();
+
+		// ImGui on window resize
+		ImGuiIO& io = ImGui::GetIO();
+		io.DisplaySize = ImVec2(static_cast<float>(swapChainExtent.width),
+			static_cast<float>(swapChainExtent.height));
 	}
 
 	static uint32_t chooseSwapMinImageCount(vk::SurfaceCapabilitiesKHR const& surfaceCapabilities)

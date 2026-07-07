@@ -4,7 +4,7 @@
 #include "Platform/Vulkan/VulkanSwapchain.h"
 #include "Platform/Vulkan/VulkanCommandManager.h"
 #include "Platform/Vulkan/VulkanSyncManager.h"
-#include "ZCore/Renderer/ResourceManager.h"
+#include "ZEngine/Renderer/ResourceManager.h"
 
 #include <vulkan/vulkan_raii.hpp>
 #include <imgui.h>
@@ -67,6 +67,10 @@ namespace ZEngine {
         bool newFrame();
         void updateBuffers(uint32_t frameIndex);
         void drawFrame(vk::raii::CommandBuffer& commandBuffer, uint32_t imageIndex, uint32_t frameIndex);
+
+        //void handleKey(int key, int scancode, int action, int mods);
+        //bool getWantKeyCapture();
+        //void charPressed(uint32_t key);
 
         void createPipeline();
         vk::raii::ShaderModule createShaderModule(const std::vector<char>& code) const;

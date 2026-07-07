@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ZCore/Core.h"
+#include "ZEngine/Core/Core.h"
 
 namespace ZEngine {
 
@@ -8,7 +8,7 @@ namespace ZEngine {
 		None = 0,
 		WindowClose, WindowResize, WindowFocus, WindowLostFocus, WindowMoved,
 		AppTick, AppUpdate, AppRender,
-		KeyPressed, KeyReleased,
+		KeyPressed, KeyReleased, KeyTyped,
 		MouseButtonPressed, MouseButtonReleased, MouseMoved, MouseScrolled
 	};
 

@@ -8,7 +8,6 @@
 #include "Platform/Vulkan/VulkanPipelineManager.h"
 #include "Platform/Vulkan/VulkanCommandManager.h"
 #include "ResourceManager.h"
-#include "ZCore/ImGui/ImGuiVulkanUtil.h"
 
 namespace ZEngine {
 
@@ -19,14 +18,16 @@ namespace ZEngine {
 					VulkanSyncManager* sync,
 					VulkanPipelineManager* pipeline,
 					VulkanCommandManager* command,
-					ResourceManager* resource,
-					ImGuiVulkanUtil* imgui);
+					ResourceManager* resource);
 
 		~RenderFrame();
 
-		void drawFrame();
+		uint32_t beginFrame();
+		void middleRecord(uint32_t imageIndex);
+		void endFrame(uint32_t imageIndex);
 
 		void framebufferResize() { this->framebufferResized = true; };
+		uint32_t frameIndex = 0;
 
 	private:
 		VulkanContext* vk_Ctx;
@@ -35,12 +36,9 @@ namespace ZEngine {
 		VulkanPipelineManager* vk_PipelineManager;
 		VulkanCommandManager* vk_CommandManager;
 		ResourceManager* resourceManager;
-		ImGuiVulkanUtil* imguiUtil;
 
-		uint32_t frameIndex = 0;
 		bool framebufferResized = false;
 
-		void recordCommandBuffer(uint32_t imageIndex);
 		void transition_image_layout(
 			vk::Image               image,
 			vk::ImageLayout         old_layout,
