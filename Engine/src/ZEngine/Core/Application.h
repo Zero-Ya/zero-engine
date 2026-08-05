@@ -9,18 +9,17 @@
 
 #include "ZEngine/ImGui/ImGuiLayer.h"
 
-namespace ZEngine {
-	class VulkanContext;
-	class VulkanSwapchain;
-	class VulkanPipelineManager;
-	class VulkanCommandManager;
-	class VulkanSyncManager;
-	class RenderFrame;
-	class ResourceManager;
-	class ImGuiVulkanUtil;
+#include "ZEngine/Renderer/GraphicsContext.h"
+#include "ZEngine/Renderer/LayoutManager.h"
+#include "ZEngine/Renderer/Shader.h"
+#include "ZEngine/Renderer/VertexArray.h"
+#include "ZEngine/Renderer/PipelineState.h"
 
-	class ZE_API Application
-	{
+#include "ZEngine/Renderer/PerspectiveCamera.h"
+
+namespace ZEngine {
+
+	class Application {
 	public:
 		Application();
 		virtual ~Application();
@@ -32,36 +31,32 @@ namespace ZEngine {
 		void PushLayer(Layer* layer);
 		void PushOverlay(Layer* layer);
 
-		inline Window& GetWindow() { return *m_Window; }
-
 		inline static Application& Get() { return *s_Instance; }
-
-		// Temporary
-		VulkanSwapchain* getVk_Swapchain() { return vk_Swapchain.get(); };
-		RenderFrame* getRenderFrame() { return frameRenderer.get(); };
-		VulkanCommandManager* getVk_CommandManager() { return vk_CommandManager.get(); };
-		ImGuiVulkanUtil* getImGuiVulkanUtil() { return imguiUtil.get(); };
-		uint32_t currentImageIndex;
+		inline Window& GetWindow() { return *m_Window; }
+		inline GraphicsContext* GetGraphicsContext() { return m_Context.get(); }
 
 	private:
 		bool OnWindowClose(WindowCloseEvent& e);
 		bool OnWindowResize(WindowResizeEvent& e);
 
 		std::unique_ptr<Window> m_Window;
-		//ImGuiLayer* m_ImGuiLayer;
-		bool m_Running = true;
+		std::unique_ptr<GraphicsContext> m_Context;
+
+		ImGuiLayer* m_ImGuiLayer;
 		LayerStack m_LayerStack;
 
-		static Application* s_Instance;
+		bool m_Running = true;
+		
+		std::unique_ptr<LayoutManager> m_LayoutManager;
+		std::shared_ptr<Shader> m_Shader;
+		std::shared_ptr<RenderCommandBuffer> m_FrameCommandBuffer;
+		std::shared_ptr<VertexArray> m_VertexArray;
+		std::shared_ptr<PipelineState> m_PipelineState;
 
-		std::unique_ptr<VulkanContext> vk_Ctx;
-		std::unique_ptr<VulkanSwapchain> vk_Swapchain;
-		std::unique_ptr<VulkanPipelineManager> vk_PipelineManager;
-		std::unique_ptr<VulkanCommandManager> vk_CommandManager;
-		std::unique_ptr<VulkanSyncManager> vk_SyncManager;
-		std::unique_ptr<RenderFrame> frameRenderer;
-		std::unique_ptr<ResourceManager> resourceManager;
-		std::unique_ptr<ImGuiVulkanUtil> imguiUtil;
+		PerspectiveCamera m_Camera;
+
+	private:
+		static Application* s_Instance;
 	};
 
 	// To be defined in CLIENT

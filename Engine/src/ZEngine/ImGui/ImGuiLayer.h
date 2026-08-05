@@ -7,39 +7,28 @@
 #include "ZEngine/Events/MouseEvent.h"
 
 namespace ZEngine {
-	class Application;
-	class VulkanSwapchain;
-	class RenderFrame;
-	class VulkanCommandManager;
-	class ImGuiVulkanUtil;
+	class VulkanImGuiUtil;
+	class RenderCommandBuffer;
 
-	class ZE_API ImGuiLayer : public Layer {
+	class ImGuiLayer : public Layer {
 	public:
 		ImGuiLayer();
-		~ImGuiLayer();
+		~ImGuiLayer() = default;
 
-		void OnAttach();
-		void OnDetach();
-		void OnUpdate();
-		void OnRender();
-		void OnEvent(Event& event);
+		virtual void OnAttach() override;
+		virtual void OnDetach() override;
+		virtual void OnImGuiRender() override;
+
+		void Begin();
+		void End(const std::shared_ptr<RenderCommandBuffer>& renderCommandBuffer);
 
 	private:
 		float m_Time = 0.0f;
+		bool m_ShowDemo = true;
 
-		bool OnMouseButtonPressedEvent(MouseButtonPressedEvent& e);
-		bool OnMouseButtonReleasedEvent(MouseButtonReleasedEvent& e);
-		bool OnMouseMovedEvent(MouseMovedEvent& e);
-		bool OnMouseScrolledEvent(MouseScrolledEvent& e);
-		bool OnKeyPressedEvent(KeyPressedEvent& e);
-		bool OnKeyReleasedEvent(KeyReleasedEvent& e);
-		bool OnKeyTypedEvent(KeyTypedEvent& e);
-		//bool OnWindowResizeEvent(WindowResizeEvent& e);
-
-		VulkanSwapchain* vk_Swapchain;
-		RenderFrame* frameRenderer;
-		VulkanCommandManager* vk_CommandManager;
-		ImGuiVulkanUtil* imguiUtil;
+	private:
+		// Should be platform agnostic...
+		std::unique_ptr<VulkanImGuiUtil> m_Backend;
 	};
 
 }

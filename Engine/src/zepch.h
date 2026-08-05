@@ -12,7 +12,6 @@
 #include <unordered_map>
 #include <unordered_set>
 
-// Vulkan stuff
 #include <assert.h>
 #include <cstdlib>
 #include <cstring>

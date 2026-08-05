@@ -24,6 +24,7 @@ target_precompile_headers(Sandbox PRIVATE
 target_include_directories(Sandbox PRIVATE
 	${CMAKE_SOURCE_DIR}/Engine/dependencies/spdlog/include
 	${CMAKE_SOURCE_DIR}/Engine/src
+	${CMAKE_SOURCE_DIR}/Engine/dependencies/glm
 )
 
 # Copy dll to binary dir

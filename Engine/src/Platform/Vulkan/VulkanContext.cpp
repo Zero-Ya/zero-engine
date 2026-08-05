@@ -1,30 +1,42 @@
 #include "VulkanContext.h"
+#include "Platform/Vulkan/VulkanSwapchain.h"
+#include "Platform/Vulkan/VulkanCommandBuffer.h"
+
+namespace {
+
+	std::vector<const char*> getRequiredInstanceExtensions(bool enableValidationLayers);
+	VKAPI_ATTR vk::Bool32 VKAPI_CALL debugCallback(vk::DebugUtilsMessageSeverityFlagBitsEXT severity, vk::DebugUtilsMessageTypeFlagsEXT type, const vk::DebugUtilsMessengerCallbackDataEXT* pCallbackData, void*);
+
+}
 
 namespace ZEngine {
-	std::vector<const char*> getRequiredInstanceExtensions();
-	static VKAPI_ATTR vk::Bool32 VKAPI_CALL debugCallback(vk::DebugUtilsMessageSeverityFlagBitsEXT severity, vk::DebugUtilsMessageTypeFlagsEXT type, const vk::DebugUtilsMessengerCallbackDataEXT* pCallbackData, void*);
 
-	VulkanContext::VulkanContext(GLFWwindow* window) : m_Window(window)
-	{
-	}
+	VulkanContext::VulkanContext(GLFWwindow* window)
+		: m_Window(window) {}
 
 	VulkanContext::~VulkanContext() {}
 
-	void VulkanContext::Init()
-	{
-		createInstance();
-		setupDebugMessenger();
-		createSurface();
-		pickPhysicalDevice();
-		createLogicalDevice();
+	void VulkanContext::Init() {
+		CreateInstance();
+		SetupDebugMessenger();
+		CreateSurface();
+		PickPhysicalDevice();
+		CreateLogicalDevice();
+		CreateSwapchain();
+		CreateCommandPool();
+		CreateSyncObjects();
+		ZE_CORE_INFO("Vulkan Context created!");
 	}
 
-	void VulkanContext::createInstance() {
-		constexpr vk::ApplicationInfo appInfo{ .pApplicationName = "Hello Triangle",
-											  .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
-											  .pEngineName = "No Engine",
-											  .engineVersion = VK_MAKE_VERSION(1, 0, 0),
-											  .apiVersion = vk::ApiVersion14 };
+	void VulkanContext::SwapBuffers() {
+	}
+
+	void VulkanContext::CreateInstance() {
+		constexpr vk::ApplicationInfo appInfo { .pApplicationName = "Zero Engine",
+											    .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
+											    .pEngineName = "No Engine",
+											    .engineVersion = VK_MAKE_VERSION(1, 0, 0),
+											    .apiVersion = vk::ApiVersion14 };
 
 		// Get the required layers
 		std::vector<char const*> requiredLayers;
@@ -34,7 +46,7 @@ namespace ZEngine {
 		}
 
 		// Check if the required layers are supported by the Vulkan implementation.
-		auto layerProperties = context.enumerateInstanceLayerProperties();
+		auto layerProperties = m_Context.enumerateInstanceLayerProperties();
 		auto unsupportedLayerIt = std::ranges::find_if(requiredLayers,
 			[&layerProperties](auto const& requiredLayer) {
 				return std::ranges::none_of(layerProperties,
@@ -46,10 +58,10 @@ namespace ZEngine {
 		}
 
 		// Get the required extensions.
-		auto requiredExtensions = getRequiredInstanceExtensions();
+		auto requiredExtensions = getRequiredInstanceExtensions(enableValidationLayers);
 
 		// Check if the required extensions are supported by the Vulkan implementation.
-		auto extensionProperties = context.enumerateInstanceExtensionProperties();
+		auto extensionProperties = m_Context.enumerateInstanceExtensionProperties();
 		auto unsupportedPropertyIt =
 			std::ranges::find_if(requiredExtensions,
 				[&extensionProperties](auto const& requiredExtension) {
@@ -61,16 +73,16 @@ namespace ZEngine {
 			throw std::runtime_error("Required extension not supported: " + std::string(*unsupportedPropertyIt));
 		}
 
-		vk::InstanceCreateInfo createInfo{ .pApplicationInfo = &appInfo,
-										  .enabledLayerCount = static_cast<uint32_t>(requiredLayers.size()),
-										  .ppEnabledLayerNames = requiredLayers.data(),
-										  .enabledExtensionCount = static_cast<uint32_t>(requiredExtensions.size()),
-										  .ppEnabledExtensionNames = requiredExtensions.data() };
-		instance = vk::raii::Instance(context, createInfo);
+		vk::InstanceCreateInfo createInfo { .pApplicationInfo = &appInfo,
+										    .enabledLayerCount = static_cast<uint32_t>(requiredLayers.size()),
+										    .ppEnabledLayerNames = requiredLayers.data(),
+										    .enabledExtensionCount = static_cast<uint32_t>(requiredExtensions.size()),
+										    .ppEnabledExtensionNames = requiredExtensions.data() };
+
+		m_Instance = vk::raii::Instance(m_Context, createInfo);
 	}
 
-	void VulkanContext::setupDebugMessenger()
-	{
+	void VulkanContext::SetupDebugMessenger() {
 		if (!enableValidationLayers)
 			return;
 
@@ -81,21 +93,19 @@ namespace ZEngine {
 		vk::DebugUtilsMessengerCreateInfoEXT debugUtilsMessengerCreateInfoEXT{ .messageSeverity = severityFlags,
 																			  .messageType = messageTypeFlags,
 																			  .pfnUserCallback = &debugCallback };
-		debugMessenger = instance.createDebugUtilsMessengerEXT(debugUtilsMessengerCreateInfoEXT);
+		debugMessenger = m_Instance.createDebugUtilsMessengerEXT(debugUtilsMessengerCreateInfoEXT);
 	}
 
-	void VulkanContext::createSurface()
-	{
+	void VulkanContext::CreateSurface() {
 		VkSurfaceKHR _surface;
-		if (glfwCreateWindowSurface(*instance, m_Window, nullptr, &_surface) != 0)
+		if (glfwCreateWindowSurface(*m_Instance, m_Window, nullptr, &_surface) != 0)
 		{
 			throw std::runtime_error("failed to create window surface!");
 		}
-		surface = vk::raii::SurfaceKHR(instance, _surface);
+		m_Surface = vk::raii::SurfaceKHR(m_Instance, _surface);
 	}
 
-	bool VulkanContext::isDeviceSuitable(vk::raii::PhysicalDevice const& physicalDevice)
-	{
+	bool VulkanContext::IsDeviceSuitable(vk::raii::PhysicalDevice const& physicalDevice) {
 		// Check if the physicalDevice supports the Vulkan 1.3 API version
 		bool supportsVulkan1_3 = physicalDevice.getProperties().apiVersion >= VK_API_VERSION_1_3;
 
@@ -125,28 +135,26 @@ namespace ZEngine {
 		return supportsVulkan1_3 && supportsGraphics && supportsAllRequiredExtensions && supportsRequiredFeatures;
 	}
 
-	void VulkanContext::pickPhysicalDevice()
-	{
-		std::vector<vk::raii::PhysicalDevice> physicalDevices = instance.enumeratePhysicalDevices();
-		auto const                            devIter = std::ranges::find_if(physicalDevices, [&](auto const& physicalDevice) { return isDeviceSuitable(physicalDevice); });
+	void VulkanContext::PickPhysicalDevice() {
+		std::vector<vk::raii::PhysicalDevice> physicalDevices = m_Instance.enumeratePhysicalDevices();
+		auto const                            devIter = std::ranges::find_if(physicalDevices, [&](auto const& physicalDevice) { return IsDeviceSuitable(physicalDevice); });
 		if (devIter == physicalDevices.end())
 		{
 			throw std::runtime_error("failed to find a suitable GPU!");
 		}
-		physicalDevice = *devIter;
+		m_PhysicalDevice = *devIter;
 	}
 
-	void VulkanContext::createLogicalDevice()
-	{
-		std::vector<vk::QueueFamilyProperties> queueFamilyProperties = physicalDevice.getQueueFamilyProperties();
+	void VulkanContext::CreateLogicalDevice() {
+		std::vector<vk::QueueFamilyProperties> queueFamilyProperties = m_PhysicalDevice.getQueueFamilyProperties();
 
-		// get the first index into queueFamilyProperties which supports both graphics and present
+		// Get the first index into queueFamilyProperties which supports both graphics and present
 		for (uint32_t qfpIndex = 0; qfpIndex < queueFamilyProperties.size(); qfpIndex++)
 		{
 			if ((queueFamilyProperties[qfpIndex].queueFlags & vk::QueueFlagBits::eGraphics) &&
-				physicalDevice.getSurfaceSupportKHR(qfpIndex, *surface))
+				m_PhysicalDevice.getSurfaceSupportKHR(qfpIndex, *m_Surface))
 			{
-				// found a queue family that supports both graphics and present
+				// Found a queue family that supports both graphics and present
 				queueIndex = qfpIndex;
 				break;
 			}
@@ -156,14 +164,14 @@ namespace ZEngine {
 			throw std::runtime_error("Could not find a queue for graphics and present -> terminating");
 		}
 
-		// query for Vulkan 1.3 features
+		// Query for Vulkan 1.3 features
 		vk::StructureChain<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan13Features, vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT> featureChain = {
-			{.features = {.samplerAnisotropy = true}},                   // vk::PhysicalDeviceFeatures2
-			{.synchronization2 = true, .dynamicRendering = true},        // vk::PhysicalDeviceVulkan13Features
-			{.extendedDynamicState = true}                               // vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT
+			{.features = {.samplerAnisotropy = true}},
+			{.synchronization2 = true, .dynamicRendering = true},
+			{.extendedDynamicState = true}
 		};
 
-		// create a Device
+		// Create a Device
 		float                     queuePriority = 0.5f;
 		vk::DeviceQueueCreateInfo deviceQueueCreateInfo{ .queueFamilyIndex = queueIndex, .queueCount = 1, .pQueuePriorities = &queuePriority };
 		vk::DeviceCreateInfo      deviceCreateInfo{ .pNext = &featureChain.get<vk::PhysicalDeviceFeatures2>(),
@@ -172,12 +180,125 @@ namespace ZEngine {
 												   .enabledExtensionCount = static_cast<uint32_t>(requiredDeviceExtension.size()),
 												   .ppEnabledExtensionNames = requiredDeviceExtension.data() };
 
-		device = vk::raii::Device(physicalDevice, deviceCreateInfo);
-		queue = vk::raii::Queue(device, queueIndex, 0);
+		m_Device = vk::raii::Device(m_PhysicalDevice, deviceCreateInfo);
+		m_GraphicsQueue = vk::raii::Queue(m_Device, queueIndex, 0);
 	}
 
-	static VKAPI_ATTR vk::Bool32 VKAPI_CALL debugCallback(vk::DebugUtilsMessageSeverityFlagBitsEXT severity, vk::DebugUtilsMessageTypeFlagsEXT type, const vk::DebugUtilsMessengerCallbackDataEXT* pCallbackData, void*)
-	{
+	void VulkanContext::CreateSwapchain() {
+		int width, height;
+		glfwGetWindowSize(m_Window, &width, &height);
+		m_Swapchain = std::make_unique<VulkanSwapchain>(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
+	}
+
+	void VulkanContext::CreateCommandPool() {
+		vk::CommandPoolCreateInfo poolInfo { .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
+			   .queueFamilyIndex = queueIndex };
+		m_CommandPool = vk::raii::CommandPool(m_Device, poolInfo);
+	}
+
+	void VulkanContext::CreateSyncObjects() {
+		vk::SemaphoreCreateInfo semaphoreInfo;
+		vk::FenceCreateInfo fenceInfo { .flags = vk::FenceCreateFlagBits::eSignaled }; // Start signaled so first frame doesn't freeze
+
+		for (int i = 0; i < m_Swapchain->GetImages().size(); i++) {
+			m_RenderFinishedSemaphores.emplace_back(m_Device, semaphoreInfo);
+		}
+
+		for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+			m_ImageAvailableSemaphores.emplace_back(m_Device, semaphoreInfo);
+			m_InFlightFences.emplace_back(m_Device, fenceInfo);
+		}
+	}
+
+	uint32_t VulkanContext::AcquireNextImage() {
+		// 1. Wait until the GPU has completely finished processing this specific frame slot from last loop
+		auto fenceResult = m_Device.waitForFences(*m_InFlightFences[m_CurrentFrameIndex], vk::True, UINT64_MAX);
+		if (fenceResult != vk::Result::eSuccess) {
+			ZE_CORE_ERROR("Failed to wait for fence!");
+		}
+
+		// 2. Request the next index from the swapchain
+		// When the image becomes ready, the GPU will signal our m_ImageAvailableSemaphore
+		auto [result, imageIndex] = m_Swapchain->GetSwapchain().acquireNextImage(
+			UINT64_MAX, *m_ImageAvailableSemaphores[m_CurrentFrameIndex], nullptr );
+
+		if (result == vk::Result::eErrorOutOfDateKHR) {
+			RecreateSwapchain();
+			return imageIndex;
+		}
+		if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR) {
+			assert(result == vk::Result::eTimeout || result == vk::Result::eNotReady);
+			ZE_CORE_ERROR("Failed to acquire swap chain image!");
+		}
+
+		// Update uniform buffer when we implement them later
+
+		// 3. Open our active command buffer for recording fresh draw commands
+		m_Device.resetFences(*m_InFlightFences[m_CurrentFrameIndex]);
+
+		return imageIndex;
+	}
+
+	void VulkanContext::PresentImage(uint32_t imageIndex, const std::shared_ptr<RenderCommandBuffer>& renderCommandBuffer) {
+		auto vulkanCommandBuffer = static_cast<VulkanCommandBuffer*>(renderCommandBuffer.get());
+		const auto& commandBuffer = vulkanCommandBuffer->GetBuffer();
+
+		// Submit the recorded drawing packet to the GPU graphics hardware queue
+		vk::PipelineStageFlags waitStages[] = { vk::PipelineStageFlagBits::eColorAttachmentOutput };
+
+		vk::SubmitInfo submitInfo {
+			.waitSemaphoreCount   = 1,
+			.pWaitSemaphores	  = &(*m_ImageAvailableSemaphores[m_CurrentFrameIndex]), // Wait until image is acquired
+			.pWaitDstStageMask	  = &waitStages[0],
+			.commandBufferCount	  = 1,
+			.pCommandBuffers	  = &(*commandBuffer), // Run these draw commands
+			.signalSemaphoreCount = 1,
+			.pSignalSemaphores	  = &(*m_RenderFinishedSemaphores[imageIndex]) }; // Signal when done drawing
+
+		m_GraphicsQueue.submit(submitInfo, *m_InFlightFences[m_CurrentFrameIndex]);
+
+		// Hand the completed image back to the monitor engine presentation queue
+		vk::PresentInfoKHR presentInfo {
+			.waitSemaphoreCount = 1,
+			.pWaitSemaphores	= &(*m_RenderFinishedSemaphores[imageIndex]), // Wait until GPU finishes rendering
+			.swapchainCount		= 1,
+			.pSwapchains		= &(*m_Swapchain->GetSwapchain()), // Target swapchain
+			.pImageIndices		= &imageIndex };
+
+		auto presentResult = m_GraphicsQueue.presentKHR(presentInfo);
+		if ((presentResult == vk::Result::eSuboptimalKHR) || (presentResult == vk::Result::eErrorOutOfDateKHR)) {
+			// Framebuffer resize stuff here
+			RecreateSwapchain();
+		}
+		else {
+			ZE_CORE_ASSERT(presentResult == vk::Result::eSuccess);
+		}
+
+		// Advance our tracking cycle index to the next synchronization pool slot
+		m_CurrentFrameIndex = (m_CurrentFrameIndex + 1) % MAX_FRAMES_IN_FLIGHT;
+	}
+
+	void VulkanContext::RecreateSwapchain() {
+		int width, height;
+		glfwGetWindowSize(m_Window, &width, &height);
+
+		if (width == 0 || height == 0) return;
+		m_Device.waitIdle();
+
+		m_Swapchain->CleanupSwapchain();
+		m_Swapchain->CreateSwapchain(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
+		m_Swapchain->CreateImageViews();
+	}
+
+	void VulkanContext::WaitIdle() {
+		m_Device.waitIdle();
+	}
+
+}
+
+namespace {
+
+	VKAPI_ATTR vk::Bool32 VKAPI_CALL debugCallback(vk::DebugUtilsMessageSeverityFlagBitsEXT severity, vk::DebugUtilsMessageTypeFlagsEXT type, const vk::DebugUtilsMessengerCallbackDataEXT* pCallbackData, void*) {
 		if (severity == vk::DebugUtilsMessageSeverityFlagBitsEXT::eError || severity == vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning)
 		{
 			std::cerr << "validation layer: type " << to_string(type) << " msg: " << pCallbackData->pMessage << std::endl;
@@ -186,8 +307,7 @@ namespace ZEngine {
 		return vk::False;
 	}
 
-	std::vector<const char*> getRequiredInstanceExtensions()
-	{
+	std::vector<const char*> getRequiredInstanceExtensions(bool enableValidationLayers) {
 		uint32_t glfwExtensionCount = 0;
 		auto     glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
@@ -199,4 +319,5 @@ namespace ZEngine {
 
 		return extensions;
 	}
+
 }

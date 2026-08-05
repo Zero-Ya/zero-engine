@@ -49,7 +49,6 @@ endif()
 
 set(SHADER_SOURCES
 	${ASSETS_DIR}/shaders/shader.slang
-	${ASSETS_DIR}/shaders/imgui.slang
 )
 set(SPIRV_FILES "")
 set(ENTRY_POINTS -entry vertMain -entry fragMain)

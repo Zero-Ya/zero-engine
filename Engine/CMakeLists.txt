@@ -5,11 +5,14 @@ add_library(Engine STATIC)
 set(DEPEN_FILES
 	dependencies/stb/stb_image.cpp
 
+	dependencies/imgui/imgui.h
 	dependencies/imgui/imgui.cpp
+	dependencies/imgui/imgui_demo.cpp
 	dependencies/imgui/imgui_draw.cpp
 	dependencies/imgui/imgui_widgets.cpp
 	dependencies/imgui/imgui_tables.cpp
-	dependencies/imgui/imgui_demo.cpp
+	dependencies/imgui/backends/imgui_impl_vulkan.cpp
+	dependencies/imgui/backends/imgui_impl_glfw.cpp
 )
 
 # All implementation files
@@ -59,3 +62,6 @@ target_link_libraries(Engine PRIVATE
 # Vulkan
 find_package(Vulkan REQUIRED)
 target_link_libraries(Engine PRIVATE Vulkan::Vulkan)
+
+# 
+target_compile_definitions(Engine PRIVATE VULKAN_HPP_NO_STRUCT_CONSTRUCTORS)

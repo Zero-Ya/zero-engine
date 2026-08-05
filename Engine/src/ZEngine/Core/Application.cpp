@@ -1,16 +1,9 @@
 #include "Application.h"
 #include "Log.h"
-
-#include "Platform/Vulkan/VulkanContext.h"
-#include "Platform/Vulkan/VulkanSwapchain.h"
-#include "Platform/Vulkan/VulkanPipelineManager.h"
-#include "Platform/Vulkan/VulkanCommandManager.h"
-#include "Platform/Vulkan/VulkanSyncManager.h"
-#include "ZEngine/Renderer/RenderFrame.h"
-#include "ZEngine/Renderer/ResourceManager.h"
-#include "ZEngine/ImGui/ImGuiVulkanUtil.h"
-
 #include "Input.h"
+
+#include "ZEngine/Renderer/Renderer.h"
+#include "ZEngine/Renderer/PerspectiveCamera.h"
 
 namespace ZEngine {
 
@@ -18,54 +11,70 @@ namespace ZEngine {
 
 	Application* Application::s_Instance = nullptr;
 
-	Application::Application() {
+	Application::Application()
+	: m_Camera()
+	{
+		// Important objects initialization
 		ZE_CORE_ASSERT(!s_Instance, "Application already exists!");
 		s_Instance = this;
 
 		m_Window = std::unique_ptr<Window>(Window::Create());
 		m_Window->SetEventCallback(BIND_EVENT_FN(OnEvent));
+		m_Context = GraphicsContext::Create(m_Window->GetNativeWindow());
+		m_Context->Init();
 
-		//m_ImGuiLayer = new ImGuiLayer();
-		//PushOverlay(m_ImGuiLayer);
+		m_LayoutManager = LayoutManager::Create();
+		Renderer::Init(m_LayoutManager);
 
-		// Vulkan resources initialization
-		auto window = static_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow());
-		vk_Ctx = std::make_unique<VulkanContext>(window);
-		vk_Swapchain = std::make_unique<VulkanSwapchain>(vk_Ctx.get(), window);
-		vk_CommandManager = std::make_unique<VulkanCommandManager>(vk_Ctx.get());
-		resourceManager = std::make_unique<ResourceManager>(vk_Ctx.get(), vk_CommandManager.get(), vk_Swapchain.get());
-		vk_Swapchain->SetResourceManager(resourceManager.get());
-		vk_PipelineManager = std::make_unique<VulkanPipelineManager>(vk_Ctx.get(), vk_Swapchain.get(), resourceManager.get());
-		vk_SyncManager = std::make_unique< VulkanSyncManager>(vk_Ctx.get(), vk_Swapchain.get());
-		imguiUtil = std::make_unique<ImGuiVulkanUtil>(vk_Ctx.get(), vk_Swapchain.get(), vk_CommandManager.get(), resourceManager.get(), vk_SyncManager.get());
-		frameRenderer = std::make_unique< RenderFrame>(
-			vk_Ctx.get(),
-			vk_Swapchain.get(),
-			vk_SyncManager.get(),
-			vk_PipelineManager.get(),
-			vk_CommandManager.get(),
-			resourceManager.get()
-		);
+		// Camera
+		m_Camera = PerspectiveCamera(45.0f, (m_Window->GetWidth() / m_Window->GetHeight()), 0.1f, 10.0f);
 
-		vk_Ctx->Init();
-		vk_Swapchain->init();
+		// Shader
+		m_Shader = Shader::Create("Shader", "shader.spv");
 
-		vk_PipelineManager->createDescriptorSetLayout();
-		vk_PipelineManager->createGraphicsPipeline();
-		vk_CommandManager->createCommandPool();
+		// Buffers and array config
+		m_VertexArray = VertexArray::Create();
+		float vertices[5 * 4] = {
+			// Position   Color
+			-0.5f, -0.5f, 1.0f, 0.0f, 0.0f,
+			 0.5f, -0.5f, 0.0f, 1.0f, 0.0f,
+			 0.5f,  0.5f, 0.0f, 0.0f, 1.0f,
+			-0.5f,  0.5f, 1.0f, 1.0f, 1.0f
+		};
 
-		// Textures and buffers //
-		resourceManager->init();
-		// //
+		uint32_t indices[6] = { 0, 1, 2, 2, 3, 0 };
 
-		vk_PipelineManager->createDescriptorPool();
-		vk_PipelineManager->createDescriptorSets();
-		vk_CommandManager->createCommandBuffers();
+		std::shared_ptr<VertexBuffer> vertexBuffer;
+		vertexBuffer = VertexBuffer::Create(vertices, sizeof(vertices));
 
-		vk_SyncManager->init();
+		BufferLayout layout = {
+			{ ShaderDataType::Float2, "a_Position" },
+			{ ShaderDataType::Float3, "a_Color" }
+		};
+		vertexBuffer->SetLayout(layout);
+
+		std::shared_ptr<IndexBuffer> indexBuffer;
+		indexBuffer = IndexBuffer::Create(indices, sizeof(indices) / sizeof(uint32_t));
+
+		m_VertexArray->SetVertexBuffer(vertexBuffer);
+		m_VertexArray->SetIndexBuffer(indexBuffer);
+
+		// Pipeline state spec
+		PipelineSpecification pipelineSpec { m_Shader, layout, false, false};
+		m_PipelineState = PipelineState::Create(pipelineSpec, m_LayoutManager);
+
+		m_FrameCommandBuffer = RenderCommandBuffer::Create();
+
+		// ImGui layer
+		m_ImGuiLayer = new ImGuiLayer();
+		PushOverlay(m_ImGuiLayer);
 	}
 
 	Application::~Application() {
+		if (m_Context)
+			m_Context->WaitIdle();
+
+		Renderer::Shutdown();
 	}
 
 	void Application::PushLayer(Layer* layer) {
@@ -91,26 +100,40 @@ namespace ZEngine {
 	}
 
 	void Application::Run() {
-
 		while (m_Running) {
+			//
 			for (Layer* layer : m_LayerStack)
 				layer->OnUpdate();
-
 			//
-			currentImageIndex = frameRenderer->beginFrame();
-			frameRenderer->middleRecord(currentImageIndex);
 
+			uint32_t imageIndex = m_Context->AcquireNextImage();
+
+			m_FrameCommandBuffer->Reset();
+			m_FrameCommandBuffer->Begin();
+			
+			RenderCommand::BeginFrame(m_FrameCommandBuffer, imageIndex);
+			RenderCommand::SetViewport(0, 0, m_Window->GetWidth(), m_Window->GetHeight());
+			RenderCommand::SetClearColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
+
+			Renderer::BeginScene(m_Camera);
+			Renderer::Submit(m_PipelineState, m_VertexArray);
+			Renderer::EndScene();
+
+			// ImGui overlay
+			m_ImGuiLayer->Begin();
 			for (Layer* layer : m_LayerStack) {
-				layer->OnRender();
+				layer->OnImGuiRender();
 			}
-
-			frameRenderer->endFrame(currentImageIndex);
+			m_ImGuiLayer->End(m_FrameCommandBuffer);
 			//
+
+			RenderCommand::EndFrame();
+			m_FrameCommandBuffer->End();
+
+			m_Context->PresentImage(imageIndex, m_FrameCommandBuffer);
 
 			m_Window->OnUpdate();
 		}
-
-		vk_Ctx->getDevice().waitIdle();
 	}
 
 	bool Application::OnWindowClose(WindowCloseEvent& e) {
@@ -119,7 +142,6 @@ namespace ZEngine {
 	}
 
 	bool Application::OnWindowResize(WindowResizeEvent& e) {
-		frameRenderer->framebufferResize();
 		return true;
 	}
 }
