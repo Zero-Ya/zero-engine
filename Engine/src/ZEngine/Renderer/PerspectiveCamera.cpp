@@ -16,4 +16,12 @@ namespace ZEngine {
 		m_ViewProjectionMatrix = m_ProjectionMatrix * m_ViewMatrix;
 	}
 
+	void PerspectiveCamera::SetPosition(glm::vec3 pos) {
+		m_ModelMatrix = glm::translate(m_ModelMatrix, pos);
+	}
+
+	void PerspectiveCamera::SetRotation(float rotation) {
+		m_ModelMatrix = rotate(glm::mat4(1.0f), glm::radians(rotation), glm::vec3(0.0f, 0.0f, 1.0f));
+	}
+
 }

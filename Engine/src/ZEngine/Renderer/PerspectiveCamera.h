@@ -14,6 +14,9 @@ namespace ZEngine {
 		const glm::mat4& GetProjectionMatrix() const { return m_ProjectionMatrix; }
 		const glm::mat4& GetViewProjectionMatrix() const { return m_ViewProjectionMatrix; }
 
+		void SetPosition(glm::vec3 pos);
+		void SetRotation(float rotation);
+
 	private:
 		glm::mat4 m_ModelMatrix;
 		glm::mat4 m_ViewMatrix;

@@ -5,10 +5,11 @@ namespace ZEngine {
     std::unique_ptr<Renderer::SceneData> Renderer::s_SceneData = std::make_unique<Renderer::SceneData>();
     std::shared_ptr<UniformBuffer> Renderer::s_CameraUBO = nullptr;
 
-    void Renderer::Init(const std::unique_ptr<LayoutManager>& layoutManager) {
+    void Renderer::Init() {
         RenderCommand::Init();
 
-        s_CameraUBO = UniformBuffer::Create(sizeof(UniformBufferObject), 0, 0, layoutManager);
+        s_LayoutManager = ZEngine::LayoutManager::Create();
+        s_CameraUBO = UniformBuffer::Create(sizeof(UniformBufferObject), 0, 0, s_LayoutManager);
     }
 
     void Renderer::BeginScene(PerspectiveCamera& camera) {
@@ -26,6 +27,7 @@ namespace ZEngine {
     }
 
     void Renderer::Shutdown() {
+        s_LayoutManager.reset();
         s_CameraUBO.reset();
         s_SceneData.reset();
 

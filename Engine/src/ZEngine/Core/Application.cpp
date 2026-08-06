@@ -3,7 +3,8 @@
 #include "Input.h"
 
 #include "ZEngine/Renderer/Renderer.h"
-#include "ZEngine/Renderer/PerspectiveCamera.h"
+
+#include <GLFW/glfw3.h>
 
 namespace ZEngine {
 
@@ -11,9 +12,7 @@ namespace ZEngine {
 
 	Application* Application::s_Instance = nullptr;
 
-	Application::Application()
-	: m_Camera()
-	{
+	Application::Application() {
 		// Important objects initialization
 		ZE_CORE_ASSERT(!s_Instance, "Application already exists!");
 		s_Instance = this;
@@ -23,46 +22,7 @@ namespace ZEngine {
 		m_Context = GraphicsContext::Create(m_Window->GetNativeWindow());
 		m_Context->Init();
 
-		m_LayoutManager = LayoutManager::Create();
-		Renderer::Init(m_LayoutManager);
-
-		// Camera
-		m_Camera = PerspectiveCamera(45.0f, (m_Window->GetWidth() / m_Window->GetHeight()), 0.1f, 10.0f);
-
-		// Shader
-		m_Shader = Shader::Create("Shader", "shader.spv");
-
-		// Buffers and array config
-		m_VertexArray = VertexArray::Create();
-		float vertices[5 * 4] = {
-			// Position   Color
-			-0.5f, -0.5f, 1.0f, 0.0f, 0.0f,
-			 0.5f, -0.5f, 0.0f, 1.0f, 0.0f,
-			 0.5f,  0.5f, 0.0f, 0.0f, 1.0f,
-			-0.5f,  0.5f, 1.0f, 1.0f, 1.0f
-		};
-
-		uint32_t indices[6] = { 0, 1, 2, 2, 3, 0 };
-
-		std::shared_ptr<VertexBuffer> vertexBuffer;
-		vertexBuffer = VertexBuffer::Create(vertices, sizeof(vertices));
-
-		BufferLayout layout = {
-			{ ShaderDataType::Float2, "a_Position" },
-			{ ShaderDataType::Float3, "a_Color" }
-		};
-		vertexBuffer->SetLayout(layout);
-
-		std::shared_ptr<IndexBuffer> indexBuffer;
-		indexBuffer = IndexBuffer::Create(indices, sizeof(indices) / sizeof(uint32_t));
-
-		m_VertexArray->SetVertexBuffer(vertexBuffer);
-		m_VertexArray->SetIndexBuffer(indexBuffer);
-
-		// Pipeline state spec
-		PipelineSpecification pipelineSpec { m_Shader, layout, false, false};
-		m_PipelineState = PipelineState::Create(pipelineSpec, m_LayoutManager);
-
+		ZEngine::Renderer::Init();
 		m_FrameCommandBuffer = RenderCommandBuffer::Create();
 
 		// ImGui layer
@@ -101,23 +61,20 @@ namespace ZEngine {
 
 	void Application::Run() {
 		while (m_Running) {
-			//
-			for (Layer* layer : m_LayerStack)
-				layer->OnUpdate();
-			//
+			float time = (float)glfwGetTime();
+			Timestep timestep = time - m_LastFrameTime;
+			m_LastFrameTime = time;
 
 			uint32_t imageIndex = m_Context->AcquireNextImage();
 
 			m_FrameCommandBuffer->Reset();
 			m_FrameCommandBuffer->Begin();
-			
-			RenderCommand::BeginFrame(m_FrameCommandBuffer, imageIndex);
-			RenderCommand::SetViewport(0, 0, m_Window->GetWidth(), m_Window->GetHeight());
-			RenderCommand::SetClearColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
 
-			Renderer::BeginScene(m_Camera);
-			Renderer::Submit(m_PipelineState, m_VertexArray);
-			Renderer::EndScene();
+			ZEngine::RenderCommand::BeginFrame(m_FrameCommandBuffer, imageIndex);
+
+			// Sandbox layers
+			for (Layer* layer : m_LayerStack)
+				layer->OnUpdate(timestep);
 
 			// ImGui overlay
 			m_ImGuiLayer->Begin();
@@ -127,7 +84,7 @@ namespace ZEngine {
 			m_ImGuiLayer->End(m_FrameCommandBuffer);
 			//
 
-			RenderCommand::EndFrame();
+			ZEngine::RenderCommand::EndFrame();
 			m_FrameCommandBuffer->End();
 
 			m_Context->PresentImage(imageIndex, m_FrameCommandBuffer);

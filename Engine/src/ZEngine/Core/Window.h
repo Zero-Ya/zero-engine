@@ -30,6 +30,7 @@ namespace ZEngine {
 
 		virtual unsigned int GetWidth() const = 0;
 		virtual unsigned int GetHeight() const = 0;
+		virtual float GetAspectRatio() const { return static_cast<float>(GetWidth()) / static_cast<float>(GetHeight()); }
 
 		// Window attributes
 		virtual void SetEventCallback(const EventCallbackFn& callback) = 0;

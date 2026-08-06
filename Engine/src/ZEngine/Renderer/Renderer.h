@@ -5,15 +5,14 @@
 #include "VertexArray.h"
 #include "Buffer.h"
 
+#include "LayoutManager.h"
 #include "PerspectiveCamera.h"
 
 namespace ZEngine {
 
-    class LayoutManager;
-
     class Renderer {
     public:
-        static void Init(const std::unique_ptr<LayoutManager>& layoutManager);
+        static void Init();
 
         static void BeginScene(PerspectiveCamera& camera);
         static void EndScene();
@@ -24,11 +23,14 @@ namespace ZEngine {
 
         inline static RendererAPI::API GetAPI() { return RendererAPI::GetAPI(); }
 
+        static std::unique_ptr<LayoutManager>& GetLayoutManager() { return s_LayoutManager; }
+        
     private:
         struct SceneData {
             glm::mat4 ViewProjectionMatrix;
         };
 
+        static inline std::unique_ptr<LayoutManager> s_LayoutManager = nullptr;
         static std::unique_ptr<SceneData> s_SceneData;
         static std::shared_ptr<UniformBuffer> s_CameraUBO;
     };
