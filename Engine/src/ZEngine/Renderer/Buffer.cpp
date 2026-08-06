@@ -24,7 +24,7 @@ namespace ZEngine {
 		return nullptr;
 	}
 
-	std::shared_ptr<UniformBuffer> UniformBuffer::Create(uint32_t size, uint32_t setSlot, uint32_t binding, const std::unique_ptr<LayoutManager>& layoutManager) {
+	std::shared_ptr<UniformBuffer> UniformBuffer::Create(uint32_t size, SetSlot setSlot, uint32_t binding, const std::unique_ptr<LayoutManager>& layoutManager) {
 		switch (Renderer::GetAPI()) {
 			case RendererAPI::API::None:    ZE_CORE_ASSERT(false, "RendererAPI::None is currently not supported!"); return nullptr;
 			case RendererAPI::API::Vulkan:  return std::make_shared<VulkanUniformBuffer>(size, setSlot, binding, layoutManager);

@@ -12,7 +12,8 @@ namespace ZEngine {
         auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
         auto& device = vk_Context->GetDevice();
 
-        m_Layouts.reserve(SetSlot::Count);
+        m_Layouts.clear();
+        m_Layouts.reserve(4);
 
         // Build individual fixed set layouts
         CreateGlobalSetLayout(device);
@@ -25,7 +26,19 @@ namespace ZEngine {
             m_RawLayouts.push_back(*layout);
         }
 
-        vk::PipelineLayoutCreateInfo pipelineLayoutInfo { .setLayoutCount = 4, .pSetLayouts = m_RawLayouts.data(), .pushConstantRangeCount = 0};
+        // Configure push constant range
+        std::vector<vk::PushConstantRange> pushConstantRanges;
+        pushConstantRanges.reserve(1);
+        vk::PushConstantRange pushConstantRange{ vk::ShaderStageFlagBits::eVertex, 0, sizeof(PushConstantData) };
+        pushConstantRanges.push_back(pushConstantRange);
+
+        vk::PipelineLayoutCreateInfo pipelineLayoutInfo {
+            .setLayoutCount = static_cast<uint32_t>(m_RawLayouts.size()),
+            .pSetLayouts = m_RawLayouts.data(),
+            .pushConstantRangeCount = static_cast<uint32_t>(pushConstantRanges.size()),
+            .pPushConstantRanges = pushConstantRanges.data()
+        };
+
         m_GlobalPipelineLayout = vk::raii::PipelineLayout(device, pipelineLayoutInfo);
     }
 
@@ -58,7 +71,7 @@ namespace ZEngine {
             vk::DescriptorSetLayoutBinding(1, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment, nullptr)
         };
 
-        vk::DescriptorSetLayoutCreateInfo layoutInfo{ .bindingCount = 1, .pBindings = bindings.data() };
+        vk::DescriptorSetLayoutCreateInfo layoutInfo{ .bindingCount = static_cast<uint32_t>(bindings.size()), .pBindings = bindings.data() };
         m_Layouts.emplace_back(vk::raii::DescriptorSetLayout(device, layoutInfo));
     }
 

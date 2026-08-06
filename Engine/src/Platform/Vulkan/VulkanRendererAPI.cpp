@@ -138,7 +138,7 @@ namespace ZEngine {
         auto vulkanPipeline = static_cast<VulkanPipelineState*>(pipelineState.get());
         auto vulkanUBO = static_cast<VulkanUniformBuffer*>(ubo.get());
 
-        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, vulkanPipeline->GetNativeLayout(), 0, *vulkanUBO->GetFrameDescriptorSet(), nullptr);
+        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, vulkanPipeline->GetNativeLayout(), static_cast<uint32_t>(vulkanUBO->GetSetSlot()), *vulkanUBO->GetFrameDescriptorSet(), nullptr);
     }
 
     void VulkanRendererAPI::TransitionImageLayout(

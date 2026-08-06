@@ -4,23 +4,24 @@ namespace ZEngine {
 
     std::unique_ptr<Renderer::SceneData> Renderer::s_SceneData = std::make_unique<Renderer::SceneData>();
     std::shared_ptr<UniformBuffer> Renderer::s_CameraUBO = nullptr;
+    std::shared_ptr<UniformBuffer> Renderer::s_TriangleUBO = nullptr;
 
     void Renderer::Init() {
         RenderCommand::Init();
 
         s_LayoutManager = ZEngine::LayoutManager::Create();
-        s_CameraUBO = UniformBuffer::Create(sizeof(UniformBufferObject), 0, 0, s_LayoutManager);
+        s_CameraUBO = UniformBuffer::Create(sizeof(CameraData), SetSlot::Global, 0, s_LayoutManager);
+        s_TriangleUBO = UniformBuffer::Create(sizeof(ObjectData), SetSlot::Object, 0, s_LayoutManager);
     }
 
     void Renderer::BeginScene(PerspectiveCamera& camera) {
         s_SceneData->ViewProjectionMatrix = camera.GetViewProjectionMatrix();
 
-        UniformBufferObject UBO{};
-        UBO.model = camera.GetModelMatrix();
-        UBO.view = camera.GetViewMatrix();
-        UBO.proj = camera.GetProjectionMatrix();
-
-        s_CameraUBO->SetData(&UBO, sizeof(UBO), 0);
+        CameraData cameraUBO{};
+        cameraUBO.model = camera.GetModelMatrix();
+        cameraUBO.view = camera.GetViewMatrix();
+        cameraUBO.proj = camera.GetProjectionMatrix();
+        s_CameraUBO->SetData(&cameraUBO, sizeof(cameraUBO));
     }
 
     void Renderer::EndScene() {
@@ -28,6 +29,7 @@ namespace ZEngine {
 
     void Renderer::Shutdown() {
         s_LayoutManager.reset();
+        s_TriangleUBO.reset();
         s_CameraUBO.reset();
         s_SceneData.reset();
 
@@ -35,10 +37,18 @@ namespace ZEngine {
     }
 
     void Renderer::Submit(const std::shared_ptr<PipelineState>& pipelineState,
-                          const std::shared_ptr<VertexArray>& vertexArray)
+                          const std::shared_ptr<VertexArray>& vertexArray,
+                          const glm::mat4& transform)
     {
+
+        ObjectData objectUBO{};
+        objectUBO.model = transform;
+        objectUBO.normal = glm::mat4(1.0f);
+        s_TriangleUBO->SetData(&objectUBO, sizeof(objectUBO));
+
         RenderCommand::BindPipelineState(pipelineState);
         RenderCommand::BindDescriptorSets(pipelineState, s_CameraUBO);
+        RenderCommand::BindDescriptorSets(pipelineState, s_TriangleUBO);
         RenderCommand::DrawIndexed(vertexArray, 0);
     }
 

@@ -3,15 +3,13 @@
 #include "ZEngine/Renderer/LayoutManager.h"
 #include <vulkan/vulkan_raii.hpp>
 
+#include <glm/glm.hpp>
+
 namespace ZEngine {
 
-    namespace SetSlot {
-        constexpr uint32_t Global = 0;
-        constexpr uint32_t Pass = 1;
-        constexpr uint32_t Material = 2;
-        constexpr uint32_t Object = 3;
-        constexpr uint32_t Count = 4;
-    }
+    struct PushConstantData {
+        glm::mat4 transform { 1.0f };
+    };
 
     class VulkanLayoutManager : public LayoutManager {
     public:
@@ -24,7 +22,7 @@ namespace ZEngine {
         vk::PipelineLayout GetGlobalPipelineLayout() const { return *m_GlobalPipelineLayout; }
         vk::raii::PipelineLayout& GetRaiiPipelineLayout() { return m_GlobalPipelineLayout; }
 
-        vk::DescriptorSetLayout GetDescriptorSetLayout(uint32_t slot) const { return m_RawLayouts.at(slot); }
+        vk::DescriptorSetLayout GetSetLayout(SetSlot slot) const { return *m_Layouts[static_cast<size_t>(slot)]; }
         std::vector<vk::DescriptorSetLayout>& GetRawLayouts() { return m_RawLayouts; }
 
     private:

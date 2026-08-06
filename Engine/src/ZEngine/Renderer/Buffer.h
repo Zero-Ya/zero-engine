@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ZEngine/Renderer/RenderCommandBuffer.h"
+#include "ZEngine/Renderer/LayoutManager.h"
 
 #include <glm/glm.hpp>
 
@@ -82,12 +83,6 @@ namespace ZEngine {
         uint32_t m_Stride = 0;
     };
 
-	struct UniformBufferObject {
-		glm::mat4 model;
-		glm::mat4 view;
-		glm::mat4 proj;
-	};
-
 	//
 	//
 	//
@@ -117,15 +112,13 @@ namespace ZEngine {
 		static std::shared_ptr<IndexBuffer> Create(uint32_t* indices, uint32_t size);
 	};
 
-	class LayoutManager;
-
 	class UniformBuffer {
 	public:
 		virtual ~UniformBuffer() = default;
 
 		virtual void SetData(const void* data, uint32_t size, uint32_t offset = 0) = 0;
 
-		static std::shared_ptr<UniformBuffer> Create(uint32_t size, uint32_t setSlot, uint32_t binding, const std::unique_ptr<LayoutManager>& layoutManager);
+		static std::shared_ptr<UniformBuffer> Create(uint32_t size, SetSlot setSlot, uint32_t binding, const std::unique_ptr<LayoutManager>& layoutManager);
 	};
 
 }

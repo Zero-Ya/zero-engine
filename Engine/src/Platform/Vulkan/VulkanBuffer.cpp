@@ -54,7 +54,7 @@ namespace ZEngine {
 	//
 
 	// Uniform buffer
-	VulkanUniformBuffer::VulkanUniformBuffer(uint32_t size, uint32_t setSlot, uint32_t binding, const std::unique_ptr<LayoutManager>& layoutManager)
+	VulkanUniformBuffer::VulkanUniformBuffer(uint32_t size, SetSlot setSlot, uint32_t binding, const std::unique_ptr<LayoutManager>& layoutManager)
 		: m_Size(size), m_SetSlot(setSlot), m_Binding(binding)
 	{
 		CreateDescriptorPool();
@@ -103,17 +103,28 @@ namespace ZEngine {
 		return m_DescriptorSets[currentFrame];
 	}
 
+	// IDK Why I have this in uniform buffer class but uhhh this will do for now I guess
 	void VulkanUniformBuffer::CreateDescriptorPool() {
 		auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
 
+		// Temporarily hardcoded, overcompensated
+		auto maxFramesInFlight = vk_Context->GetMaxFramesInFlight();
+		uint32_t maxMaterials = 10;
+		uint32_t maxObjects = 10;
+
+		uint32_t uboCount = (1 * maxFramesInFlight) + (1 * maxMaterials) + (1 * maxObjects);
+		uint32_t samplerCount = (1 * maxFramesInFlight) + (1 * maxMaterials);
+
 		std::array poolSize{
-			vk::DescriptorPoolSize(vk::DescriptorType::eUniformBuffer, vk_Context->GetMaxFramesInFlight()),
-			vk::DescriptorPoolSize(vk::DescriptorType::eCombinedImageSampler, vk_Context->GetMaxFramesInFlight())
+			vk::DescriptorPoolSize(vk::DescriptorType::eUniformBuffer, uboCount),
+			vk::DescriptorPoolSize(vk::DescriptorType::eCombinedImageSampler, samplerCount)
 		};
+
+		uint32_t maxSets = maxFramesInFlight * 2 + maxMaterials + maxObjects;
 
 		vk::DescriptorPoolCreateInfo poolInfo{
 			.flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-			.maxSets = vk_Context->GetMaxFramesInFlight(),
+			.maxSets = maxSets,
 			.poolSizeCount = static_cast<uint32_t>(poolSize.size()),
 			.pPoolSizes = poolSize.data()
 		};
@@ -127,7 +138,7 @@ namespace ZEngine {
 
 		auto g_LayoutManager = static_cast<VulkanLayoutManager*>(layoutManager.get());
 
-		vk::DescriptorSetLayout targetLayout = g_LayoutManager->GetDescriptorSetLayout(m_SetSlot);
+		vk::DescriptorSetLayout targetLayout = g_LayoutManager->GetSetLayout(m_SetSlot);
 
 		std::vector<vk::DescriptorSetLayout> layouts(vk_Context->GetMaxFramesInFlight(), targetLayout);
 		vk::DescriptorSetAllocateInfo        allocInfo { .descriptorPool = m_DescriptorPool,
@@ -139,7 +150,7 @@ namespace ZEngine {
 		for (size_t i = 0; i < vk_Context->GetMaxFramesInFlight(); i++) {
 			vk::DescriptorBufferInfo bufferInfo { .buffer = m_UniformBuffers[i], .offset = 0, .range = m_Size };
 			vk::WriteDescriptorSet   descriptorWrite { .dstSet = m_DescriptorSets[i],
-													   .dstBinding = 0,
+													   .dstBinding = m_Binding,
 													   .dstArrayElement = 0,
 													   .descriptorCount = 1,
 													   .descriptorType = vk::DescriptorType::eUniformBuffer,

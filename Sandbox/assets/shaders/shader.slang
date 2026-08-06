@@ -5,18 +5,18 @@ struct CameraData {
     float4x4 proj;
 };
 
-struct ObjectData
-{
-    float4x4 modelMatrix;
-    float4x4 normalMatrix;
-};
-
 struct MaterialParams
 {
-    float4 albedoColor;
+    float4 albedo;
     float roughness;
     float metallic;
     float2 padding;
+};
+
+struct ObjectData
+{
+    float4x4 model;
+    float4x4 normal;
 };
 
 //
@@ -60,7 +60,12 @@ uniform ConstantBuffer<ObjectData> g_Object;
 [shader("vertex")]
 VSOutput vertMain(VSInput input) {
     VSOutput output;
-    output.pos = mul(ubo.proj, mul(ubo.view, mul(ubo.model, float4(input.inPosition, 0.0, 1.0))));
+
+    float4 position = float4(input.inPosition, 0.0, 1.0);
+    float4 objectPos = mul(g_Object.model, position);
+    float4 mvpPos = mul(ubo.proj, mul(ubo.view, mul(ubo.model, objectPos)));
+
+    output.pos = mvpPos;
     output.color = input.inColor;
     return output;
 }
