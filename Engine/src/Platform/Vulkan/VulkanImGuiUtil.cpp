@@ -84,7 +84,7 @@ namespace ZEngine {
         ImGui::NewFrame();
     }
 
-    void VulkanImGuiUtil::EndFrame(const std::shared_ptr<RenderCommandBuffer>& renderCommandBuffer) {
+    void VulkanImGuiUtil::EndFrame(const Ref<RenderCommandBuffer>& renderCommandBuffer) {
         auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
         auto vulkanCommandBuffer = static_cast<VulkanCommandBuffer*>(renderCommandBuffer.get());
         const auto& commandBuffer = vulkanCommandBuffer->GetBuffer();

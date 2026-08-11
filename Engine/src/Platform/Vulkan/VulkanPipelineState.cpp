@@ -13,7 +13,7 @@ namespace {
 
 namespace ZEngine {
 
-	VulkanPipelineState::VulkanPipelineState(const PipelineSpecification& spec, const std::unique_ptr<LayoutManager>& layoutManager) {
+	VulkanPipelineState::VulkanPipelineState(const PipelineSpecification& spec, const Scope<LayoutManager>& layoutManager) {
 		auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
 		auto vk_Shader = static_cast<VulkanShader*>(spec.Shader.get());
 		auto& device = vk_Context->GetDevice();

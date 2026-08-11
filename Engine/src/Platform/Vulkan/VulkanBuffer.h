@@ -46,7 +46,7 @@ namespace ZEngine {
 
 	class VulkanUniformBuffer : public UniformBuffer {
 	public:
-		VulkanUniformBuffer(uint32_t size, SetSlot setSlot, uint32_t binding, const std::unique_ptr<LayoutManager>& layoutManager);
+		VulkanUniformBuffer(uint32_t size, SetSlot setSlot, uint32_t binding, const Scope<LayoutManager>& layoutManager);
 		virtual ~VulkanUniformBuffer() override = default;
 
 		virtual void SetData(const void* data, uint32_t size, uint32_t offset = 0) override;
@@ -58,13 +58,13 @@ namespace ZEngine {
 
 	private:
 		void CreateDescriptorPool();
-		void CreateDescriptorSets(const std::unique_ptr<LayoutManager>& layoutManager);
+		void CreateDescriptorSets(const Scope<LayoutManager>& layoutManager);
 
 	private:
 		uint32_t m_Size = 0;
 		SetSlot m_SetSlot = SetSlot::Global;
 		uint32_t m_Binding = 0;
-		std::unique_ptr<LayoutManager> m_LayoutManager;
+		Scope<LayoutManager> m_LayoutManager;
 
 		vk::raii::DescriptorPool             m_DescriptorPool = nullptr;
 		std::vector<vk::raii::DescriptorSet> m_DescriptorSets;

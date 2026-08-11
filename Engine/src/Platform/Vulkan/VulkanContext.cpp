@@ -239,7 +239,7 @@ namespace ZEngine {
 		return imageIndex;
 	}
 
-	void VulkanContext::PresentImage(uint32_t imageIndex, const std::shared_ptr<RenderCommandBuffer>& renderCommandBuffer) {
+	void VulkanContext::PresentImage(uint32_t imageIndex, const Ref<RenderCommandBuffer>& renderCommandBuffer) {
 		auto vulkanCommandBuffer = static_cast<VulkanCommandBuffer*>(renderCommandBuffer.get());
 		const auto& commandBuffer = vulkanCommandBuffer->GetBuffer();
 

@@ -4,7 +4,7 @@
 
 namespace ZEngine {
 
-	std::shared_ptr<RenderCommandBuffer> RenderCommandBuffer::Create() {
+	Ref<RenderCommandBuffer> RenderCommandBuffer::Create() {
 		switch (Renderer::GetAPI()) {
 			case RendererAPI::API::None: return nullptr;
 			case RendererAPI::API::Vulkan: return std::make_shared<VulkanCommandBuffer>();

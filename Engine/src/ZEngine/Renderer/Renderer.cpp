@@ -2,9 +2,9 @@
 
 namespace ZEngine {
 
-    std::unique_ptr<Renderer::SceneData> Renderer::s_SceneData = std::make_unique<Renderer::SceneData>();
-    std::shared_ptr<UniformBuffer> Renderer::s_CameraUBO = nullptr;
-    std::shared_ptr<UniformBuffer> Renderer::s_TriangleUBO = nullptr;
+    Scope<Renderer::SceneData> Renderer::s_SceneData = std::make_unique<Renderer::SceneData>();
+    Ref<UniformBuffer> Renderer::s_CameraUBO = nullptr;
+    Ref<UniformBuffer> Renderer::s_TriangleUBO = nullptr;
 
     void Renderer::Init() {
         RenderCommand::Init();
@@ -36,8 +36,8 @@ namespace ZEngine {
         RenderCommand::Shutdown();
     }
 
-    void Renderer::Submit(const std::shared_ptr<PipelineState>& pipelineState,
-                          const std::shared_ptr<VertexArray>& vertexArray,
+    void Renderer::Submit(const Ref<PipelineState>& pipelineState,
+                          const Ref<VertexArray>& vertexArray,
                           const glm::mat4& transform)
     {
 

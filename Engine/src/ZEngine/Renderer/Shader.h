@@ -11,7 +11,7 @@ namespace ZEngine {
 
 		virtual const std::string& GetName() const = 0;
 
-		static std::shared_ptr<Shader> Create(const std::string& name,
+		static Ref<Shader> Create(const std::string& name,
 											  const std::string& spirvFilePath,
 											  const std::string& vertEntryPoint = "vertMain",
 											  const std::string& fragEntryPoint = "fragMain");

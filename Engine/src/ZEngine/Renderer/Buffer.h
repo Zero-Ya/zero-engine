@@ -97,7 +97,7 @@ namespace ZEngine {
 		virtual const BufferLayout& GetLayout() const = 0;
 		virtual void SetLayout(const BufferLayout& layout) = 0;
 
-		static std::shared_ptr<VertexBuffer> Create(float* vertices, uint32_t size);
+		static Ref<VertexBuffer> Create(float* vertices, uint32_t size);
 	};
 
 	class IndexBuffer {
@@ -109,7 +109,7 @@ namespace ZEngine {
 
 		virtual uint32_t GetCount() const = 0;
 
-		static std::shared_ptr<IndexBuffer> Create(uint32_t* indices, uint32_t size);
+		static Ref<IndexBuffer> Create(uint32_t* indices, uint32_t size);
 	};
 
 	class UniformBuffer {
@@ -118,7 +118,7 @@ namespace ZEngine {
 
 		virtual void SetData(const void* data, uint32_t size, uint32_t offset = 0) = 0;
 
-		static std::shared_ptr<UniformBuffer> Create(uint32_t size, SetSlot setSlot, uint32_t binding, const std::unique_ptr<LayoutManager>& layoutManager);
+		static Ref<UniformBuffer> Create(uint32_t size, SetSlot setSlot, uint32_t binding, const Scope<LayoutManager>& layoutManager);
 	};
 
 }

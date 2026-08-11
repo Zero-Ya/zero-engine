@@ -3,11 +3,11 @@
 
 namespace ZEngine {
 
-    void VulkanVertexArray::SetVertexBuffer(const std::shared_ptr<VertexBuffer>& vertexBuffer) {
+    void VulkanVertexArray::SetVertexBuffer(const Ref<VertexBuffer>& vertexBuffer) {
         m_VertexBuffer = vertexBuffer;
     }
 
-    void VulkanVertexArray::SetIndexBuffer(const std::shared_ptr<IndexBuffer>& indexBuffer) {
+    void VulkanVertexArray::SetIndexBuffer(const Ref<IndexBuffer>& indexBuffer) {
         m_IndexBuffer = indexBuffer;
     }
 

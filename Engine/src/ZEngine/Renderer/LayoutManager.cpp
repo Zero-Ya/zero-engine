@@ -5,7 +5,7 @@
 
 namespace ZEngine {
 
-	std::unique_ptr<LayoutManager> LayoutManager::Create() {
+	Scope<LayoutManager> LayoutManager::Create() {
 		switch (Renderer::GetAPI()) {
 			case RendererAPI::API::None:
 				ZE_CORE_ASSERT(false, "RendererAPI::None is currently unsupported!");

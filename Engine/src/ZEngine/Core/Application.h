@@ -35,15 +35,15 @@ namespace ZEngine {
 		bool OnWindowClose(WindowCloseEvent& e);
 		bool OnWindowResize(WindowResizeEvent& e);
 
-		std::unique_ptr<Window> m_Window;
-		std::unique_ptr<GraphicsContext> m_Context;
+		Scope<Window> m_Window;
+		Scope<GraphicsContext> m_Context;
 
 		bool m_Running = true;
 
 		ImGuiLayer* m_ImGuiLayer;
 		LayerStack m_LayerStack;
 
-		std::shared_ptr<RenderCommandBuffer> m_FrameCommandBuffer;
+		Ref<RenderCommandBuffer> m_FrameCommandBuffer;
 
 		float m_LastFrameTime = 0.0f;
 

@@ -24,7 +24,7 @@ public:
 
 		uint32_t indices[6] = { 0, 1, 2, 2, 3, 0 };
 
-		std::shared_ptr<ZEngine::VertexBuffer> vertexBuffer;
+		ZEngine::Ref<ZEngine::VertexBuffer> vertexBuffer;
 		vertexBuffer = ZEngine::VertexBuffer::Create(vertices, sizeof(vertices));
 
 		ZEngine::BufferLayout layout = {
@@ -33,7 +33,7 @@ public:
 		};
 		vertexBuffer->SetLayout(layout);
 
-		std::shared_ptr<ZEngine::IndexBuffer> indexBuffer;
+		ZEngine::Ref<ZEngine::IndexBuffer> indexBuffer;
 		indexBuffer = ZEngine::IndexBuffer::Create(indices, sizeof(indices) / sizeof(uint32_t));
 
 		m_VertexArray->SetVertexBuffer(vertexBuffer);
@@ -81,9 +81,9 @@ public:
 	}
 
 private:
-	std::shared_ptr<ZEngine::Shader> m_Shader;
-	std::shared_ptr<ZEngine::VertexArray> m_VertexArray;
-	std::shared_ptr<ZEngine::PipelineState> m_PipelineState;
+	ZEngine::Ref<ZEngine::Shader> m_Shader;
+	ZEngine::Ref<ZEngine::VertexArray> m_VertexArray;
+	ZEngine::Ref<ZEngine::PipelineState> m_PipelineState;
 
 	ZEngine::PerspectiveCamera m_Camera;
 	glm::vec3 m_CameraPosition;

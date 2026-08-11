@@ -40,7 +40,7 @@ namespace ZEngine {
         m_Backend.get()->BeginFrame();
     }
 
-    void ImGuiLayer::End(const std::shared_ptr<RenderCommandBuffer>& renderCommandBuffer) {
+    void ImGuiLayer::End(const Ref<RenderCommandBuffer>& renderCommandBuffer) {
         m_Backend.get()->EndFrame(renderCommandBuffer);
     }
 

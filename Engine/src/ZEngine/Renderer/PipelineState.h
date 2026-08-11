@@ -8,7 +8,7 @@ namespace ZEngine {
 	class Shader;
 
 	struct PipelineSpecification {
-		std::shared_ptr<Shader> Shader;
+		Ref<Shader> Shader;
 		BufferLayout Layout;
 		bool DepthTest = true;
 		bool Wireframe = false;
@@ -19,7 +19,7 @@ namespace ZEngine {
 		virtual ~PipelineState() = default;
 		virtual void Bind() const = 0;
 
-		static std::shared_ptr<PipelineState> Create(const PipelineSpecification& spec, const std::unique_ptr<LayoutManager>& layoutManager);
+		static Ref<PipelineState> Create(const PipelineSpecification& spec, const Scope<LayoutManager>& layoutManager);
 	};
 
 }

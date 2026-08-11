@@ -5,7 +5,7 @@
 
 namespace ZEngine {
 
-	std::shared_ptr<Shader> Shader::Create(const std::string& name,
+	Ref<Shader> Shader::Create(const std::string& name,
 										  const std::string& spirvFilePath,
 										  const std::string& vertEntryPoint,
 										  const std::string& fragEntryPoint)

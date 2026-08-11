@@ -20,7 +20,7 @@ namespace ZEngine {
 		virtual void OnImGuiRender() override;
 
 		void Begin();
-		void End(const std::shared_ptr<RenderCommandBuffer>& renderCommandBuffer);
+		void End(const Ref<RenderCommandBuffer>& renderCommandBuffer);
 
 	private:
 		float m_Time = 0.0f;
@@ -28,7 +28,7 @@ namespace ZEngine {
 
 	private:
 		// Should be platform agnostic...
-		std::unique_ptr<VulkanImGuiUtil> m_Backend;
+		Scope<VulkanImGuiUtil> m_Backend;
 	};
 
 }

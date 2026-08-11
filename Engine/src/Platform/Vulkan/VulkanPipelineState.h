@@ -8,7 +8,7 @@ namespace ZEngine {
 
 	class VulkanPipelineState : public PipelineState {
 	public:
-		VulkanPipelineState(const PipelineSpecification& spec, const std::unique_ptr<LayoutManager>& layoutManager);
+		VulkanPipelineState(const PipelineSpecification& spec, const Scope<LayoutManager>& layoutManager);
 		virtual ~VulkanPipelineState() override = default;
 
 		virtual void Bind() const override {}

@@ -16,14 +16,14 @@ namespace ZEngine {
 		virtual void SetClearColor(const glm::vec4& color) override;
 		virtual void Clear() override;
 
-		virtual void BeginFrame(const std::shared_ptr<RenderCommandBuffer>& commandBuffer, uint32_t imageIndex) override;
+		virtual void BeginFrame(const Ref<RenderCommandBuffer>& commandBuffer, uint32_t imageIndex) override;
 		virtual void EndFrame() override;
 		virtual void Shutdown() override;
 
-		virtual void DrawIndexed(const std::shared_ptr<VertexArray>& vertexArray, uint32_t indexCount = 0) override;
+		virtual void DrawIndexed(const Ref<VertexArray>& vertexArray, uint32_t indexCount = 0) override;
 
-		virtual void BindPipelineState(const std::shared_ptr<PipelineState>& pipelineState) override;
-		virtual void BindDescriptorSets(const std::shared_ptr<PipelineState>& pipelineState, const std::shared_ptr<UniformBuffer>& ubo) override;
+		virtual void BindPipelineState(const Ref<PipelineState>& pipelineState) override;
+		virtual void BindDescriptorSets(const Ref<PipelineState>& pipelineState, const Ref<UniformBuffer>& ubo) override;
 
 	private:
 		void TransitionImageLayout(
@@ -39,7 +39,7 @@ namespace ZEngine {
 	private:
 		glm::vec4 m_ClearColor = { 0.1f, 0.1f, 0.1f, 1.0f };
 
-		std::shared_ptr<RenderCommandBuffer> m_ActiveCommandBuffer = nullptr;
+		Ref<RenderCommandBuffer> m_ActiveCommandBuffer = nullptr;
 		uint32_t m_CurrentImageIndex = 0;
 	};
 

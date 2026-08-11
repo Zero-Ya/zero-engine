@@ -39,11 +39,11 @@ namespace ZEngine {
 		vk::raii::Queue			 GetGraphicsQueue()  { return m_GraphicsQueue; }
 		vk::raii::CommandPool&	 GetCommandPool()	 { return m_CommandPool; }
 
-		//std::unique_ptr<VulkanSwapchain>& GetSwapchain() { return m_Swapchain; }
+		//Scope<VulkanSwapchain>& GetSwapchain() { return m_Swapchain; }
 		VulkanSwapchain* GetSwapchain() { return m_Swapchain.get(); }
 
 		uint32_t AcquireNextImage() override;
-		void PresentImage(uint32_t imageIndex, const std::shared_ptr<RenderCommandBuffer>& renderCommandBuffer) override;
+		void PresentImage(uint32_t imageIndex, const Ref<RenderCommandBuffer>& renderCommandBuffer) override;
 		void RecreateSwapchain() override;
 		void WaitIdle() override;
 
@@ -76,7 +76,7 @@ namespace ZEngine {
 		vk::raii::Queue					 m_GraphicsQueue	= nullptr;
 		vk::raii::CommandPool			 m_CommandPool		= nullptr;
 
-		std::unique_ptr<VulkanSwapchain> m_Swapchain;
+		Scope<VulkanSwapchain> m_Swapchain;
 
 		std::vector<vk::raii::Semaphore> m_ImageAvailableSemaphores;
 		std::vector<vk::raii::Semaphore> m_RenderFinishedSemaphores;

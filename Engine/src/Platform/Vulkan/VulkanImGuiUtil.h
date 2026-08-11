@@ -19,7 +19,7 @@ namespace ZEngine {
 
 		// Frame rendering operations
 		void BeginFrame();
-		void EndFrame(const std::shared_ptr<RenderCommandBuffer>& renderCommandBuffer);
+		void EndFrame(const Ref<RenderCommandBuffer>& renderCommandBuffer);
 
 	private:
 		void CreateDescriptorPool();

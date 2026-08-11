@@ -15,7 +15,7 @@ namespace ZEngine {
 
         virtual void Init() = 0;
 
-        static std::unique_ptr<LayoutManager> Create();
+        static Scope<LayoutManager> Create();
     };
 
 }

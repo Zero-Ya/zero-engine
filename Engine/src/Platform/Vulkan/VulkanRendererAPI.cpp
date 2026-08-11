@@ -34,7 +34,7 @@ namespace ZEngine {
         // No need to do anything
     }
 
-    void VulkanRendererAPI::BeginFrame(const std::shared_ptr<RenderCommandBuffer>& renderCommandBuffer, uint32_t imageIndex) {
+    void VulkanRendererAPI::BeginFrame(const Ref<RenderCommandBuffer>& renderCommandBuffer, uint32_t imageIndex) {
         m_ActiveCommandBuffer = renderCommandBuffer;
         m_CurrentImageIndex = imageIndex;
 
@@ -110,7 +110,7 @@ namespace ZEngine {
     void VulkanRendererAPI::Shutdown() {
     }
 
-    void VulkanRendererAPI::DrawIndexed(const std::shared_ptr<VertexArray>& vertexArray, uint32_t indexCount) {
+    void VulkanRendererAPI::DrawIndexed(const Ref<VertexArray>& vertexArray, uint32_t indexCount) {
         auto vulkanCommandBuffer = static_cast<VulkanCommandBuffer*>(m_ActiveCommandBuffer.get());
         const auto& commandBuffer = vulkanCommandBuffer->GetBuffer();
 
@@ -123,7 +123,7 @@ namespace ZEngine {
     }
 
     // We can probably combine this and the one below or something
-    void VulkanRendererAPI::BindPipelineState(const std::shared_ptr<PipelineState>& pipelineState) {
+    void VulkanRendererAPI::BindPipelineState(const Ref<PipelineState>& pipelineState) {
         auto vulkanCommandBuffer = static_cast<VulkanCommandBuffer*>(m_ActiveCommandBuffer.get());
         const auto& commandBuffer = vulkanCommandBuffer->GetBuffer();
         auto vulkanPipeline = static_cast<VulkanPipelineState*>(pipelineState.get());
@@ -131,7 +131,7 @@ namespace ZEngine {
         commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, vulkanPipeline->GetNativePipeline());
     }
 
-    void VulkanRendererAPI::BindDescriptorSets(const std::shared_ptr<PipelineState>& pipelineState, const std::shared_ptr<UniformBuffer>& ubo) {
+    void VulkanRendererAPI::BindDescriptorSets(const Ref<PipelineState>& pipelineState, const Ref<UniformBuffer>& ubo) {
         auto vulkanCommandBuffer = static_cast<VulkanCommandBuffer*>(m_ActiveCommandBuffer.get());
         const auto& commandBuffer = vulkanCommandBuffer->GetBuffer();
 

@@ -54,7 +54,7 @@ namespace ZEngine {
 	//
 
 	// Uniform buffer
-	VulkanUniformBuffer::VulkanUniformBuffer(uint32_t size, SetSlot setSlot, uint32_t binding, const std::unique_ptr<LayoutManager>& layoutManager)
+	VulkanUniformBuffer::VulkanUniformBuffer(uint32_t size, SetSlot setSlot, uint32_t binding, const Scope<LayoutManager>& layoutManager)
 		: m_Size(size), m_SetSlot(setSlot), m_Binding(binding)
 	{
 		CreateDescriptorPool();
@@ -132,7 +132,7 @@ namespace ZEngine {
 		m_DescriptorPool = vk::raii::DescriptorPool(vk_Context->GetDevice(), poolInfo);
 	}
 
-	void VulkanUniformBuffer::CreateDescriptorSets(const std::unique_ptr<LayoutManager>& layoutManager) {
+	void VulkanUniformBuffer::CreateDescriptorSets(const Scope<LayoutManager>& layoutManager) {
 		auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
 		auto& device = vk_Context->GetDevice();
 

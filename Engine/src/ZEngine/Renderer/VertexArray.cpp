@@ -5,7 +5,7 @@
 
 namespace ZEngine {
 
-    std::shared_ptr<VertexArray> VertexArray::Create() {
+    Ref<VertexArray> VertexArray::Create() {
         switch (Renderer::GetAPI()) {
             case RendererAPI::API::None:
                 ZE_CORE_ASSERT(false, "RendererAPI::None is currently unsupported!");

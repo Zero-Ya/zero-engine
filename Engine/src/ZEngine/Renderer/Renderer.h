@@ -32,23 +32,23 @@ namespace ZEngine {
         static void EndScene();
         static void Shutdown();
 
-        static void Submit(const std::shared_ptr<PipelineState>& pipelineState,
-                           const std::shared_ptr<VertexArray>& vertexArray,
+        static void Submit(const Ref<PipelineState>& pipelineState,
+                           const Ref<VertexArray>& vertexArray,
                            const glm::mat4& transform = glm::mat4(1.0f));
 
         inline static RendererAPI::API GetAPI() { return RendererAPI::GetAPI(); }
 
-        static std::unique_ptr<LayoutManager>& GetLayoutManager() { return s_LayoutManager; }
+        static Scope<LayoutManager>& GetLayoutManager() { return s_LayoutManager; }
         
     private:
         struct SceneData {
             glm::mat4 ViewProjectionMatrix;
         };
 
-        static inline std::unique_ptr<LayoutManager> s_LayoutManager = nullptr;
-        static std::unique_ptr<SceneData> s_SceneData;
-        static std::shared_ptr<UniformBuffer> s_CameraUBO;
-        static std::shared_ptr<UniformBuffer> s_TriangleUBO;
+        static inline Scope<LayoutManager> s_LayoutManager = nullptr;
+        static Scope<SceneData> s_SceneData;
+        static Ref<UniformBuffer> s_CameraUBO;
+        static Ref<UniformBuffer> s_TriangleUBO;
     };
 
 }
