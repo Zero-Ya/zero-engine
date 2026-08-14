@@ -34,6 +34,9 @@ namespace ZEngine {
 		if (m_Context)
 			m_Context->WaitIdle();
 
+		// Destroy sandbox before renderer
+		m_LayerStack.~LayerStack();
+
 		Renderer::Shutdown();
 	}
 

@@ -5,18 +5,15 @@ struct CameraData {
     float4x4 proj;
 };
 
-struct MaterialParams
-{
+struct MaterialParams {
     float4 albedo;
     float roughness;
     float metallic;
     float2 padding;
 };
 
-struct ObjectData
-{
-    float4x4 model;
-    float4x4 normal;
+struct PushData {
+    float4x4 transform;
 };
 
 //
@@ -26,12 +23,13 @@ struct ObjectData
 struct VSInput {
     float2 inPosition;
     float3 inColor;
+    float2 inTexCoords;
 };
 
-struct VSOutput
-{
+struct VSOutput {
     float4 pos : SV_Position;
     float3 color;
+    float2 texCoords;
 };
 
 // SET 0: Global Frame Data (Binding 0)
@@ -49,9 +47,8 @@ uniform ConstantBuffer<MaterialParams> g_Material;
 [[vk::binding(1, 2)]] 
 Sampler2D g_AlbedoMap;
 
-// SET 3: Per-Object Data (Binding 0)
-[[vk::binding(0, 3)]] 
-uniform ConstantBuffer<ObjectData> g_Object;
+[[vk::push_constant]]
+ConstantBuffer<PushData> g_Push;
 
 //
 //
@@ -62,15 +59,17 @@ VSOutput vertMain(VSInput input) {
     VSOutput output;
 
     float4 position = float4(input.inPosition, 0.0, 1.0);
-    float4 objectPos = mul(g_Object.model, position);
+    float4 objectPos = mul(g_Push.transform, position);
     float4 mvpPos = mul(ubo.proj, mul(ubo.view, mul(ubo.model, objectPos)));
 
     output.pos = mvpPos;
     output.color = input.inColor;
+    output.texCoords = input.inTexCoords;
     return output;
 }
 
 [shader("fragment")]
 float4 fragMain(VSOutput vertIn) : SV_TARGET {
-   return float4(vertIn.color, 1.0);
+   //return float4(vertIn.color, 1.0);
+   return g_AlbedoMap.Sample(vertIn.texCoords);
 }

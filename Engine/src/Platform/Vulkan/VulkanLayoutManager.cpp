@@ -4,6 +4,11 @@
 #include "VulkanContext.h"
 
 namespace ZEngine {
+
+    Scope<LayoutManager> LayoutManager::Create() {
+        return std::make_unique<VulkanLayoutManager>();
+    }
+
     VulkanLayoutManager::VulkanLayoutManager() {
         Init();
     }
@@ -19,7 +24,6 @@ namespace ZEngine {
         CreateGlobalSetLayout(device);
         CreatePassSetLayout(device);
         CreateMaterialSetLayout(device);
-        CreateObjectSetLayout(device);
 
         // Cache raw unwrapped handles for C-style / struct initializations
         for (const auto& layout : m_Layouts) {
@@ -29,7 +33,7 @@ namespace ZEngine {
         // Configure push constant range
         std::vector<vk::PushConstantRange> pushConstantRanges;
         pushConstantRanges.reserve(1);
-        vk::PushConstantRange pushConstantRange{ vk::ShaderStageFlagBits::eVertex, 0, sizeof(PushConstantData) };
+        vk::PushConstantRange pushConstantRange{ vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0, sizeof(PushConstantData) };
         pushConstantRanges.push_back(pushConstantRange);
 
         vk::PipelineLayoutCreateInfo pipelineLayoutInfo {
@@ -72,16 +76,6 @@ namespace ZEngine {
         };
 
         vk::DescriptorSetLayoutCreateInfo layoutInfo{ .bindingCount = static_cast<uint32_t>(bindings.size()), .pBindings = bindings.data() };
-        m_Layouts.emplace_back(vk::raii::DescriptorSetLayout(device, layoutInfo));
-    }
-
-    // Set 3: Object data (Binding 0: Per-draw model matrix UBO)
-    void VulkanLayoutManager::CreateObjectSetLayout(const vk::raii::Device& device) {
-        std::array bindings = {
-            vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex, nullptr)
-        };
-
-        vk::DescriptorSetLayoutCreateInfo layoutInfo{ .bindingCount = 1, .pBindings = bindings.data() };
         m_Layouts.emplace_back(vk::raii::DescriptorSetLayout(device, layoutInfo));
     }
 

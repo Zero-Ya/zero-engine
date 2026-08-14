@@ -7,10 +7,6 @@
 
 namespace ZEngine {
 
-    struct PushConstantData {
-        glm::mat4 transform { 1.0f };
-    };
-
     class VulkanLayoutManager : public LayoutManager {
     public:
         VulkanLayoutManager();
@@ -29,7 +25,6 @@ namespace ZEngine {
         void CreateGlobalSetLayout(const vk::raii::Device& device);
         void CreatePassSetLayout(const vk::raii::Device& device);
         void CreateMaterialSetLayout(const vk::raii::Device& device);
-        void CreateObjectSetLayout(const vk::raii::Device& device);
 
     private:
         // RAII descriptor set layouts

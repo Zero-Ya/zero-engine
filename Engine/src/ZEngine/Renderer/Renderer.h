@@ -6,6 +6,7 @@
 #include "Buffer.h"
 
 #include "LayoutManager.h"
+#include "DescriptorAllocator.h"
 #include "PerspectiveCamera.h"
 
 // Temporary uniform data
@@ -13,11 +14,6 @@ struct CameraData {
     glm::mat4 model;
     glm::mat4 view;
     glm::mat4 proj;
-};
-
-struct ObjectData {
-    glm::mat4 model;
-    glm::mat4 normal;
 };
 
 //
@@ -34,11 +30,13 @@ namespace ZEngine {
 
         static void Submit(const Ref<PipelineState>& pipelineState,
                            const Ref<VertexArray>& vertexArray,
+                           const Ref<Material>& material,
                            const glm::mat4& transform = glm::mat4(1.0f));
 
         inline static RendererAPI::API GetAPI() { return RendererAPI::GetAPI(); }
 
         static Scope<LayoutManager>& GetLayoutManager() { return s_LayoutManager; }
+        static Scope<DescriptorAllocator>& GetDescriptorAllocator() { return s_DescriptorAllocator; }
         
     private:
         struct SceneData {
@@ -46,9 +44,9 @@ namespace ZEngine {
         };
 
         static inline Scope<LayoutManager> s_LayoutManager = nullptr;
+        static inline Scope<DescriptorAllocator> s_DescriptorAllocator = nullptr;
         static Scope<SceneData> s_SceneData;
         static Ref<UniformBuffer> s_CameraUBO;
-        static Ref<UniformBuffer> s_TriangleUBO;
     };
 
 }

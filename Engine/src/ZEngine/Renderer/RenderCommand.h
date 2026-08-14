@@ -3,12 +3,10 @@
 #include "RendererAPI.h"
 
 namespace ZEngine {
-    class UniformBuffer;
-    class PipelineState;
 
 	class RenderCommand {
 	public:
-        static void Init() { s_RendererAPI->Init(); }
+        static void Init(const Scope<DescriptorAllocator>& descriptorAllocator, const Scope<LayoutManager>& layoutManager, const Ref<UniformBuffer>& cameraUBO) { s_RendererAPI->Init(descriptorAllocator, layoutManager, cameraUBO); }
         static void SetViewport(uint32_t x, uint32_t y, uint32_t w, uint32_t h) { s_RendererAPI->SetViewport(x, y, w, h); }
         static void SetClearColor(const glm::vec4& color) { s_RendererAPI->SetClearColor(color); }
 
@@ -26,8 +24,17 @@ namespace ZEngine {
         static void BindPipelineState(const Ref<PipelineState>& pipelineState) {
             s_RendererAPI->BindPipelineState(pipelineState);
         }
-        static void BindDescriptorSets(const Ref<PipelineState>& pipelineState, const Ref<UniformBuffer>& ubo) {
-            s_RendererAPI->BindDescriptorSets(pipelineState, ubo);
+
+        static void BindGlobalSet(const Ref<PipelineState>& pipelineState) {
+            s_RendererAPI->BindGlobalSet(pipelineState);
+        }
+
+        static void BindMaterialSet(const Ref<PipelineState>& pipelineState, const Ref<Material>& material) {
+            s_RendererAPI->BindMaterialSet(pipelineState, material);
+        }
+
+        static void PushConstant(const Ref<PipelineState>& pipelineState, PushConstantData pushConstants) {
+            s_RendererAPI->PushConstant(pipelineState, pushConstants);
         }
 
 	private:

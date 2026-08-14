@@ -5,13 +5,10 @@
 #include <vulkan/vulkan_raii.hpp>
 
 namespace ZEngine {
-	class LayoutManager;
-	class UniformBuffer;
-	class PipelineState;
 
 	class VulkanRendererAPI : public RendererAPI {
 	public:
-		virtual void Init() override;
+		virtual void Init(const Scope<DescriptorAllocator>& descriptorAllocator, const Scope<LayoutManager>& layoutManager, const Ref<UniformBuffer>& cameraUBO) override;
 		virtual void SetViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height) override;
 		virtual void SetClearColor(const glm::vec4& color) override;
 		virtual void Clear() override;
@@ -23,7 +20,10 @@ namespace ZEngine {
 		virtual void DrawIndexed(const Ref<VertexArray>& vertexArray, uint32_t indexCount = 0) override;
 
 		virtual void BindPipelineState(const Ref<PipelineState>& pipelineState) override;
-		virtual void BindDescriptorSets(const Ref<PipelineState>& pipelineState, const Ref<UniformBuffer>& ubo) override;
+
+		virtual void BindGlobalSet(const Ref<PipelineState>& pipelineState) override;
+		virtual void BindMaterialSet(const Ref<PipelineState>& pipelineState, const Ref<Material>& material) override;
+		virtual void PushConstant(const Ref<PipelineState>& pipelineState, PushConstantData pushConstants) override;
 
 	private:
 		void TransitionImageLayout(
@@ -41,6 +41,9 @@ namespace ZEngine {
 
 		Ref<RenderCommandBuffer> m_ActiveCommandBuffer = nullptr;
 		uint32_t m_CurrentImageIndex = 0;
+
+		// Temporary
+		std::vector<vk::raii::DescriptorSet> m_GlobalSet;
 	};
 
 }

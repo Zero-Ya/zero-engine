@@ -5,12 +5,32 @@
 #include "Platform/Vulkan/VulkanCommandBuffer.h"
 #include "Platform/Vulkan/VulkanVertexArray.h"
 #include "Platform/Vulkan/VulkanBuffer.h"
+#include "Platform/Vulkan/VulkanDescriptorAllocator.h"
+#include "Platform/Vulkan/VulkanMaterial.h"
 #include "VulkanPipelineState.h"
 
 namespace ZEngine {
 
-	void VulkanRendererAPI::Init() {
-        
+	void VulkanRendererAPI::Init(const Scope<DescriptorAllocator>& descriptorAllocator, const Scope<LayoutManager>& layoutManager, const Ref<UniformBuffer>& cameraUBO) {
+        auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
+        auto& device = vk_Context->GetDevice();
+
+        auto vk_Allocator = static_cast<VulkanDescriptorAllocator*>(descriptorAllocator.get());
+        m_GlobalSet = vk_Allocator->AllocatePerFrames(SetSlot::Global, layoutManager);
+
+        auto vk_CameraUBO = static_cast<VulkanUniformBuffer*>(cameraUBO.get());
+        auto& cameraBuffers = vk_CameraUBO->GetUniformBuffers();
+
+        for (size_t i = 0; i < vk_Context->GetMaxFramesInFlight(); i++) {
+            vk::DescriptorBufferInfo bufferInfo { .buffer = cameraBuffers[i], .offset = 0, .range = vk_CameraUBO->GetSize() };
+            vk::WriteDescriptorSet   descriptorWrite { .dstSet = m_GlobalSet[i],
+                                                       .dstBinding = 0,
+                                                       .dstArrayElement = 0,
+                                                       .descriptorCount = 1,
+                                                       .descriptorType = vk::DescriptorType::eUniformBuffer,
+                                                       .pBufferInfo = &bufferInfo };
+            device.updateDescriptorSets(descriptorWrite, {});
+        }
 	}
 
     void VulkanRendererAPI::SetViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
@@ -108,6 +128,7 @@ namespace ZEngine {
     }
 
     void VulkanRendererAPI::Shutdown() {
+        m_GlobalSet.clear();
     }
 
     void VulkanRendererAPI::DrawIndexed(const Ref<VertexArray>& vertexArray, uint32_t indexCount) {
@@ -131,14 +152,35 @@ namespace ZEngine {
         commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, vulkanPipeline->GetNativePipeline());
     }
 
-    void VulkanRendererAPI::BindDescriptorSets(const Ref<PipelineState>& pipelineState, const Ref<UniformBuffer>& ubo) {
+    void VulkanRendererAPI::BindGlobalSet(const Ref<PipelineState>& pipelineState) {
+        auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
+        auto currentFrame = vk_Context->GetCurrentFrameIndex();
+
         auto vulkanCommandBuffer = static_cast<VulkanCommandBuffer*>(m_ActiveCommandBuffer.get());
         const auto& commandBuffer = vulkanCommandBuffer->GetBuffer();
 
         auto vulkanPipeline = static_cast<VulkanPipelineState*>(pipelineState.get());
-        auto vulkanUBO = static_cast<VulkanUniformBuffer*>(ubo.get());
 
-        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, vulkanPipeline->GetNativeLayout(), static_cast<uint32_t>(vulkanUBO->GetSetSlot()), *vulkanUBO->GetFrameDescriptorSet(), nullptr);
+        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, vulkanPipeline->GetNativeLayout(), static_cast<uint32_t>(SetSlot::Global), *m_GlobalSet[currentFrame], nullptr);
+    }
+
+    void VulkanRendererAPI::BindMaterialSet(const Ref<PipelineState>& pipelineState, const Ref<Material>& material) {
+        auto vulkanCommandBuffer = static_cast<VulkanCommandBuffer*>(m_ActiveCommandBuffer.get());
+        const auto& commandBuffer = vulkanCommandBuffer->GetBuffer();
+
+        auto vk_Material = static_cast<VulkanMaterial*>(material.get());
+        auto vulkanPipeline = static_cast<VulkanPipelineState*>(pipelineState.get());
+
+        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, vulkanPipeline->GetNativeLayout(), static_cast<uint32_t>(SetSlot::Material), *vk_Material->GetDescriptorSet(), nullptr);
+    }
+
+    void VulkanRendererAPI::PushConstant(const Ref<PipelineState>& pipelineState, PushConstantData pushConstants) {
+        auto vulkanCommandBuffer = static_cast<VulkanCommandBuffer*>(m_ActiveCommandBuffer.get());
+        const auto& commandBuffer = vulkanCommandBuffer->GetBuffer();
+
+        auto vulkanPipeline = static_cast<VulkanPipelineState*>(pipelineState.get());
+
+        commandBuffer.pushConstants<PushConstantData>(vulkanPipeline->GetNativeLayout(), vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0, pushConstants);
     }
 
     void VulkanRendererAPI::TransitionImageLayout(

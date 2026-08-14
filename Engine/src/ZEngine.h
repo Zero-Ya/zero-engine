@@ -22,6 +22,8 @@
 #include "ZEngine/Renderer/Buffer.h"
 #include "ZEngine/Renderer/Shader.h"
 #include "ZEngine/Renderer/VertexArray.h"
+#include "ZEngine/Renderer/Texture.h"
+#include "ZEngine/Renderer/Material.h"
 
 #include "ZEngine/Renderer/PerspectiveCamera.h"
 // -----------------------------------

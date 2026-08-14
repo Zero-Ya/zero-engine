@@ -1,7 +1,6 @@
 #pragma once
 
 #include "ZEngine/Renderer/Buffer.h"
-#include "VulkanLayoutManager.h"
 
 #include <vulkan/vulkan_raii.hpp>
 #include <glm/glm.hpp>
@@ -46,28 +45,16 @@ namespace ZEngine {
 
 	class VulkanUniformBuffer : public UniformBuffer {
 	public:
-		VulkanUniformBuffer(uint32_t size, SetSlot setSlot, uint32_t binding, const Scope<LayoutManager>& layoutManager);
+		VulkanUniformBuffer(size_t size);
 		virtual ~VulkanUniformBuffer() override = default;
 
 		virtual void SetData(const void* data, uint32_t size, uint32_t offset = 0) override;
 
 		const std::vector<vk::raii::Buffer>& GetUniformBuffers() { return m_UniformBuffers; }
-		const std::vector<vk::raii::DescriptorSet>& GetDescriptorSets() { return m_DescriptorSets; }
-		const vk::raii::DescriptorSet& GetFrameDescriptorSet();
-		const SetSlot& GetSetSlot() { return m_SetSlot; }
+		const size_t& GetSize() const { return m_Size; }
 
 	private:
-		void CreateDescriptorPool();
-		void CreateDescriptorSets(const Scope<LayoutManager>& layoutManager);
-
-	private:
-		uint32_t m_Size = 0;
-		SetSlot m_SetSlot = SetSlot::Global;
-		uint32_t m_Binding = 0;
-		Scope<LayoutManager> m_LayoutManager;
-
-		vk::raii::DescriptorPool             m_DescriptorPool = nullptr;
-		std::vector<vk::raii::DescriptorSet> m_DescriptorSets;
+		size_t m_Size;
 
 		std::vector<vk::raii::Buffer>        m_UniformBuffers;
 		std::vector<vk::raii::DeviceMemory>  m_UniformBuffersMemory;

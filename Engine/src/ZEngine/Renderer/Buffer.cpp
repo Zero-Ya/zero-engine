@@ -24,10 +24,10 @@ namespace ZEngine {
 		return nullptr;
 	}
 
-	Ref<UniformBuffer> UniformBuffer::Create(uint32_t size, SetSlot setSlot, uint32_t binding, const Scope<LayoutManager>& layoutManager) {
+	Ref<UniformBuffer> UniformBuffer::Create(size_t size) {
 		switch (Renderer::GetAPI()) {
 			case RendererAPI::API::None:    ZE_CORE_ASSERT(false, "RendererAPI::None is currently not supported!"); return nullptr;
-			case RendererAPI::API::Vulkan:  return std::make_shared<VulkanUniformBuffer>(size, setSlot, binding, layoutManager);
+			case RendererAPI::API::Vulkan:  return std::make_shared<VulkanUniformBuffer>(size);
 		}
 
 		ZE_CORE_ASSERT(false, "Unknown RendererAPI!");
