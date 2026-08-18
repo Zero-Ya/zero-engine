@@ -14,6 +14,12 @@ public:
 
 		// Shader
 		m_Shader = ZEngine::Shader::Create("Shader", "shader.spv");
+		//auto m_Shader = m_ShaderLibrary.Load("shader.spv");
+
+		// Material and texture
+		m_Texture = ZEngine::Texture2D::Create("shamrock_four.png");
+		m_MaterialInstance = ZEngine::Material::Create("Test Material", m_Texture);
+		m_MaterialInstance->Init(s_DescriptorAllocator, s_LayoutManager);
 
 		// Buffers and array config
 		m_VertexArray = ZEngine::VertexArray::Create();
@@ -46,11 +52,6 @@ public:
 		// Pipeline state spec
 		ZEngine::PipelineSpecification pipelineSpec{ m_Shader, layout, false, false };
 		m_PipelineState = ZEngine::PipelineState::Create(pipelineSpec, ZEngine::Renderer::GetLayoutManager());
-
-		// Material and texture
-		m_Texture = ZEngine::Texture2D::Create("texture.jpg");
-		m_MaterialInstance = ZEngine::Material::Create("Test Material", m_Texture);
-		m_MaterialInstance->Init(s_DescriptorAllocator, s_LayoutManager);
 	}
 
 	void OnUpdate(ZEngine::Timestep ts) override {
@@ -72,7 +73,7 @@ public:
 			m_CameraRotation -= m_CameraRotationSpeed * ts;
 
 		ZEngine::RenderCommand::SetViewport(0, 0, ZEngine::Application::Get().GetWindow().GetWidth(), ZEngine::Application::Get().GetWindow().GetHeight());
-		ZEngine::RenderCommand::SetClearColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
+		ZEngine::RenderCommand::SetClearColor(glm::vec4(0.0f, 0.0f, 0.1f, 0.0f));
 
 		// Since order of operation matters, we must put rotation before position
 		m_Camera.SetRotation(m_CameraRotation);
@@ -89,6 +90,7 @@ public:
 	}
 
 private:
+	ZEngine::ShaderLibrary m_ShaderLibrary;
 	ZEngine::Ref<ZEngine::Shader> m_Shader;
 	ZEngine::Ref<ZEngine::Texture2D> m_Texture;
 	ZEngine::Ref<ZEngine::Material> m_MaterialInstance;

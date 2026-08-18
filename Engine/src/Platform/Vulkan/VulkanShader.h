@@ -8,6 +8,7 @@ namespace ZEngine {
 
 	class VulkanShader : public Shader {
 	public:
+		VulkanShader(const std::string& spirvFilePath);
 		VulkanShader(std::string name,
 					 const std::string& spirvFilePath,
 					 std::string vertEntryPoint = "vertMain",

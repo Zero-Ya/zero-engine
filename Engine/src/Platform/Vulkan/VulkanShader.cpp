@@ -3,7 +3,12 @@
 #include "ZEngine/Core/Application.h"
 
 namespace ZEngine {
+	VulkanShader::VulkanShader(const std::string& spirvFilePath) {
+		m_SpirvCode = ReadSpirvFile(spirvFilePath);
+		CreateShaderModuleAndStages();
+	}
 
+	// Don't really know why we needed name...
 	VulkanShader::VulkanShader(std::string name,
 		const std::string& spirvFilePath,
 		std::string vertEntryPoint,
