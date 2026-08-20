@@ -12,31 +12,26 @@ namespace ZEngine {
 		ZE_CORE_ERROR("GLFW Error ({0}): {1}", error, description);
 	}
 
-	Window* Window::Create(const WindowProps& props)
-	{
+	Window* Window::Create(const WindowProps& props) {
 		return new WindowsWindow(props);
 	}
 
-	WindowsWindow::WindowsWindow(const WindowProps& props)
-	{
+	WindowsWindow::WindowsWindow(const WindowProps& props) {
 		Init(props);
 	}
 
-	WindowsWindow::~WindowsWindow()
-	{
+	WindowsWindow::~WindowsWindow() {
 		Shutdown();
 	}
 
-	void WindowsWindow::Init(const WindowProps& props)
-	{
+	void WindowsWindow::Init(const WindowProps& props) {
 		m_Data.Title = props.Title;
 		m_Data.Width = props.Width;
 		m_Data.Height = props.Height;
 
 		ZE_CORE_INFO("Creating window {0} ({1}, {2})", props.Title, props.Width, props.Height);
 
-		if (!s_GLFWInitialized)
-		{
+		if (!s_GLFWInitialized) {
 			int success = glfwInit();
 			ZE_CORE_ASSERT(success, "Could not intialize GLFW!");
 			
@@ -49,8 +44,7 @@ namespace ZEngine {
 		glfwSetWindowUserPointer(m_Window, &m_Data);
 
 		// Set GLFW callbacks
-		glfwSetWindowSizeCallback(m_Window, [](GLFWwindow* window, int width, int height)
-		{
+		glfwSetWindowSizeCallback(m_Window, [](GLFWwindow* window, int width, int height) {
 			WindowData& data = *(WindowData*) glfwGetWindowUserPointer(window);
 			data.Width = width;
 			data.Height = height;
@@ -59,15 +53,13 @@ namespace ZEngine {
 			data.EventCallback(event);
 		});
 
-		glfwSetWindowCloseCallback(m_Window, [](GLFWwindow* window)
-		{
+		glfwSetWindowCloseCallback(m_Window, [](GLFWwindow* window) {
 			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
 			WindowCloseEvent event;
 			data.EventCallback(event);
 		});
 
-		glfwSetKeyCallback(m_Window, [](GLFWwindow* window, int key, int scancode, int action, int mods) 
-		{
+		glfwSetKeyCallback(m_Window, [](GLFWwindow* window, int key, int scancode, int action, int mods) {
 			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
 
 			switch (action) {
@@ -133,14 +125,12 @@ namespace ZEngine {
 		});
 	}
 
-	void WindowsWindow::Shutdown()
-	{
+	void WindowsWindow::Shutdown() {
 		glfwDestroyWindow(m_Window);
 		glfwTerminate();
 	}
 
-	void WindowsWindow::OnUpdate()
-	{
+	void WindowsWindow::OnUpdate() {
 		glfwPollEvents();
 	}
 }

@@ -4,13 +4,10 @@
 class TestLayer : public ZEngine::Layer {
 public:
 	TestLayer()
-		: Layer("Test"), m_Camera(), m_CameraPosition(0.0f)
+		: Layer("Test"), m_CameraController(1280.0f / 720.0f)
 	{
 		auto& s_LayoutManager = ZEngine::Renderer::GetLayoutManager();
 		auto& s_DescriptorAllocator = ZEngine::Renderer::GetDescriptorAllocator();
-
-		// Camera
-		m_Camera = ZEngine::PerspectiveCamera(45.0f, ZEngine::Application::Get().GetWindow().GetAspectRatio(), 0.1f, 10.0f);
 
 		// Shader
 		m_Shader = ZEngine::Shader::Create("Shader", "shader.spv");
@@ -55,38 +52,21 @@ public:
 	}
 
 	void OnUpdate(ZEngine::Timestep ts) override {
-		//ZE_TRACE("Delta time: {0}s ({1}ms)", ts.GetSeconds(), ts.GetMilliseconds());
 
-		if (ZEngine::Input::IsKeyPressed(ZE_KEY_A))
-			m_CameraPosition.x -= m_CameraMoveSpeed * ts;
-		else if (ZEngine::Input::IsKeyPressed(ZE_KEY_D))
-			m_CameraPosition.x += m_CameraMoveSpeed * ts;
-
-		if (ZEngine::Input::IsKeyPressed(ZE_KEY_S))
-			m_CameraPosition.y -= m_CameraMoveSpeed * ts;
-		else if (ZEngine::Input::IsKeyPressed(ZE_KEY_W))
-			m_CameraPosition.y += m_CameraMoveSpeed * ts;
-
-		if (ZEngine::Input::IsKeyPressed(ZE_KEY_LEFT))
-			m_CameraRotation += m_CameraRotationSpeed * ts;
-		else if (ZEngine::Input::IsKeyPressed(ZE_KEY_RIGHT))
-			m_CameraRotation -= m_CameraRotationSpeed * ts;
+		m_CameraController.OnUpdate(ts);
 
 		ZEngine::RenderCommand::SetViewport(0, 0, ZEngine::Application::Get().GetWindow().GetWidth(), ZEngine::Application::Get().GetWindow().GetHeight());
 		ZEngine::RenderCommand::SetClearColor(glm::vec4(0.0f, 0.0f, 0.1f, 0.0f));
 
-		// Since order of operation matters, we must put rotation before position
-		m_Camera.SetRotation(m_CameraRotation);
-		m_Camera.SetPosition(m_CameraPosition);
-
 		glm::mat4 triangleTransform = glm::translate(glm::mat4(1.0f), glm::vec3(-0.5f, 0.0f, -1.0f));
 
-		ZEngine::Renderer::BeginScene(m_Camera);
+		ZEngine::Renderer::BeginScene(m_CameraController.GetCamera());
 		ZEngine::Renderer::Submit(m_PipelineState, m_VertexArray, m_MaterialInstance, triangleTransform);
 		ZEngine::Renderer::EndScene();
 	}
 
-	void OnEvent(ZEngine::Event& event) override {
+	void OnEvent(ZEngine::Event& e) override {
+		m_CameraController.OnEvent(e);
 	}
 
 private:
@@ -97,11 +77,8 @@ private:
 	ZEngine::Ref<ZEngine::VertexArray> m_VertexArray;
 	ZEngine::Ref<ZEngine::PipelineState> m_PipelineState;
 
-	ZEngine::PerspectiveCamera m_Camera;
-	glm::vec3 m_CameraPosition;
-	float m_CameraMoveSpeed = 10.0f;
-	float m_CameraRotation = 0.0f;
-	float m_CameraRotationSpeed = 90.0f;
+	ZEngine::PerspectiveCameraController m_CameraController;
+	//ZEngine::OrthographicCameraController m_CameraController;
 };
 
 class Game : public ZEngine::Application {

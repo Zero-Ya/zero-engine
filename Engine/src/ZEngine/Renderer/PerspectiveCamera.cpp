@@ -4,24 +4,49 @@
 
 namespace ZEngine {
 
-	PerspectiveCamera::PerspectiveCamera()
-		: m_ModelMatrix(1.0f), m_ViewMatrix(1.0f), m_ProjectionMatrix(1.0f), m_ViewProjectionMatrix(1.0f)
-	{}
-
-	PerspectiveCamera::PerspectiveCamera(float fov, float aspect, float zNear, float zFar)
-		: m_ModelMatrix(1.0f), m_ViewMatrix(1.0f), m_ProjectionMatrix(glm::perspective(glm::radians(fov), aspect, zNear, zFar))
+	PerspectiveCamera::PerspectiveCamera(float fov, float aspectRatio, float zNear, float zFar)
+		: m_Zoom(fov), m_AspectRatio(aspectRatio), m_Near(zNear), m_Far(zFar), m_ModelMatrix(1.0f)
 	{
-		m_ModelMatrix = rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		m_ViewMatrix = lookAt(glm::vec3(2.0f, 2.0f, 4.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		m_ViewProjectionMatrix = m_ProjectionMatrix * m_ViewMatrix;
+		RecalculateProjection();
+		UpdateCameraVectors();
+	}
+
+	void PerspectiveCamera::SetProjection(float fov, float aspectRatio, float zNear, float zFar) {
+		m_Zoom = fov;
+		m_AspectRatio = aspectRatio;
+		m_Near = zNear;
+		m_Far = zFar;
+		RecalculateProjection();
 	}
 
 	void PerspectiveCamera::SetPosition(glm::vec3 pos) {
-		m_ModelMatrix = glm::translate(m_ModelMatrix, pos);
+		m_Position = pos;
+		RecalculateView();
 	}
 
-	void PerspectiveCamera::SetRotation(float rotation) {
-		m_ModelMatrix = rotate(glm::mat4(1.0f), glm::radians(rotation), glm::vec3(0.0f, 0.0f, 1.0f));
+	void PerspectiveCamera::RecalculateProjection() {
+		m_ProjectionMatrix = glm::perspective(glm::radians(m_Zoom), m_AspectRatio, m_Near, m_Far);
+		m_ViewProjectionMatrix = m_ProjectionMatrix * m_ViewMatrix;
+	}
+
+	void PerspectiveCamera::RecalculateView() {
+		m_ViewMatrix = glm::lookAt(m_Position, m_Position + m_Front, m_Up);
+		m_ViewProjectionMatrix = m_ProjectionMatrix * m_ViewMatrix;
+	}
+
+	void PerspectiveCamera::UpdateCameraVectors() {
+		// Calculate the new Front vector
+		glm::vec3 front{};
+		front.x = cos(glm::radians(m_Yaw)) * cos(glm::radians(m_Pitch));
+		front.y = sin(glm::radians(m_Pitch));
+		front.z = sin(glm::radians(m_Yaw)) * cos(glm::radians(m_Pitch));
+		m_Front = glm::normalize(front);
+		// Also re-calculate the Right and Up vector
+													 // m_WorldUp
+		m_Right = glm::normalize(glm::cross(m_Front, glm::vec3(0.0f, 1.0f, 0.0f)));
+		m_Up = glm::normalize(glm::cross(m_Right, m_Front));
+
+		RecalculateView();
 	}
 
 }

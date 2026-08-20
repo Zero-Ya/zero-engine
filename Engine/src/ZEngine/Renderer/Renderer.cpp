@@ -13,11 +13,22 @@ namespace ZEngine {
         RenderCommand::Init(s_DescriptorAllocator, s_LayoutManager, s_CameraUBO);
     }
 
+    void Renderer::BeginScene(OrthographicCamera& camera) {
+        s_SceneData->ViewProjectionMatrix = camera.GetViewProjectionMatrix();
+
+        CameraData cameraUBO {};
+        cameraUBO.model = glm::mat4(1.0f);
+        cameraUBO.view = camera.GetViewMatrix();
+        cameraUBO.proj = camera.GetProjectionMatrix();
+        s_CameraUBO->SetData(&cameraUBO, sizeof(cameraUBO));
+    }
+
     void Renderer::BeginScene(PerspectiveCamera& camera) {
         s_SceneData->ViewProjectionMatrix = camera.GetViewProjectionMatrix();
 
         CameraData cameraUBO{};
-        cameraUBO.model = camera.GetModelMatrix();
+        //cameraUBO.model = camera.GetModelMatrix();
+        cameraUBO.model = glm::mat4(1.0f);
         cameraUBO.view = camera.GetViewMatrix();
         cameraUBO.proj = camera.GetProjectionMatrix();
         s_CameraUBO->SetData(&cameraUBO, sizeof(cameraUBO));

@@ -8,6 +8,7 @@
 #include "LayoutManager.h"
 #include "DescriptorAllocator.h"
 #include "PerspectiveCamera.h"
+#include "OrthographicCamera.h"
 
 // Temporary uniform data
 struct CameraData {
@@ -24,6 +25,7 @@ namespace ZEngine {
     public:
         static void Init();
 
+        static void BeginScene(OrthographicCamera& camera);
         static void BeginScene(PerspectiveCamera& camera);
         static void EndScene();
         static void Shutdown();

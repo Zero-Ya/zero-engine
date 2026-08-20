@@ -11,6 +11,8 @@
 #include "ZEngine/Core/Input.h"
 #include "ZEngine/Core/KeyCodes.h"
 #include "ZEngine/Core/MouseButtonCodes.h"
+#include "ZEngine/Renderer/PerspectiveCameraController.h"
+#include "ZEngine/Renderer/OrthographicCameraController.h"
 
 #include "ZEngine/ImGui/ImGuiLayer.h"
 
@@ -26,6 +28,7 @@
 #include "ZEngine/Renderer/Material.h"
 
 #include "ZEngine/Renderer/PerspectiveCamera.h"
+#include "ZEngine/Renderer/OrthographicCamera.h"
 // -----------------------------------
 
 // ---Entry Point------------------------
