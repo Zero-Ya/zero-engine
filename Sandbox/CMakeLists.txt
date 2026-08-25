@@ -11,7 +11,7 @@ add_executable(Sandbox)
 
 target_sources(Sandbox PRIVATE
 	src/SandboxApp.cpp
-)
+ "src/Sandbox2D.h" "src/Sandbox2D.cpp")
 
 # Link sandbox with engine
 target_link_libraries(Sandbox PRIVATE Engine)
@@ -25,6 +25,7 @@ target_include_directories(Sandbox PRIVATE
 	${CMAKE_SOURCE_DIR}/Engine/dependencies/spdlog/include
 	${CMAKE_SOURCE_DIR}/Engine/src
 	${CMAKE_SOURCE_DIR}/Engine/dependencies/glm
+	${CMAKE_SOURCE_DIR}/Engine/dependencies/imgui
 )
 
 # Copy dll to binary dir

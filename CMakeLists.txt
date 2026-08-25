@@ -48,7 +48,8 @@ if(MSVC)
 endif()
 
 set(SHADER_SOURCES
-	${ASSETS_DIR}/shaders/shader.slang
+	${ASSETS_DIR}/shaders/Shader.slang
+	${ASSETS_DIR}/shaders/FlatShader.slang
 )
 set(SPIRV_FILES "")
 set(ENTRY_POINTS -entry vertMain -entry fragMain)

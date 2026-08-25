@@ -30,7 +30,3 @@
 #include "ZEngine/Renderer/PerspectiveCamera.h"
 #include "ZEngine/Renderer/OrthographicCamera.h"
 // -----------------------------------
-
-// ---Entry Point------------------------
-#include "ZEngine/Core/EntryPoint.h"
-// --------------------------------------

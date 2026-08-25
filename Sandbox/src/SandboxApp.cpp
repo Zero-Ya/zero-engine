@@ -1,5 +1,9 @@
 #include "ZEngine.h"
+#include "ZEngine/Core/EntryPoint.h"
+
 #include <glm/gtc/matrix_transform.hpp>
+
+#include "Sandbox2D.h"
 
 class TestLayer : public ZEngine::Layer {
 public:
@@ -10,8 +14,8 @@ public:
 		auto& s_DescriptorAllocator = ZEngine::Renderer::GetDescriptorAllocator();
 
 		// Shader
-		m_Shader = ZEngine::Shader::Create("Shader", "shader.spv");
-		//auto m_Shader = m_ShaderLibrary.Load("shader.spv");
+		m_Shader = ZEngine::Shader::Create("Shader", "Shader.spv");
+		//auto m_Shader = m_ShaderLibrary.Load("Shader.spv");
 
 		// Material and texture
 		m_Texture = ZEngine::Texture2D::Create("shamrock_four.png");
@@ -52,9 +56,10 @@ public:
 	}
 
 	void OnUpdate(ZEngine::Timestep ts) override {
-
+		// Update
 		m_CameraController.OnUpdate(ts);
 
+		// Render
 		ZEngine::RenderCommand::SetViewport(0, 0, ZEngine::Application::Get().GetWindow().GetWidth(), ZEngine::Application::Get().GetWindow().GetHeight());
 		ZEngine::RenderCommand::SetClearColor(glm::vec4(0.0f, 0.0f, 0.1f, 0.0f));
 
@@ -85,7 +90,8 @@ class Game : public ZEngine::Application {
 public:
 	Game() {
 		PushLayer(new TestLayer());
-	}
+		//PushLayer(new Sandbox2D());
+;	}
 
 	~Game() {
 

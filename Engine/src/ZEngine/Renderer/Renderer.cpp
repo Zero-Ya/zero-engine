@@ -59,7 +59,8 @@ namespace ZEngine {
 
         RenderCommand::BindPipelineState(pipelineState);
         RenderCommand::BindGlobalSet(pipelineState);
-        RenderCommand::BindMaterialSet(pipelineState, material);
+        if (material != nullptr)
+            RenderCommand::BindMaterialSet(pipelineState, material);
         RenderCommand::PushConstant(pipelineState, pushConstants);
         RenderCommand::DrawIndexed(vertexArray, 0);
     }
