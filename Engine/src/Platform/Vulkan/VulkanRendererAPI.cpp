@@ -161,7 +161,7 @@ namespace ZEngine {
 
         auto vulkanPipeline = static_cast<VulkanPipelineState*>(pipelineState.get());
 
-        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, vulkanPipeline->GetNativeLayout(), static_cast<uint32_t>(SetSlot::Global), *m_GlobalSet[currentFrame], nullptr);
+        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, vulkanPipeline->GetRawNativeLayout(), static_cast<uint32_t>(SetSlot::Global), *m_GlobalSet[currentFrame], nullptr);
     }
 
     void VulkanRendererAPI::BindMaterialSet(const Ref<PipelineState>& pipelineState, const Ref<Material>& material) {
@@ -171,7 +171,7 @@ namespace ZEngine {
         auto vk_Material = static_cast<VulkanMaterial*>(material.get());
         auto vulkanPipeline = static_cast<VulkanPipelineState*>(pipelineState.get());
 
-        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, vulkanPipeline->GetNativeLayout(), static_cast<uint32_t>(SetSlot::Material), *vk_Material->GetDescriptorSet(), nullptr);
+        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, vulkanPipeline->GetRawNativeLayout(), static_cast<uint32_t>(SetSlot::Material), *vk_Material->GetDescriptorSet(), nullptr);
     }
 
     void VulkanRendererAPI::PushConstant(const Ref<PipelineState>& pipelineState, PushConstantData pushConstants) {
@@ -180,7 +180,7 @@ namespace ZEngine {
 
         auto vulkanPipeline = static_cast<VulkanPipelineState*>(pipelineState.get());
 
-        commandBuffer.pushConstants<PushConstantData>(vulkanPipeline->GetNativeLayout(), vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0, pushConstants);
+        commandBuffer.pushConstants<PushConstantData>(vulkanPipeline->GetRawNativeLayout(), vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0, pushConstants);
     }
 
     void VulkanRendererAPI::TransitionImageLayout(

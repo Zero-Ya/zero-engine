@@ -14,7 +14,7 @@ namespace ZEngine {
 		virtual void Bind() const override {}
 
 		const vk::raii::Pipeline& GetNativePipeline() const { return m_Pipeline; }
-		const vk::raii::PipelineLayout& GetNativeLayout() const { return m_PipelineLayout; }
+		const vk::PipelineLayout& GetRawNativeLayout() const { return m_PipelineLayout; }
 
 	private:
 		vk::Format ShaderDataTypeToVulkanFormat(ShaderDataType type);
@@ -22,7 +22,7 @@ namespace ZEngine {
 		[[nodiscard]] vk::raii::ShaderModule CreateShaderModule(const std::vector<char>& code);
 
 	private:
-		vk::raii::PipelineLayout m_PipelineLayout = nullptr;
+		vk::PipelineLayout m_PipelineLayout = nullptr;
 		vk::raii::Pipeline		 m_Pipeline = nullptr;
 	};
 

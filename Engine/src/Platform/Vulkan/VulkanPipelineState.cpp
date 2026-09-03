@@ -78,7 +78,7 @@ namespace ZEngine {
 
 		// Pipeline layout info
 		auto g_LayoutManager = static_cast<VulkanLayoutManager*>(layoutManager.get());
-		m_PipelineLayout = std::move(g_LayoutManager->GetRaiiPipelineLayout());
+		m_PipelineLayout = g_LayoutManager->GetGlobalPipelineLayout();
 
 		vk::Format colorFormat = vk::Format::eB8G8R8A8Srgb;
 		vk::PipelineRenderingCreateInfo dynamicRenderingInfo{ .colorAttachmentCount = 1, .pColorAttachmentFormats = &colorFormat };
@@ -96,7 +96,7 @@ namespace ZEngine {
 			//.pDepthStencilState = &depthStencil,
 			.pColorBlendState = &colorBlending,
 			.pDynamicState = &dynamicState,
-			.layout = *m_PipelineLayout
+			.layout = m_PipelineLayout
 		};
 
 		m_Pipeline = vk::raii::Pipeline(device, nullptr, pipelineInfo);

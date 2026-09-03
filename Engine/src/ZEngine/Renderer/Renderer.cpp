@@ -45,6 +45,7 @@ namespace ZEngine {
         s_CameraUBO.reset();
         s_SceneData.reset();
 
+        Renderer2D::Shutdown();
         RenderCommand::Shutdown();
         // Descriptor allocator last because rendererAPI still holds descriptor sets
         // Absolutely terrible
