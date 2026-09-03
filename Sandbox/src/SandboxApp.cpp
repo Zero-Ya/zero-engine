@@ -89,8 +89,8 @@ private:
 class Game : public ZEngine::Application {
 public:
 	Game() {
-		PushLayer(new TestLayer());
-		//PushLayer(new Sandbox2D());
+		//PushLayer(new TestLayer());
+		PushLayer(new Sandbox2D());
 ;	}
 
 	~Game() {

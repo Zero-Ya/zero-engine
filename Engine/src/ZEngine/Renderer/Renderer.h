@@ -39,6 +39,7 @@ namespace ZEngine {
 
         static Scope<LayoutManager>& GetLayoutManager() { return s_LayoutManager; }
         static Scope<DescriptorAllocator>& GetDescriptorAllocator() { return s_DescriptorAllocator; }
+        static Ref<UniformBuffer>& GetCameraUBO() { return s_CameraUBO; }
         
     private:
         struct SceneData {

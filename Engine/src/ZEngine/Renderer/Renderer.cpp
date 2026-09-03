@@ -1,5 +1,7 @@
 #include "Renderer.h"
 
+#include "Renderer2D.h"
+
 namespace ZEngine {
 
     Scope<Renderer::SceneData> Renderer::s_SceneData = std::make_unique<Renderer::SceneData>();
@@ -11,6 +13,7 @@ namespace ZEngine {
         s_DescriptorAllocator = DescriptorAllocator::Create(s_LayoutManager);
 
         RenderCommand::Init(s_DescriptorAllocator, s_LayoutManager, s_CameraUBO);
+        Renderer2D::Init();
     }
 
     void Renderer::BeginScene(OrthographicCamera& camera) {
@@ -53,7 +56,6 @@ namespace ZEngine {
                           const Ref<Material>& material,
                           const glm::mat4& transform)
     {
-
         PushConstantData pushConstants {};
         pushConstants.transform = transform;
 

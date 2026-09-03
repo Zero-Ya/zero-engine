@@ -19,7 +19,6 @@ namespace ZEngine {
 		const PerspectiveCamera& GetCamera() const { return m_Camera; }
 
 	private:
-		void ProcessMouseMovement(float xoffset, float yoffset, bool constrainPitch = true);
 		bool OnMouseScrolled(MouseScrolledEvent& e);
 		bool OnWindowResized(WindowResizeEvent& e);
 
