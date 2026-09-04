@@ -30,14 +30,18 @@ namespace ZEngine {
 		virtual void SwapBuffers() override;
 
 		// Getters
-		vk::raii::Instance&		 GetInstance()		 { return m_Instance; }
-		vk::raii::SurfaceKHR&	 GetSurface()		 { return m_Surface; }
-		vk::raii::PhysicalDevice& GetPhysicalDevice() { return m_PhysicalDevice; }
+		vk::raii::Instance&		  GetInstance()			 { return m_Instance; }
+		vk::raii::SurfaceKHR&	  GetSurface()			 { return m_Surface; }
+		vk::raii::PhysicalDevice& GetPhysicalDevice()	 { return m_PhysicalDevice; }
 		// Get logical device
-		vk::raii::Device&		 GetDevice()		 { return m_Device; }
-		uint32_t				 GetQueueIndex()	 { return queueIndex; }
-		vk::raii::Queue			 GetGraphicsQueue()  { return m_GraphicsQueue; }
-		vk::raii::CommandPool&	 GetCommandPool()	 { return m_CommandPool; }
+		vk::raii::Device&		  GetDevice()			 { return m_Device; }
+		uint32_t				  GetQueueIndex() const  { return queueIndex; }
+		vk::raii::Queue			  GetGraphicsQueue()	 { return m_GraphicsQueue; }
+		vk::raii::CommandPool&	  GetCommandPool()		 { return m_CommandPool; }
+								  
+		vk::raii::Image&		  GetDepthImage()		 { return m_DepthImage; }
+		vk::raii::ImageView&	  GetDepthImageView()	 { return m_DepthImageView; }
+		const vk::Format&		  GetDepthFormat() const { return m_DepthFormat; }
 
 		//Scope<VulkanSwapchain>& GetSwapchain() { return m_Swapchain; }
 		VulkanSwapchain* GetSwapchain() { return m_Swapchain.get(); }
@@ -60,7 +64,11 @@ namespace ZEngine {
 		void CreateLogicalDevice();
 		void CreateSwapchain();
 		void CreateCommandPool();
+		void CreateDepthResources();
 		void CreateSyncObjects();
+
+		vk::Format FindSupportedFormat(const std::vector<vk::Format>& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features);
+		vk::Format FindDepthFormat();
 
 	private:
 		GLFWwindow*						 m_Window			= nullptr;
@@ -81,6 +89,11 @@ namespace ZEngine {
 		std::vector<vk::raii::Semaphore> m_ImageAvailableSemaphores;
 		std::vector<vk::raii::Semaphore> m_RenderFinishedSemaphores;
 		std::vector<vk::raii::Fence> m_InFlightFences;
+
+		vk::raii::Image        m_DepthImage = nullptr;
+		vk::raii::DeviceMemory m_DepthImageMemory = nullptr;
+		vk::raii::ImageView    m_DepthImageView = nullptr;
+		vk::Format			   m_DepthFormat;
 
 		uint32_t m_CurrentFrameIndex = 0;
 		const uint32_t MAX_FRAMES_IN_FLIGHT = 2; // Double buffering synchronization tracking

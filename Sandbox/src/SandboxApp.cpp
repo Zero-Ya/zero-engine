@@ -64,11 +64,11 @@ public:
 		ZEngine::RenderCommand::SetClearColor(glm::vec4(0.0f, 0.0f, 0.1f, 0.0f));
 
 		glm::mat4 firstTransform = glm::translate(glm::mat4(1.0f), glm::vec3(-0.5f, 0.0f, -1.0f));
-		glm::mat4 secondTransform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -1.0f));
+		glm::mat4 secondTransform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -1.5f));
 
 		ZEngine::Renderer::BeginScene(m_CameraController.GetCamera());
 		ZEngine::Renderer::Submit(m_PipelineState, m_VertexArray, m_MaterialInstance, firstTransform);
-		//ZEngine::Renderer::Submit(m_PipelineState, m_VertexArray, m_MaterialInstance, secondTransform);
+		ZEngine::Renderer::Submit(m_PipelineState, m_VertexArray, m_MaterialInstance, secondTransform);
 		ZEngine::Renderer::EndScene();
 	}
 

@@ -4,6 +4,10 @@
 
 namespace {
 
+	uint32_t FindMemoryType(vk::raii::PhysicalDevice physicalDevice, uint32_t typeFilter, vk::MemoryPropertyFlags properties);
+	std::pair<vk::raii::Image, vk::raii::DeviceMemory> CreateImage(const vk::raii::Device& device, const vk::raii::PhysicalDevice& physicalDevice, uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling, vk::ImageUsageFlags usage, vk::MemoryPropertyFlags properties);
+	vk::raii::ImageView CreateImageView(const vk::raii::Device& device, vk::Image const& image, vk::Format format, vk::ImageAspectFlags aspectFlags);
+
 	std::vector<const char*> getRequiredInstanceExtensions(bool enableValidationLayers);
 	VKAPI_ATTR vk::Bool32 VKAPI_CALL debugCallback(vk::DebugUtilsMessageSeverityFlagBitsEXT severity, vk::DebugUtilsMessageTypeFlagsEXT type, const vk::DebugUtilsMessengerCallbackDataEXT* pCallbackData, void*);
 
@@ -24,6 +28,7 @@ namespace ZEngine {
 		CreateLogicalDevice();
 		CreateSwapchain();
 		CreateCommandPool();
+		CreateDepthResources();
 		CreateSyncObjects();
 		ZE_CORE_INFO("Vulkan Context created!");
 	}
@@ -196,6 +201,13 @@ namespace ZEngine {
 		m_CommandPool = vk::raii::CommandPool(m_Device, poolInfo);
 	}
 
+	void VulkanContext::CreateDepthResources() {
+		m_DepthFormat = FindDepthFormat();
+
+		std::tie(m_DepthImage, m_DepthImageMemory) = CreateImage(m_Device, m_PhysicalDevice, m_Swapchain->GetExtent().width, m_Swapchain->GetExtent().height, m_DepthFormat, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal);
+		m_DepthImageView = CreateImageView(m_Device, m_DepthImage, m_DepthFormat, vk::ImageAspectFlagBits::eDepth);
+	}
+
 	void VulkanContext::CreateSyncObjects() {
 		vk::SemaphoreCreateInfo semaphoreInfo;
 		vk::FenceCreateInfo fenceInfo { .flags = vk::FenceCreateFlagBits::eSignaled }; // Start signaled so first frame doesn't freeze
@@ -208,6 +220,24 @@ namespace ZEngine {
 			m_ImageAvailableSemaphores.emplace_back(m_Device, semaphoreInfo);
 			m_InFlightFences.emplace_back(m_Device, fenceInfo);
 		}
+	}
+
+	vk::Format VulkanContext::FindSupportedFormat(const std::vector<vk::Format>& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features) {
+		for (const auto format : candidates) {
+			vk::FormatProperties props = m_PhysicalDevice.getFormatProperties(format);
+			if (((tiling == vk::ImageTiling::eLinear) && ((props.linearTilingFeatures & features) == features)) ||
+				((tiling == vk::ImageTiling::eOptimal) && ((props.optimalTilingFeatures & features) == features))) {
+				return format;
+			}
+		}
+
+		throw std::runtime_error("failed to find supported format!");
+	}
+
+	vk::Format VulkanContext::FindDepthFormat() {
+		return FindSupportedFormat({ vk::Format::eD32Sfloat, vk::Format::eD32SfloatS8Uint, vk::Format::eD24UnormS8Uint },
+			vk::ImageTiling::eOptimal,
+			vk::FormatFeatureFlagBits::eDepthStencilAttachment);
 	}
 
 	uint32_t VulkanContext::AcquireNextImage() {
@@ -270,9 +300,6 @@ namespace ZEngine {
 			// Framebuffer resize stuff here
 			RecreateSwapchain();
 		}
-		else {
-			ZE_CORE_ASSERT(presentResult == vk::Result::eSuccess);
-		}
 
 		// Advance our tracking cycle index to the next synchronization pool slot
 		m_CurrentFrameIndex = (m_CurrentFrameIndex + 1) % MAX_FRAMES_IN_FLIGHT;
@@ -288,6 +315,7 @@ namespace ZEngine {
 		m_Swapchain->CleanupSwapchain();
 		m_Swapchain->CreateSwapchain(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
 		m_Swapchain->CreateImageViews();
+		CreateDepthResources();
 	}
 
 	void VulkanContext::WaitIdle() {
@@ -297,6 +325,51 @@ namespace ZEngine {
 }
 
 namespace {
+
+	uint32_t FindMemoryType(vk::raii::PhysicalDevice physicalDevice, uint32_t typeFilter, vk::MemoryPropertyFlags properties) {
+		vk::PhysicalDeviceMemoryProperties memProperties = physicalDevice.getMemoryProperties();
+
+		for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
+		{
+			if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
+			{
+				return i;
+			}
+		}
+
+		throw std::runtime_error("failed to find suitable memory type!");
+	}
+
+	std::pair<vk::raii::Image, vk::raii::DeviceMemory> CreateImage(const vk::raii::Device& device, const vk::raii::PhysicalDevice& physicalDevice, uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling, vk::ImageUsageFlags usage, vk::MemoryPropertyFlags properties) {
+		vk::ImageCreateInfo imageInfo{ .imageType = vk::ImageType::e2D,
+									  .format = format,
+									  .extent = {width, height, 1},
+									  .mipLevels = 1,
+									  .arrayLayers = 1,
+									  .samples = vk::SampleCountFlagBits::e1,
+									  .tiling = tiling,
+									  .usage = usage,
+									  .sharingMode = vk::SharingMode::eExclusive };
+
+		vk::raii::Image image = vk::raii::Image(device, imageInfo);
+
+		vk::MemoryRequirements memRequirements = image.getMemoryRequirements();
+		vk::MemoryAllocateInfo allocInfo{ .allocationSize = memRequirements.size,
+										 .memoryTypeIndex = FindMemoryType(physicalDevice, memRequirements.memoryTypeBits, properties) };
+		vk::raii::DeviceMemory imageMemory = vk::raii::DeviceMemory(device, allocInfo);
+		image.bindMemory(imageMemory, 0);
+
+		return { std::move(image), std::move(imageMemory) };
+	}
+
+	vk::raii::ImageView CreateImageView(const vk::raii::Device& device, vk::Image const& image, vk::Format format, vk::ImageAspectFlags aspectFlags) {
+		vk::ImageViewCreateInfo viewInfo{
+			.image = image,
+			.viewType = vk::ImageViewType::e2D,
+			.format = format,
+			.subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor, .baseMipLevel = 0, .levelCount = 1, .baseArrayLayer = 0, .layerCount = 1} };
+		return vk::raii::ImageView(device, viewInfo);
+	}
 
 	VKAPI_ATTR vk::Bool32 VKAPI_CALL debugCallback(vk::DebugUtilsMessageSeverityFlagBitsEXT severity, vk::DebugUtilsMessageTypeFlagsEXT type, const vk::DebugUtilsMessengerCallbackDataEXT* pCallbackData, void*) {
 		if (severity == vk::DebugUtilsMessageSeverityFlagBitsEXT::eError || severity == vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning)

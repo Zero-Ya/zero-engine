@@ -63,6 +63,7 @@ namespace ZEngine {
         auto vulkanCommandBuffer = static_cast<VulkanCommandBuffer*>(m_ActiveCommandBuffer.get());
         const auto& commandBuffer = vulkanCommandBuffer->GetBuffer();
 
+        // Transition the swapchain image to vk::ImageLayout::eColorAttachmentOptimal
         TransitionImageLayout(
             swapchain->GetImage(m_CurrentImageIndex),
             vk::ImageLayout::eUndefined,
@@ -74,16 +75,36 @@ namespace ZEngine {
             vk::ImageAspectFlagBits::eColor
         );
 
+        // Transition depth image to depth attachment optimal layout
+        TransitionImageLayout(
+            *vk_Context->GetDepthImage(),
+            vk::ImageLayout::eUndefined,
+            vk::ImageLayout::eDepthAttachmentOptimal,
+            vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
+            vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
+            vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
+            vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
+            vk::ImageAspectFlagBits::eDepth);
+
         vk::ClearValue clearValue = {
             vk::ClearColorValue(std::array<float, 4>{ m_ClearColor.r, m_ClearColor.g, m_ClearColor.b, m_ClearColor.a })
         };
+        vk::ClearValue clearDepth = vk::ClearDepthStencilValue(1.0f, 0);
 
-        vk::RenderingAttachmentInfo colorAttachment {
+        vk::RenderingAttachmentInfo colorAttachmentInfo {
             .imageView = swapchain->GetImageView(m_CurrentImageIndex),
             .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
             .loadOp = vk::AttachmentLoadOp::eClear,
             .storeOp = vk::AttachmentStoreOp::eStore,
             .clearValue = clearValue
+        };
+
+        vk::RenderingAttachmentInfo depthAttachmentInfo = {
+            .imageView = vk_Context->GetDepthImageView(),
+            .imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
+            .loadOp = vk::AttachmentLoadOp::eClear,
+            .storeOp = vk::AttachmentStoreOp::eDontCare,
+            .clearValue = clearDepth
         };
 
         const vk::Extent2D& extent = swapchain->GetExtent();
@@ -94,8 +115,8 @@ namespace ZEngine {
             .layerCount = 1,
             .viewMask = 0,
             .colorAttachmentCount = 1,
-            .pColorAttachments = &colorAttachment,
-            .pDepthAttachment = nullptr,
+            .pColorAttachments = &colorAttachmentInfo,
+            .pDepthAttachment = &depthAttachmentInfo,
             .pStencilAttachment = nullptr
         };
 

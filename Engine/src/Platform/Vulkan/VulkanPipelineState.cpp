@@ -50,6 +50,16 @@ namespace ZEngine {
 																  .lineWidth = 1.0f };
 		// Multisampling and color blending
 		vk::PipelineMultisampleStateCreateInfo multisampling { .rasterizationSamples = vk::SampleCountFlagBits::e1, .sampleShadingEnable = vk::False };
+
+		// Depth stencil
+		vk::PipelineDepthStencilStateCreateInfo depthStencil{
+			.depthTestEnable = vk::True,
+			.depthWriteEnable = vk::True,
+			.depthCompareOp = vk::CompareOp::eLess,
+			.depthBoundsTestEnable = vk::False,
+			.stencilTestEnable = vk::False
+		};
+
 		vk::PipelineColorBlendAttachmentState  colorBlendAttachment{
 			.blendEnable = vk::True,
 			// RGB blending
@@ -80,8 +90,9 @@ namespace ZEngine {
 		auto g_LayoutManager = static_cast<VulkanLayoutManager*>(layoutManager.get());
 		m_PipelineLayout = g_LayoutManager->GetGlobalPipelineLayout();
 
-		vk::Format colorFormat = vk::Format::eB8G8R8A8Srgb;
-		vk::PipelineRenderingCreateInfo dynamicRenderingInfo{ .colorAttachmentCount = 1, .pColorAttachmentFormats = &colorFormat };
+		vk::Format depthFormat = vk_Context->GetDepthFormat();
+		vk::Format colorFormat = vk::Format::eB8G8R8A8Srgb; // We can also get swapchain surface format
+		vk::PipelineRenderingCreateInfo dynamicRenderingInfo{ .colorAttachmentCount = 1, .pColorAttachmentFormats = &colorFormat, .depthAttachmentFormat = depthFormat };
 
 		// Pipeline info
 		vk::GraphicsPipelineCreateInfo pipelineInfo {
@@ -93,7 +104,7 @@ namespace ZEngine {
 			.pViewportState = &viewportState,
 			.pRasterizationState = &rasterizerInfo,
 			.pMultisampleState = &multisampling,
-			//.pDepthStencilState = &depthStencil,
+			.pDepthStencilState = &depthStencil,
 			.pColorBlendState = &colorBlending,
 			.pDynamicState = &dynamicState,
 			.layout = m_PipelineLayout

@@ -70,6 +70,11 @@ VSOutput vertMain(VSInput input) {
 
 [shader("fragment")]
 float4 fragMain(VSOutput vertIn) : SV_TARGET {
-   //return float4(vertIn.color, 1.0);
-   return g_AlbedoMap.Sample(vertIn.texCoords);
+    float4 texColor = g_AlbedoMap.Sample(vertIn.texCoords);
+   
+    if (texColor.a < 0.5) {
+        discard;
+    }
+
+    return texColor;
 }
