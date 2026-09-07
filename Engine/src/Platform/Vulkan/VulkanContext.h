@@ -41,7 +41,7 @@ namespace ZEngine {
 								  
 		vk::raii::Image&		  GetDepthImage()		 { return m_DepthImage; }
 		vk::raii::ImageView&	  GetDepthImageView()	 { return m_DepthImageView; }
-		const vk::Format&		  GetDepthFormat() const { return m_DepthFormat; }
+		vk::Format&				  GetDepthFormat()		 { return m_DepthFormat; }
 
 		//Scope<VulkanSwapchain>& GetSwapchain() { return m_Swapchain; }
 		VulkanSwapchain* GetSwapchain() { return m_Swapchain.get(); }
@@ -69,6 +69,9 @@ namespace ZEngine {
 
 		vk::Format FindSupportedFormat(const std::vector<vk::Format>& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features);
 		vk::Format FindDepthFormat();
+		uint32_t FindMemoryType(vk::raii::PhysicalDevice physicalDevice, uint32_t typeFilter, vk::MemoryPropertyFlags properties);
+		std::pair<vk::raii::Image, vk::raii::DeviceMemory> CreateImage(const vk::raii::Device& device, const vk::raii::PhysicalDevice& physicalDevice, uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling, vk::ImageUsageFlags usage, vk::MemoryPropertyFlags properties);
+		vk::raii::ImageView CreateImageView(const vk::raii::Device& device, vk::Image const& image, vk::Format format, vk::ImageAspectFlags aspectFlags);
 
 	private:
 		GLFWwindow*						 m_Window			= nullptr;

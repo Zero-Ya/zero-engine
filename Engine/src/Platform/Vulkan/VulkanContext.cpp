@@ -4,10 +4,6 @@
 
 namespace {
 
-	uint32_t FindMemoryType(vk::raii::PhysicalDevice physicalDevice, uint32_t typeFilter, vk::MemoryPropertyFlags properties);
-	std::pair<vk::raii::Image, vk::raii::DeviceMemory> CreateImage(const vk::raii::Device& device, const vk::raii::PhysicalDevice& physicalDevice, uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling, vk::ImageUsageFlags usage, vk::MemoryPropertyFlags properties);
-	vk::raii::ImageView CreateImageView(const vk::raii::Device& device, vk::Image const& image, vk::Format format, vk::ImageAspectFlags aspectFlags);
-
 	std::vector<const char*> getRequiredInstanceExtensions(bool enableValidationLayers);
 	VKAPI_ATTR vk::Bool32 VKAPI_CALL debugCallback(vk::DebugUtilsMessageSeverityFlagBitsEXT severity, vk::DebugUtilsMessageTypeFlagsEXT type, const vk::DebugUtilsMessengerCallbackDataEXT* pCallbackData, void*);
 
@@ -322,11 +318,7 @@ namespace ZEngine {
 		m_Device.waitIdle();
 	}
 
-}
-
-namespace {
-
-	uint32_t FindMemoryType(vk::raii::PhysicalDevice physicalDevice, uint32_t typeFilter, vk::MemoryPropertyFlags properties) {
+	uint32_t VulkanContext::FindMemoryType(vk::raii::PhysicalDevice physicalDevice, uint32_t typeFilter, vk::MemoryPropertyFlags properties) {
 		vk::PhysicalDeviceMemoryProperties memProperties = physicalDevice.getMemoryProperties();
 
 		for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
@@ -340,7 +332,7 @@ namespace {
 		throw std::runtime_error("failed to find suitable memory type!");
 	}
 
-	std::pair<vk::raii::Image, vk::raii::DeviceMemory> CreateImage(const vk::raii::Device& device, const vk::raii::PhysicalDevice& physicalDevice, uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling, vk::ImageUsageFlags usage, vk::MemoryPropertyFlags properties) {
+	std::pair<vk::raii::Image, vk::raii::DeviceMemory> VulkanContext::CreateImage(const vk::raii::Device& device, const vk::raii::PhysicalDevice& physicalDevice, uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling, vk::ImageUsageFlags usage, vk::MemoryPropertyFlags properties) {
 		vk::ImageCreateInfo imageInfo{ .imageType = vk::ImageType::e2D,
 									  .format = format,
 									  .extent = {width, height, 1},
@@ -362,14 +354,17 @@ namespace {
 		return { std::move(image), std::move(imageMemory) };
 	}
 
-	vk::raii::ImageView CreateImageView(const vk::raii::Device& device, vk::Image const& image, vk::Format format, vk::ImageAspectFlags aspectFlags) {
+	vk::raii::ImageView VulkanContext::CreateImageView(const vk::raii::Device& device, vk::Image const& image, vk::Format format, vk::ImageAspectFlags aspectFlags) {
 		vk::ImageViewCreateInfo viewInfo{
 			.image = image,
 			.viewType = vk::ImageViewType::e2D,
 			.format = format,
-			.subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor, .baseMipLevel = 0, .levelCount = 1, .baseArrayLayer = 0, .layerCount = 1} };
+			.subresourceRange = {.aspectMask = aspectFlags, .baseMipLevel = 0, .levelCount = 1, .baseArrayLayer = 0, .layerCount = 1} };
 		return vk::raii::ImageView(device, viewInfo);
 	}
+}
+
+namespace {
 
 	VKAPI_ATTR vk::Bool32 VKAPI_CALL debugCallback(vk::DebugUtilsMessageSeverityFlagBitsEXT severity, vk::DebugUtilsMessageTypeFlagsEXT type, const vk::DebugUtilsMessengerCallbackDataEXT* pCallbackData, void*) {
 		if (severity == vk::DebugUtilsMessageSeverityFlagBitsEXT::eError || severity == vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning)
