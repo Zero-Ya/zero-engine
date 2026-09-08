@@ -4,7 +4,6 @@
 
 namespace ZEngine {
 
-	class LayoutManager;
 	class Shader;
 
 	struct PipelineSpecification {
@@ -19,7 +18,7 @@ namespace ZEngine {
 		virtual ~PipelineState() = default;
 		virtual void Bind() const = 0;
 
-		static Ref<PipelineState> Create(const PipelineSpecification& spec, const Scope<LayoutManager>& layoutManager);
+		static Ref<PipelineState> Create(const PipelineSpecification& spec);
 	};
 
 }

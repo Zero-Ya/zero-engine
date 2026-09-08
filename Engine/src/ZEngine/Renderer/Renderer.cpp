@@ -8,11 +8,9 @@ namespace ZEngine {
     Ref<UniformBuffer> Renderer::s_CameraUBO = nullptr;
 
     void Renderer::Init() {
-        s_LayoutManager = LayoutManager::Create();
         s_CameraUBO = UniformBuffer::Create(sizeof(CameraData));
-        s_DescriptorAllocator = DescriptorAllocator::Create(s_LayoutManager);
 
-        RenderCommand::Init(s_DescriptorAllocator, s_LayoutManager, s_CameraUBO);
+        RenderCommand::Init(s_CameraUBO);
         Renderer2D::Init();
     }
 
@@ -41,15 +39,11 @@ namespace ZEngine {
     }
 
     void Renderer::Shutdown() {
-        s_LayoutManager.reset();
         s_CameraUBO.reset();
         s_SceneData.reset();
 
         Renderer2D::Shutdown();
         RenderCommand::Shutdown();
-        // Descriptor allocator last because rendererAPI still holds descriptor sets
-        // Absolutely terrible
-        s_DescriptorAllocator.reset();
     }
 
     void Renderer::Submit(const Ref<PipelineState>& pipelineState,

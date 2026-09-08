@@ -4,6 +4,8 @@
 #include "ZEngine/Core/Application.h"
 #include "Platform/Vulkan/VulkanContext.h"
 
+#include "Platform/Vulkan/VulkanDescriptorAllocator.h"
+
 namespace ZEngine {
 
     VulkanMaterial::VulkanMaterial(const std::string& name, const Ref<Texture2D>& texture)
@@ -11,9 +13,9 @@ namespace ZEngine {
     {
     }
 
-    void VulkanMaterial::Init(const Scope<DescriptorAllocator>& descriptorAllocator, const Scope<LayoutManager>& layoutManager) {
+    void VulkanMaterial::Init() {
         m_MaterialUBO = std::make_shared<VulkanUniformBuffer>(sizeof(MaterialProperties));
-        AllocateDescriptorSet(descriptorAllocator, layoutManager);
+        AllocateDescriptorSet();
         UpdateDescriptorSet();
     }
 
@@ -37,9 +39,11 @@ namespace ZEngine {
         m_IsDirty = true;
     }
 
-    void VulkanMaterial::AllocateDescriptorSet(const Scope<DescriptorAllocator>& descriptorAllocator, const Scope<LayoutManager>& layoutManager) {
-        auto vk_Allocator = static_cast<VulkanDescriptorAllocator*>(descriptorAllocator.get());
-        m_MaterialSet = vk_Allocator->Allocate(SetSlot::Material, layoutManager);
+    void VulkanMaterial::AllocateDescriptorSet() {
+        auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
+
+        auto vk_Allocator = static_cast<VulkanDescriptorAllocator*>(vk_Context->GetDescriptorAllocator().get());
+        m_MaterialSet = vk_Allocator->Allocate(SetSlot::Material);
     }
 
     void VulkanMaterial::UpdateDescriptorSet() {

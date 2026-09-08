@@ -11,12 +11,13 @@
 
 namespace ZEngine {
 
-	void VulkanRendererAPI::Init(const Scope<DescriptorAllocator>& descriptorAllocator, const Scope<LayoutManager>& layoutManager, const Ref<UniformBuffer>& cameraUBO) {
+	void VulkanRendererAPI::Init(const Ref<UniformBuffer>& cameraUBO) {
         auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
         auto& device = vk_Context->GetDevice();
 
-        auto vk_Allocator = static_cast<VulkanDescriptorAllocator*>(descriptorAllocator.get());
-        m_GlobalSet = vk_Allocator->AllocatePerFrames(SetSlot::Global, layoutManager);
+        auto vk_Allocator = static_cast<VulkanDescriptorAllocator*>(vk_Context->GetDescriptorAllocator().get());
+
+        m_GlobalSet = vk_Allocator->AllocatePerFrames(SetSlot::Global);
 
         auto vk_CameraUBO = static_cast<VulkanUniformBuffer*>(cameraUBO.get());
         auto& cameraBuffers = vk_CameraUBO->GetUniformBuffers();

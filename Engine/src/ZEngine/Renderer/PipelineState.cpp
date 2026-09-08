@@ -4,10 +4,10 @@
 
 namespace ZEngine {
 
-	Ref<PipelineState> PipelineState::Create(const PipelineSpecification& spec, const Scope<LayoutManager>& layoutManager) {
+	Ref<PipelineState> PipelineState::Create(const PipelineSpecification& spec) {
 		switch (Renderer::GetAPI()) {
 			case RendererAPI::API::None: return nullptr;
-			case RendererAPI::API::Vulkan: return std::make_shared<VulkanPipelineState>(spec, layoutManager);
+			case RendererAPI::API::Vulkan: return std::make_shared<VulkanPipelineState>(spec);
 		}
 		return nullptr;
 	}

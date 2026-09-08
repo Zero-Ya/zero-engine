@@ -6,9 +6,6 @@
 
 namespace ZEngine {
 
-    class LayoutManager;
-    class DescriptorAllocator;
-
     struct MaterialProperties {
         glm::vec4 Albedo { 1.0f, 1.0f, 1.0f, 1.0f };
         float Roughness = 0.5f;
@@ -20,7 +17,7 @@ namespace ZEngine {
     public:
         virtual ~Material() = default;
 
-        virtual void Init(const Scope<DescriptorAllocator>& descriptorAllocator, const Scope<LayoutManager>& layoutManager) = 0;
+        virtual void Init() = 0;
 
         virtual void SetAlbedoColor(const glm::vec4& color) = 0;
         virtual const glm::vec4& GetAlbedoColor() const = 0;

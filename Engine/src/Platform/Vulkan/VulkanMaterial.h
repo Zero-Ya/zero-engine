@@ -3,8 +3,6 @@
 #include "ZEngine/Renderer/Material.h"
 #include "Platform/Vulkan/VulkanBuffer.h"
 
-#include "Platform/Vulkan/VulkanDescriptorAllocator.h"
-
 #include <vulkan/vulkan_raii.hpp>
 
 namespace ZEngine {
@@ -14,7 +12,7 @@ namespace ZEngine {
 		VulkanMaterial(const std::string& name, const Ref<Texture2D>& texture);
         ~VulkanMaterial() = default;
 
-        void Init(const Scope<DescriptorAllocator>& descriptorAllocator, const Scope<LayoutManager>& layoutManager) override;
+        void Init() override;
 
         void SetAlbedoColor(const glm::vec4& color) override;
         const glm::vec4& GetAlbedoColor() const override { return m_Properties.Albedo; }
@@ -33,7 +31,7 @@ namespace ZEngine {
         void UpdateBuffer();
 
     private:
-        void AllocateDescriptorSet(const Scope<DescriptorAllocator>& descriptorAllocator, const Scope<LayoutManager>& layoutManager);
+        void AllocateDescriptorSet();
         void UpdateDescriptorSet();
 
     private:

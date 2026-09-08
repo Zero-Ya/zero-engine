@@ -5,11 +5,11 @@
 
 namespace ZEngine {
 
-	Scope<DescriptorAllocator> DescriptorAllocator::Create(const Scope <LayoutManager>& layoutManager) {
-		return std::make_unique<VulkanDescriptorAllocator>(layoutManager);
+	Scope<DescriptorAllocator> DescriptorAllocator::Create() {
+		return std::make_unique<VulkanDescriptorAllocator>();
 	}
 
-	VulkanDescriptorAllocator::VulkanDescriptorAllocator(const Scope <LayoutManager>& layoutManager) {
+	VulkanDescriptorAllocator::VulkanDescriptorAllocator() {
 		CreateDescriptorPool();
 	}
 
@@ -40,13 +40,13 @@ namespace ZEngine {
 		m_DescriptorPool = vk::raii::DescriptorPool(vk_Context->GetDevice(), poolInfo);
 	}
 
-	vk::raii::DescriptorSet VulkanDescriptorAllocator::Allocate(SetSlot setSlot, const Scope<LayoutManager>& layoutManager) {
+	vk::raii::DescriptorSet VulkanDescriptorAllocator::Allocate(SetSlot setSlot) {
 		auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
 		auto& device = vk_Context->GetDevice();
 
-		auto g_LayoutManager = static_cast<VulkanLayoutManager*>(layoutManager.get());
+		auto vk_LayoutManager = static_cast<VulkanLayoutManager*>(vk_Context->GetLayoutManager().get());
 
-		vk::DescriptorSetLayout targetLayout = g_LayoutManager->GetSetLayout(setSlot);
+		vk::DescriptorSetLayout targetLayout = vk_LayoutManager->GetSetLayout(setSlot);
 
 		//std::vector<vk::DescriptorSetLayout> layouts(1, targetLayout);
 		vk::DescriptorSetAllocateInfo        allocInfo{ .descriptorPool = m_DescriptorPool,
@@ -57,13 +57,13 @@ namespace ZEngine {
 		return std::move(descriptorSets[0]);
 	}
 
-	std::vector<vk::raii::DescriptorSet> VulkanDescriptorAllocator::AllocatePerFrames(SetSlot setSlot, const Scope<LayoutManager>& layoutManager) {
+	std::vector<vk::raii::DescriptorSet> VulkanDescriptorAllocator::AllocatePerFrames(SetSlot setSlot) {
 		auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
 		auto& device = vk_Context->GetDevice();
 
-		auto g_LayoutManager = static_cast<VulkanLayoutManager*>(layoutManager.get());
+		auto vk_LayoutManager = static_cast<VulkanLayoutManager*>(vk_Context->GetLayoutManager().get());
 
-		vk::DescriptorSetLayout targetLayout = g_LayoutManager->GetSetLayout(setSlot);
+		vk::DescriptorSetLayout targetLayout = vk_LayoutManager->GetSetLayout(setSlot);
 
 		std::vector<vk::DescriptorSetLayout> layouts(vk_Context->GetMaxFramesInFlight(), targetLayout);
 		vk::DescriptorSetAllocateInfo        allocInfo{ .descriptorPool = m_DescriptorPool,

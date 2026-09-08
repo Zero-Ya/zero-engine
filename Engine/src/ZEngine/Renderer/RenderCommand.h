@@ -6,7 +6,7 @@ namespace ZEngine {
 
 	class RenderCommand {
 	public:
-        static void Init(const Scope<DescriptorAllocator>& descriptorAllocator, const Scope<LayoutManager>& layoutManager, const Ref<UniformBuffer>& cameraUBO) { s_RendererAPI->Init(descriptorAllocator, layoutManager, cameraUBO); }
+        static void Init(const Ref<UniformBuffer>& cameraUBO) { s_RendererAPI->Init(cameraUBO); }
         static void SetViewport(uint32_t x, uint32_t y, uint32_t w, uint32_t h) { s_RendererAPI->SetViewport(x, y, w, h); }
         static void SetClearColor(const glm::vec4& color) { s_RendererAPI->SetClearColor(color); }
 

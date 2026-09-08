@@ -26,6 +26,8 @@ namespace ZEngine {
 											 const vk::raii::CommandPool& commandPool,
 											 const vk::raii::Queue queue)
 	{
+		stbi_set_flip_vertically_on_load(true);
+
 		int texWidth, texHeight, texChannels;
 		stbi_uc* pixels = stbi_load((ASSETS_DIR"/textures/" + m_Path).c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
 		vk::DeviceSize imageSize = texWidth * texHeight * 4;

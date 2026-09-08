@@ -10,9 +10,6 @@ public:
 	TestLayer()
 		: Layer("Test"), m_CameraController(1280.0f / 720.0f)
 	{
-		auto& s_LayoutManager = ZEngine::Renderer::GetLayoutManager();
-		auto& s_DescriptorAllocator = ZEngine::Renderer::GetDescriptorAllocator();
-
 		// Shader
 		m_Shader = ZEngine::Shader::Create("Shader", "Shader.spv");
 		//auto m_Shader = m_ShaderLibrary.Load("Shader.spv");
@@ -20,7 +17,7 @@ public:
 		// Material and texture
 		m_Texture = ZEngine::Texture2D::Create("shamrock_four.png");
 		m_MaterialInstance = ZEngine::Material::Create("Test Material", m_Texture);
-		m_MaterialInstance->Init(s_DescriptorAllocator, s_LayoutManager);
+		m_MaterialInstance->Init();
 
 		// Buffers and array config
 		m_VertexArray = ZEngine::VertexArray::Create();
@@ -52,7 +49,7 @@ public:
 
 		// Pipeline state spec
 		ZEngine::PipelineSpecification pipelineSpec{ m_Shader, layout, false, false };
-		m_PipelineState = ZEngine::PipelineState::Create(pipelineSpec, ZEngine::Renderer::GetLayoutManager());
+		m_PipelineState = ZEngine::PipelineState::Create(pipelineSpec);
 	}
 
 	void OnUpdate(ZEngine::Timestep ts) override {

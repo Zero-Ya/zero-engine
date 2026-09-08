@@ -1,8 +1,10 @@
 #include "VulkanPipelineState.h"
-#include "VulkanContext.h"
-#include "ZEngine/Core/Application.h"
+
 #include "VulkanCommandBuffer.h"
 #include "VulkanShader.h"
+
+#include "ZEngine/Core/Application.h"
+#include "VulkanContext.h"
 #include "VulkanLayoutManager.h"
 
 namespace {
@@ -13,7 +15,7 @@ namespace {
 
 namespace ZEngine {
 
-	VulkanPipelineState::VulkanPipelineState(const PipelineSpecification& spec, const Scope<LayoutManager>& layoutManager) {
+	VulkanPipelineState::VulkanPipelineState(const PipelineSpecification& spec) {
 		auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
 		auto vk_Shader = static_cast<VulkanShader*>(spec.Shader.get());
 		auto& device = vk_Context->GetDevice();
@@ -87,8 +89,8 @@ namespace ZEngine {
 		vk::PipelineDynamicStateCreateInfo dynamicState { .dynamicStateCount = static_cast<uint32_t>(dynamicStates.size()), .pDynamicStates = dynamicStates.data() };
 
 		// Pipeline layout info
-		auto g_LayoutManager = static_cast<VulkanLayoutManager*>(layoutManager.get());
-		m_PipelineLayout = g_LayoutManager->GetGlobalPipelineLayout();
+		auto vk_LayoutManager = static_cast<VulkanLayoutManager*>(vk_Context->GetLayoutManager().get());
+		m_PipelineLayout = vk_LayoutManager->GetGlobalPipelineLayout();
 
 		vk::Format depthFormat = vk_Context->GetDepthFormat();
 		vk::Format colorFormat = vk::Format::eB8G8R8A8Srgb; // We can also get swapchain surface format

@@ -8,6 +8,9 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
+#include "ZEngine/Renderer/LayoutManager.h"
+#include "ZEngine/Renderer/DescriptorAllocator.h"
+
 namespace ZEngine {
 	// Validation layer
 	#ifdef ZE_DEBUG
@@ -43,7 +46,9 @@ namespace ZEngine {
 		vk::raii::ImageView&	  GetDepthImageView()	 { return m_DepthImageView; }
 		vk::Format&				  GetDepthFormat()		 { return m_DepthFormat; }
 
-		//Scope<VulkanSwapchain>& GetSwapchain() { return m_Swapchain; }
+		Scope<LayoutManager>& GetLayoutManager() { return m_LayoutManager; }
+		Scope<DescriptorAllocator>& GetDescriptorAllocator() { return m_DescriptorAllocator; }
+
 		VulkanSwapchain* GetSwapchain() { return m_Swapchain.get(); }
 
 		uint32_t AcquireNextImage() override;
@@ -66,12 +71,6 @@ namespace ZEngine {
 		void CreateCommandPool();
 		void CreateDepthResources();
 		void CreateSyncObjects();
-
-		vk::Format FindSupportedFormat(const std::vector<vk::Format>& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features);
-		vk::Format FindDepthFormat();
-		uint32_t FindMemoryType(vk::raii::PhysicalDevice physicalDevice, uint32_t typeFilter, vk::MemoryPropertyFlags properties);
-		std::pair<vk::raii::Image, vk::raii::DeviceMemory> CreateImage(const vk::raii::Device& device, const vk::raii::PhysicalDevice& physicalDevice, uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling, vk::ImageUsageFlags usage, vk::MemoryPropertyFlags properties);
-		vk::raii::ImageView CreateImageView(const vk::raii::Device& device, vk::Image const& image, vk::Format format, vk::ImageAspectFlags aspectFlags);
 
 	private:
 		GLFWwindow*						 m_Window			= nullptr;
@@ -97,6 +96,9 @@ namespace ZEngine {
 		vk::raii::DeviceMemory m_DepthImageMemory = nullptr;
 		vk::raii::ImageView    m_DepthImageView = nullptr;
 		vk::Format			   m_DepthFormat;
+
+		Scope<LayoutManager> m_LayoutManager;
+		Scope<DescriptorAllocator> m_DescriptorAllocator;
 
 		uint32_t m_CurrentFrameIndex = 0;
 		const uint32_t MAX_FRAMES_IN_FLIGHT = 2; // Double buffering synchronization tracking

@@ -16,9 +16,6 @@ namespace ZEngine {
 	void Renderer2D::Init() {
 		s_Data = new Renderer2DStorage();
 
-		auto& s_LayoutManager = Renderer::GetLayoutManager();
-		auto& s_DescriptorAllocator = Renderer::GetDescriptorAllocator();
-
 		// Shader
 		s_Data->FlatShader = Shader::Create("Shader", "FlatShader.spv");
 
@@ -50,7 +47,7 @@ namespace ZEngine {
 
 		// Pipeline state spec
 		PipelineSpecification pipelineSpec{ s_Data->FlatShader, layout, false, false };
-		s_Data->QuadPipelineState = PipelineState::Create(pipelineSpec, Renderer::GetLayoutManager());
+		s_Data->QuadPipelineState = PipelineState::Create(pipelineSpec);
 	}
 
 	void Renderer2D::Shutdown() {
