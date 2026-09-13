@@ -66,16 +66,16 @@ namespace ZEngine {
 	void VulkanTexture2D::CreateTextureSampler(const vk::raii::Device& device, const vk::raii::PhysicalDevice& physicalDevice) {
 		vk::PhysicalDeviceProperties properties = physicalDevice.getProperties();
 		vk::SamplerCreateInfo        samplerInfo{ .magFilter = vk::Filter::eLinear,
-												 .minFilter = vk::Filter::eLinear,
-												 .mipmapMode = vk::SamplerMipmapMode::eLinear,
-												 .addressModeU = vk::SamplerAddressMode::eRepeat,
-												 .addressModeV = vk::SamplerAddressMode::eRepeat,
-												 .addressModeW = vk::SamplerAddressMode::eRepeat,
-												 .mipLodBias = 0.0f,
-												 .anisotropyEnable = vk::True,
-												 .maxAnisotropy = properties.limits.maxSamplerAnisotropy,
-												 .compareEnable = vk::False,
-												 .compareOp = vk::CompareOp::eAlways };
+												  .minFilter = vk::Filter::eLinear,
+												  .mipmapMode = vk::SamplerMipmapMode::eLinear,
+												  .addressModeU = vk::SamplerAddressMode::eRepeat,
+												  .addressModeV = vk::SamplerAddressMode::eRepeat,
+												  .addressModeW = vk::SamplerAddressMode::eRepeat,
+												  .mipLodBias = 0.0f,
+												  .anisotropyEnable = vk::True,
+												  .maxAnisotropy = properties.limits.maxSamplerAnisotropy,
+												  .compareEnable = vk::False,
+												  .compareOp = vk::CompareOp::eAlways };
 		m_Sampler = vk::raii::Sampler(device, samplerInfo);
 	}
 
@@ -90,14 +90,14 @@ namespace ZEngine {
 
 	std::pair<vk::raii::Image, vk::raii::DeviceMemory> VulkanTexture2D::CreateImage(const vk::raii::Device& device, const vk::raii::PhysicalDevice& physicalDevice, uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling, vk::ImageUsageFlags usage, vk::MemoryPropertyFlags properties) {
 		vk::ImageCreateInfo imageInfo{ .imageType = vk::ImageType::e2D,
-									  .format = format,
-									  .extent = {width, height, 1},
-									  .mipLevels = 1,
-									  .arrayLayers = 1,
-									  .samples = vk::SampleCountFlagBits::e1,
-									  .tiling = tiling,
-									  .usage = usage,
-									  .sharingMode = vk::SharingMode::eExclusive };
+									   .format = format,
+									   .extent = {width, height, 1},
+									   .mipLevels = 1,
+									   .arrayLayers = 1,
+									   .samples = vk::SampleCountFlagBits::e1,
+									   .tiling = tiling,
+									   .usage = usage,
+									   .sharingMode = vk::SharingMode::eExclusive };
 
 		vk::raii::Image image = vk::raii::Image(device, imageInfo);
 
@@ -146,11 +146,11 @@ namespace ZEngine {
 
 	void VulkanTexture2D::CopyBufferToImage(vk::raii::CommandBuffer& commandBuffer, const vk::raii::Buffer& buffer, vk::raii::Image& image, uint32_t width, uint32_t height) {
 		vk::BufferImageCopy region{ .bufferOffset = 0,
-								   .bufferRowLength = 0,
-								   .bufferImageHeight = 0,
-								   .imageSubresource = {.aspectMask = vk::ImageAspectFlagBits::eColor, .mipLevel = 0, .baseArrayLayer = 0, .layerCount = 1},
-								   .imageOffset = {0, 0, 0},
-								   .imageExtent = {width, height, 1} };
+								    .bufferRowLength = 0,
+								    .bufferImageHeight = 0,
+								    .imageSubresource = {.aspectMask = vk::ImageAspectFlagBits::eColor, .mipLevel = 0, .baseArrayLayer = 0, .layerCount = 1},
+								    .imageOffset = {0, 0, 0},
+								    .imageExtent = {width, height, 1} };
 		commandBuffer.copyBufferToImage(buffer, image, vk::ImageLayout::eTransferDstOptimal, region);
 	}
 
@@ -185,10 +185,8 @@ namespace ZEngine {
 	uint32_t VulkanTexture2D::FindMemoryType(vk::raii::PhysicalDevice physicalDevice, uint32_t typeFilter, vk::MemoryPropertyFlags properties) {
 		vk::PhysicalDeviceMemoryProperties memProperties = physicalDevice.getMemoryProperties();
 
-		for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
-		{
-			if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
-			{
+		for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
+			if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
 				return i;
 			}
 		}

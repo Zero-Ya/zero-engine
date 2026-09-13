@@ -35,7 +35,8 @@ namespace ZEngine {
         s_CameraUBO->SetData(&cameraUBO, sizeof(cameraUBO));
     }
 
-    void Renderer::EndScene() {
+    void Renderer::EndScene(const Ref<VertexArray>& vertexArray) {
+        RenderCommand::DrawIndexed(vertexArray, 0);
     }
 
     void Renderer::Shutdown() {
@@ -46,8 +47,11 @@ namespace ZEngine {
         RenderCommand::Shutdown();
     }
 
+    void Renderer::DrawModel(const Scope<Model>& model, const Ref<PipelineState>& pipelineState) {
+        RenderCommand::DrawModel(model, pipelineState);
+    }
+
     void Renderer::Submit(const Ref<PipelineState>& pipelineState,
-                          const Ref<VertexArray>& vertexArray,
                           const Ref<Material>& material,
                           const glm::mat4& transform)
     {
@@ -56,10 +60,9 @@ namespace ZEngine {
 
         RenderCommand::BindPipelineState(pipelineState);
         RenderCommand::BindGlobalSet(pipelineState);
-        if (material != nullptr)
-            RenderCommand::BindMaterialSet(pipelineState, material);
-        RenderCommand::PushConstant(pipelineState, pushConstants);
-        RenderCommand::DrawIndexed(vertexArray, 0);
+        //if (material != nullptr)
+            //RenderCommand::BindMaterialSet(pipelineState, material);
+        //RenderCommand::PushConstant(pipelineState, pushConstants);
     }
 
 }

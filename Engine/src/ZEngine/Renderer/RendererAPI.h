@@ -9,6 +9,7 @@ namespace ZEngine {
 	class UniformBuffer;
 	class PipelineState;
 	class Material;
+	class Model;
 
 	class RendererAPI {
 	public:
@@ -33,6 +34,8 @@ namespace ZEngine {
 		virtual void BindGlobalSet(const Ref<PipelineState>& pipelineState) = 0;
 		virtual void BindMaterialSet(const Ref<PipelineState>& pipelineState, const Ref<Material>& material) = 0;
 		virtual void PushConstant(const Ref<PipelineState>& pipelineState, PushConstantData pushConstants) = 0;
+
+		virtual void DrawModel(const Scope<Model>& model, const Ref<PipelineState>& pipelineState) = 0;
 
 		static API GetAPI() { return s_API; }
 		static Scope<RendererAPI> Create();

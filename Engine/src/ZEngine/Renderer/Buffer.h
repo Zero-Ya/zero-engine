@@ -83,6 +83,12 @@ namespace ZEngine {
         uint32_t m_Stride = 0;
     };
 
+	struct Vertex {
+		glm::vec3 position { 0.0f, 0.0f, 0.0f };
+		glm::vec3 normal { 0.0f, 0.0f, 0.0f };
+		glm::vec2 uv { 0.0f, 0.0f };
+	};
+
 	//
 	//
 	//
@@ -98,6 +104,7 @@ namespace ZEngine {
 		virtual void SetLayout(const BufferLayout& layout) = 0;
 
 		static Ref<VertexBuffer> Create(float* vertices, uint32_t size);
+		static Ref<VertexBuffer> Create(std::vector<Vertex> vertices, uint32_t size);
 	};
 
 	class IndexBuffer {
@@ -110,6 +117,7 @@ namespace ZEngine {
 		virtual uint32_t GetCount() const = 0;
 
 		static Ref<IndexBuffer> Create(uint32_t* indices, uint32_t size);
+		static Ref<IndexBuffer> Create(std::vector<uint32_t> indices, uint32_t size);
 	};
 
 	class UniformBuffer {

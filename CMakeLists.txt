@@ -34,6 +34,8 @@ target_compile_definitions(Sandbox PRIVATE
 	$<$<CONFIG:Debug>:ZE_DEBUG> 
     $<$<CONFIG:Release>:ZE_RELEASE>
 	# $<$<CONFIG:Dist>:ZE_DIST> 
+
+	ASSETS_DIR="${ASSETS_DIR}"
 )
 
 # Set compile stuff
@@ -50,6 +52,7 @@ endif()
 set(SHADER_SOURCES
 	${ASSETS_DIR}/shaders/Shader.slang
 	${ASSETS_DIR}/shaders/FlatShader.slang
+	${ASSETS_DIR}/shaders/BistroShader.slang
 )
 set(SPIRV_FILES "")
 set(ENTRY_POINTS -entry vertMain -entry fragMain)

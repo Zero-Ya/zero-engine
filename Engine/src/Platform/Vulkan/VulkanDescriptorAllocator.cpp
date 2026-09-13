@@ -17,8 +17,8 @@ namespace ZEngine {
 		auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
 
 		auto maxFramesInFlight = vk_Context->GetMaxFramesInFlight();
-		uint32_t maxMaterials = 10;
-		uint32_t maxObjects = 10;
+		uint32_t maxMaterials = 10000;
+		uint32_t maxObjects = 10000;
 
 		uint32_t uboCount = (1 * maxFramesInFlight) + (1 * maxMaterials) + (1 * maxObjects);
 		uint32_t samplerCount = (1 * maxFramesInFlight) + (1 * maxMaterials);

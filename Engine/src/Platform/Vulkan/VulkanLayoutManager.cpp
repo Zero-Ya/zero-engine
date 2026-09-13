@@ -33,7 +33,8 @@ namespace ZEngine {
         // Configure push constant range
         std::vector<vk::PushConstantRange> pushConstantRanges;
         pushConstantRanges.reserve(1);
-        vk::PushConstantRange pushConstantRange{ vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0, sizeof(PushConstantData) };
+        //vk::PushConstantRange pushConstantRange{ vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0, sizeof(PushConstantData) };
+        vk::PushConstantRange pushConstantRange{ vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0, sizeof(glm::mat4) };
         pushConstantRanges.push_back(pushConstantRange);
 
         vk::PipelineLayoutCreateInfo pipelineLayoutInfo {

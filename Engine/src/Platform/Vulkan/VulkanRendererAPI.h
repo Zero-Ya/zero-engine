@@ -25,6 +25,8 @@ namespace ZEngine {
 		virtual void BindMaterialSet(const Ref<PipelineState>& pipelineState, const Ref<Material>& material) override;
 		virtual void PushConstant(const Ref<PipelineState>& pipelineState, PushConstantData pushConstants) override;
 
+		virtual void DrawModel(const Scope<Model>& model, const Ref<PipelineState>& pipelineState) override;
+
 	private:
 		void TransitionImageLayout(
 			vk::Image               image,

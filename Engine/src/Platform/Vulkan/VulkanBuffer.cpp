@@ -26,6 +26,24 @@ namespace ZEngine {
 		memcpy(data, vertices, static_cast<size_t>(size));
 		m_BufferMemory.unmapMemory();
 	}
+
+	VulkanVertexBuffer::VulkanVertexBuffer(std::vector<Vertex> vertices, uint32_t size) {
+		auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
+		auto& device = vk_Context->GetDevice();
+
+		vk::BufferCreateInfo bufferInfo{ .size = size, .usage = vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst, .sharingMode = vk::SharingMode::eExclusive };
+		m_Buffer = vk::raii::Buffer(device, bufferInfo);
+
+		vk::MemoryRequirements memRequirements = m_Buffer.getMemoryRequirements();
+		vk::MemoryAllocateInfo allocInfo{ .allocationSize = memRequirements.size, .memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent) };
+
+		m_BufferMemory = vk::raii::DeviceMemory(device, allocInfo);
+		m_Buffer.bindMemory(*m_BufferMemory, 0);
+
+		void* data = m_BufferMemory.mapMemory(0, size);
+		memcpy(data, vertices.data(), static_cast<size_t>(size));
+		m_BufferMemory.unmapMemory();
+	}
 	
 	//
 
@@ -48,6 +66,26 @@ namespace ZEngine {
 
 		void* data = m_BufferMemory.mapMemory(0, size);
 		memcpy(data, indices, static_cast<size_t>(size));
+		m_BufferMemory.unmapMemory();
+	}
+
+	VulkanIndexBuffer::VulkanIndexBuffer(std::vector<uint32_t> indices, uint32_t count)
+		: m_Count(count) {
+		auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
+		auto& device = vk_Context->GetDevice();
+		uint32_t size = count * sizeof(uint32_t);
+
+		vk::BufferCreateInfo bufferInfo{ .size = size, .usage = vk::BufferUsageFlagBits::eIndexBuffer, .sharingMode = vk::SharingMode::eExclusive };
+		m_Buffer = vk::raii::Buffer(device, bufferInfo);
+
+		vk::MemoryRequirements memRequirements = m_Buffer.getMemoryRequirements();
+		vk::MemoryAllocateInfo allocInfo{ .allocationSize = memRequirements.size, .memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent) };
+
+		m_BufferMemory = vk::raii::DeviceMemory(device, allocInfo);
+		m_Buffer.bindMemory(*m_BufferMemory, 0);
+
+		void* data = m_BufferMemory.mapMemory(0, size);
+		memcpy(data, indices.data(), static_cast<size_t>(size));
 		m_BufferMemory.unmapMemory();
 	}
 

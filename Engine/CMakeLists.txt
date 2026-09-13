@@ -49,6 +49,8 @@ target_include_directories(Engine PRIVATE
 	dependencies/vulkan/Include
 	dependencies/glm
 	dependencies/stb
+	dependencies/fastgltf/include
+	dependencies/ktx/lib/include
 )
 
 # GLFW
@@ -62,6 +64,14 @@ target_link_libraries(Engine PRIVATE
 # Vulkan
 find_package(Vulkan REQUIRED)
 target_link_libraries(Engine PRIVATE Vulkan::Vulkan)
+
+# KTX
+add_subdirectory(dependencies/ktx)
+target_link_libraries(Engine PRIVATE ktx)
+
+# fastgltf
+add_subdirectory(dependencies/fastgltf)
+target_link_libraries(Engine PRIVATE fastgltf::fastgltf)
 
 # 
 target_compile_definitions(Engine PRIVATE VULKAN_HPP_NO_STRUCT_CONSTRUCTORS)

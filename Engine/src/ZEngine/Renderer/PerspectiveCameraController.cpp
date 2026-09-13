@@ -12,7 +12,7 @@ namespace ZEngine {
 
     PerspectiveCameraController::PerspectiveCameraController(float aspectRatio)
         : m_AspectRatio(aspectRatio),
-          m_Camera(45.0f, aspectRatio, 0.1f, 100.0f),
+          m_Camera(45.0f, aspectRatio, 0.1f, 1000.0f),
           m_MovementSpeed(5.0f),
           m_MouseSensitivity(0.1f),
           m_Zoom(45.0f)
@@ -64,6 +64,11 @@ namespace ZEngine {
         if (Input::IsKeyPressed(ZE_KEY_Q))
             m_CameraPosition.y -= velocity;
 
+        if (Input::IsKeyPressed(ZE_KEY_LEFT_SHIFT))
+            m_MovementSpeed = 30.0f;
+        if (Input::IsKeyPressed(ZE_KEY_LEFT_CONTROL))
+            m_MovementSpeed = 15.0f;
+
         m_Camera.SetPosition(m_CameraPosition);
     }
 
@@ -75,7 +80,7 @@ namespace ZEngine {
     bool PerspectiveCameraController::OnMouseScrolled(MouseScrolledEvent& e) {
         m_Zoom -= e.GetYOffset() * 0.5f;
         m_Zoom = std::clamp(m_Zoom, 1.0f, 45.0f);
-        m_Camera.SetProjection(m_Zoom, m_AspectRatio, 0.1f, 100.0f);
+        m_Camera.SetProjection(m_Zoom, m_AspectRatio, 0.1f, 1000.0f);
         return false;
     }
 

@@ -8,9 +8,6 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
-#include "ZEngine/Renderer/LayoutManager.h"
-#include "ZEngine/Renderer/DescriptorAllocator.h"
-
 namespace ZEngine {
 	// Validation layer
 	#ifdef ZE_DEBUG
@@ -22,6 +19,8 @@ namespace ZEngine {
 	// Forward declaration
 	class RenderCommandBuffer;
 	class VulkanSwapchain;
+	class LayoutManager;
+	class DescriptorAllocator;
 
 	// Actual class
 	class VulkanContext : public GraphicsContext {

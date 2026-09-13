@@ -11,7 +11,8 @@ public:
 		: Layer("Test"), m_CameraController(1280.0f / 720.0f)
 	{
 		// Shader
-		m_Shader = ZEngine::Shader::Create("Shader", "Shader.spv");
+		m_Shader = ZEngine::Shader::Create("BistroShader", "BistroShader.spv");
+		//m_Shader = ZEngine::Shader::Create("Shader", "Shader.spv");
 		//auto m_Shader = m_ShaderLibrary.Load("Shader.spv");
 
 		// Material and texture
@@ -35,11 +36,11 @@ public:
 		vertexBuffer = ZEngine::VertexBuffer::Create(vertices, sizeof(vertices));
 
 		ZEngine::BufferLayout layout = {
-			{ ZEngine::ShaderDataType::Float2, "a_Position" },
-			{ ZEngine::ShaderDataType::Float3, "a_Color" },
-			{ ZEngine::ShaderDataType::Float2, "a_TexCoords" }
+			{ ZEngine::ShaderDataType::Float3, "position" },
+			{ ZEngine::ShaderDataType::Float3, "normal" },
+			{ ZEngine::ShaderDataType::Float2, "uv" }
 		};
-		vertexBuffer->SetLayout(layout);
+		//vertexBuffer->SetLayout(layout);
 
 		ZEngine::Ref<ZEngine::IndexBuffer> indexBuffer;
 		indexBuffer = ZEngine::IndexBuffer::Create(indices, sizeof(indices) / sizeof(uint32_t));
@@ -50,6 +51,10 @@ public:
 		// Pipeline state spec
 		ZEngine::PipelineSpecification pipelineSpec{ m_Shader, layout, false, false };
 		m_PipelineState = ZEngine::PipelineState::Create(pipelineSpec);
+
+		// Model loading
+		m_Model = ZEngine::Model::Create();
+		//m_Model->LoadFromFile(ASSETS_DIR"/models/BistroModel/BistroExterior.gltf");
 	}
 
 	void OnUpdate(ZEngine::Timestep ts) override {
@@ -64,9 +69,10 @@ public:
 		glm::mat4 secondTransform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -1.5f));
 
 		ZEngine::Renderer::BeginScene(m_CameraController.GetCamera());
-		ZEngine::Renderer::Submit(m_PipelineState, m_VertexArray, m_MaterialInstance, firstTransform);
-		ZEngine::Renderer::Submit(m_PipelineState, m_VertexArray, m_MaterialInstance, secondTransform);
-		ZEngine::Renderer::EndScene();
+		ZEngine::Renderer::Submit(m_PipelineState, m_MaterialInstance, firstTransform);
+		//ZEngine::Renderer::Submit(m_PipelineState, m_MaterialInstance, secondTransform);
+		//ZEngine::Renderer::DrawModel(m_Model, m_PipelineState);
+		//ZEngine::Renderer::EndScene(m_VertexArray);
 	}
 
 	void OnEvent(ZEngine::Event& e) override {
@@ -80,6 +86,7 @@ private:
 	ZEngine::Ref<ZEngine::Material> m_MaterialInstance;
 	ZEngine::Ref<ZEngine::VertexArray> m_VertexArray;
 	ZEngine::Ref<ZEngine::PipelineState> m_PipelineState;
+	ZEngine::Scope<ZEngine::Model> m_Model;
 
 	ZEngine::PerspectiveCameraController m_CameraController;
 	//ZEngine::OrthographicCameraController m_CameraController;

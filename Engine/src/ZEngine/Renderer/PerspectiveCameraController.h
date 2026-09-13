@@ -31,7 +31,7 @@ namespace ZEngine {
 		float m_Pitch = 0.0f;
 
 		// Camera options
-		float m_MovementSpeed = 5.0f;
+		float m_MovementSpeed = 15.0f;
 		float m_MouseSensitivity = 0.0f;
 
 		glm::vec2 m_LastMousePosition = { 0.0f, 0.0f };

@@ -4,6 +4,7 @@
 #include "ZEngine/Core/Application.h"
 #include "Platform/Vulkan/VulkanContext.h"
 
+#include "Platform/Vulkan/VulkanBuffer.h"
 #include "Platform/Vulkan/VulkanDescriptorAllocator.h"
 
 namespace ZEngine {

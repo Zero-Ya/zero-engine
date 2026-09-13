@@ -1,11 +1,12 @@
 #pragma once
 
 #include "ZEngine/Renderer/Material.h"
-#include "Platform/Vulkan/VulkanBuffer.h"
 
 #include <vulkan/vulkan_raii.hpp>
 
 namespace ZEngine {
+
+    class VulkanUniformBuffer;
 
 	class VulkanMaterial : public Material {
 	public:

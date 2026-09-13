@@ -30,7 +30,7 @@ struct VSOutput {
 
 // SET 0: Global Frame Data (Binding 0)
 [[vk::binding(0, 0)]] 
-uniform ConstantBuffer<CameraData> ubo;
+ConstantBuffer<CameraData> ubo;
 
 // SET 1: Pass Data (e.g., Shadow Map or G-Buffer Input)
 [[vk::binding(0, 1)]] 
@@ -38,7 +38,7 @@ Sampler2D g_ShadowMap;
 
 // SET 2: Material Resources (Binding 0: Params UBO, Binding 1: Albedo Texture)
 [[vk::binding(0, 2)]] 
-uniform ConstantBuffer<MaterialParams> g_Material;
+ConstantBuffer<MaterialParams> g_Material;
 
 [[vk::binding(1, 2)]] 
 Sampler2D g_AlbedoMap;

@@ -1,13 +1,16 @@
 #include "VulkanRendererAPI.h"
+
 #include "ZEngine/Core/Application.h"
-#include "Platform/Vulkan/VulkanContext.h"
-#include "Platform/Vulkan/VulkanSwapchain.h"
-#include "Platform/Vulkan/VulkanCommandBuffer.h"
-#include "Platform/Vulkan/VulkanVertexArray.h"
-#include "Platform/Vulkan/VulkanBuffer.h"
-#include "Platform/Vulkan/VulkanDescriptorAllocator.h"
-#include "Platform/Vulkan/VulkanMaterial.h"
+#include "VulkanContext.h"
+#include "VulkanSwapchain.h"
+
+#include "VulkanCommandBuffer.h"
+#include "VulkanVertexArray.h"
+#include "VulkanBuffer.h"
+#include "VulkanDescriptorAllocator.h"
+#include "VulkanMaterial.h"
 #include "VulkanPipelineState.h"
+#include "VulkanModel.h"
 
 namespace ZEngine {
 
@@ -203,6 +206,10 @@ namespace ZEngine {
         auto vulkanPipeline = static_cast<VulkanPipelineState*>(pipelineState.get());
 
         commandBuffer.pushConstants<PushConstantData>(vulkanPipeline->GetRawNativeLayout(), vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0, pushConstants);
+    }
+
+    void VulkanRendererAPI::DrawModel(const Scope<Model>& model, const Ref<PipelineState>& pipelineState) {
+        model->Draw(m_ActiveCommandBuffer, pipelineState);
     }
 
     void VulkanRendererAPI::TransitionImageLayout(

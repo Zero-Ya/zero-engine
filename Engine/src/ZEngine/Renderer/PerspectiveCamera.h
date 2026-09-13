@@ -44,7 +44,7 @@ namespace ZEngine {
 
 		float m_Zoom = 45.0f;
 		float m_AspectRatio = 1.778f;
-		float m_Near = 0.1f, m_Far = 100.0f;
+		float m_Near = 0.1f, m_Far = 1000.0f;
 
 		glm::vec3 m_Position = { 0.0f, 0.0f, 0.0f };
 	};

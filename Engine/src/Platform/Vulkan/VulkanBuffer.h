@@ -10,6 +10,7 @@ namespace ZEngine {
 	class VulkanVertexBuffer : public VertexBuffer {
 	public:
 		VulkanVertexBuffer(float* vertices, uint32_t size);
+		VulkanVertexBuffer(std::vector<Vertex> vertices, uint32_t size);
 		virtual ~VulkanVertexBuffer() override = default;
 
 		virtual void Bind() const override {}
@@ -29,6 +30,7 @@ namespace ZEngine {
 	class VulkanIndexBuffer : public IndexBuffer {
 	public:
 		VulkanIndexBuffer(uint32_t* indices, uint32_t count);
+		VulkanIndexBuffer(std::vector<uint32_t> indices, uint32_t count);
 		virtual ~VulkanIndexBuffer() override = default;
 
 		virtual void Bind() const override {}

@@ -11,3 +11,9 @@
 [submodule "Engine/dependencies/glm"]
 	path = Engine/dependencies/glm
 	url = https://github.com/g-truc/glm.git
+[submodule "Engine/dependencies/ktx"]
+	path = Engine/dependencies/ktx
+	url = https://github.com/KhronosGroup/KTX-Software.git
+[submodule "Engine/dependencies/fastgltf"]
+	path = Engine/dependencies/fastgltf
+	url = https://github.com/spnda/fastgltf.git

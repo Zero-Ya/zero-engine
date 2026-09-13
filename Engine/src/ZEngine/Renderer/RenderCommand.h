@@ -37,6 +37,10 @@ namespace ZEngine {
             s_RendererAPI->PushConstant(pipelineState, pushConstants);
         }
 
+        static void DrawModel(const Scope<Model>& model, const Ref<PipelineState>& pipelineState) {
+            s_RendererAPI->DrawModel(model, pipelineState);
+        }
+
 	private:
 		static Scope<RendererAPI> s_RendererAPI;
 	};

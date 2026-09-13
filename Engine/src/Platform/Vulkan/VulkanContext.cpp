@@ -2,6 +2,9 @@
 #include "Platform/Vulkan/VulkanSwapchain.h"
 #include "Platform/Vulkan/VulkanCommandBuffer.h"
 
+#include "ZEngine/Renderer/LayoutManager.h"
+#include "ZEngine/Renderer/DescriptorAllocator.h"
+
 namespace {
 
 	std::vector<const char*> getRequiredInstanceExtensions(bool enableValidationLayers);

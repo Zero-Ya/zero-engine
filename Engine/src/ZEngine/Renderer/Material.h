@@ -10,7 +10,7 @@ namespace ZEngine {
         glm::vec4 Albedo { 1.0f, 1.0f, 1.0f, 1.0f };
         float Roughness = 0.5f;
         float Metallic = 0.0f;
-        float Padding = 0.0f;
+        glm::vec2 Padding { 0.0f, 0.0f };
     };
 
     class Material {
