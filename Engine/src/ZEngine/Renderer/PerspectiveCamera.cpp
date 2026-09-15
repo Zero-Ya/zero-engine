@@ -1,7 +1,5 @@
 #include "PerspectiveCamera.h"
 
-#include <glm/gtc/matrix_transform.hpp>
-
 namespace ZEngine {
 
 	PerspectiveCamera::PerspectiveCamera(float fov, float aspectRatio, float zNear, float zFar)

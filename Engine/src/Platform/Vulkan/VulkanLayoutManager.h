@@ -3,8 +3,6 @@
 #include "ZEngine/Renderer/LayoutManager.h"
 #include <vulkan/vulkan_raii.hpp>
 
-#include <glm/glm.hpp>
-
 namespace ZEngine {
 
     class VulkanLayoutManager : public LayoutManager {

@@ -5,10 +5,10 @@
 
 namespace ZEngine {
 
-	Ref<Texture2D> Texture2D::Create(const std::string& path) {
+	Ref<Texture2D> Texture2D::Create() {
 		switch (Renderer::GetAPI()) {
 			case RendererAPI::API::None:    ZE_CORE_ASSERT(false, "RendererAPI::None is currently not supported!"); return nullptr;
-			case RendererAPI::API::Vulkan:  return std::make_shared<VulkanTexture2D>(path);
+			case RendererAPI::API::Vulkan:  return std::make_shared<VulkanTexture2D>();
 		}
 
 		ZE_CORE_ASSERT(false, "Unknown RendererAPI!");

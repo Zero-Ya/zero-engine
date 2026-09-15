@@ -3,34 +3,21 @@
 #include "ZEngine/Renderer/Model.h"
 
 #include <vulkan/vulkan_raii.hpp>
-#include <glm/glm.hpp>
-#include <glm/gtc/type_ptr.hpp>
 
 #include <fastgltf/core.hpp>
 #include <fastgltf/types.hpp>
 #include <fastgltf/tools.hpp>
 
-#include <ktx.h>
-#include <ktxvulkan.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 namespace ZEngine {
 
+    class Texture2D;
+    class Material;
     class VertexBuffer;
     class IndexBuffer;
     struct Vertex;
-
-    struct ModelTexture2D {
-        vk::raii::Image image = { nullptr };
-        vk::raii::DeviceMemory memory = { nullptr };
-        vk::raii::ImageView imageView = { nullptr };
-        vk::raii::Sampler sampler = { nullptr };
-    };
-
-    struct ModelMaterial {
-        vk::raii::Buffer ubo = { nullptr };
-        vk::raii::DeviceMemory uboMemory = { nullptr };
-        vk::raii::DescriptorSet descriptorSet = { nullptr }; // Set Slot 2
-    };
 
     struct Primitive {
         uint32_t firstIndex;
@@ -70,7 +57,6 @@ namespace ZEngine {
         void LoadMaterial();
         void LoadMesh(std::vector<Vertex>& allVertices, std::vector<uint32_t>& allIndices);
 
-        ModelTexture2D LoadKTXTexture(const std::string& filePath);
         void DrawNode(vk::CommandBuffer cmd, vk::PipelineLayout pipelineLayout, const Node& node);
 
         // Single contiguous geometry allocation
@@ -81,8 +67,8 @@ namespace ZEngine {
         std::vector<Mesh> m_Meshes;
         std::vector<std::shared_ptr<Node>> m_RootNodes;
 
-        std::vector<ModelTexture2D> m_Textures;
-        std::vector<ModelMaterial> m_Materials;
+        std::vector<Ref<Texture2D>> m_Textures;
+        std::vector<Ref<Material>> m_Materials;
     };
 
 }

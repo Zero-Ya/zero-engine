@@ -3,7 +3,11 @@
 #include "ZEngine/Core/Application.h"
 #include "VulkanContext.h"
 
+#include <ktx.h>
+#include <ktxvulkan.h>
+
 #include "VulkanBuffer.h"
+#include "VulkanTexture.h"
 #include "VulkanMaterial.h"
 #include "VulkanCommandBuffer.h"
 #include "VulkanPipelineState.h"
@@ -11,14 +15,8 @@
 
 namespace {
 
-    std::pair<vk::raii::Image, vk::raii::DeviceMemory> CreateImage(const vk::raii::Device& device, const vk::raii::PhysicalDevice& physicalDevice, uint32_t width, uint32_t height, vk::Format format, uint32_t mipLevels, vk::ImageTiling tiling, vk::ImageUsageFlags usage, vk::MemoryPropertyFlags properties);
     std::pair<vk::raii::Buffer, vk::raii::DeviceMemory> CreateBuffer(const vk::raii::Device& device, const vk::raii::PhysicalDevice& physicalDevice, vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties);
     uint32_t FindMemoryType(vk::raii::PhysicalDevice physicalDevice, uint32_t typeFilter, vk::MemoryPropertyFlags properties);
-    vk::raii::ImageView CreateImageView(const vk::raii::Device& device, vk::Image const& image, vk::Format format, uint32_t mipLevels);
-    vk::raii::Sampler CreateSampler(const vk::raii::Device& device, const vk::raii::PhysicalDevice& physicalDevice, float maxLod);
-    void TransitionImageLayout(vk::raii::CommandBuffer& commandBuffer, const vk::raii::Image& image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout);
-    void CopyBufferToImage(vk::raii::CommandBuffer& commandBuffer, const vk::raii::Buffer& buffer, vk::raii::Image& image, uint32_t width, uint32_t height, const std::vector<vk::BufferImageCopy>& regions);
-    //void CopyBufferToImage(vk::raii::CommandBuffer& commandBuffer, const vk::raii::Buffer& buffer, vk::raii::Image& image, uint32_t width, uint32_t height);
     void CopyBuffer(vk::raii::CommandBuffer& commandBuffer, const vk::raii::Buffer& srcBuffer, const vk::raii::Buffer& dstBuffer, vk::DeviceSize size);
 
     vk::raii::CommandBuffer BeginSingleTimeCommands(const vk::raii::Device& device, const vk::raii::CommandPool& commandPool);
@@ -27,115 +25,6 @@ namespace {
 }
 
 namespace ZEngine {
-
-    ModelTexture2D VulkanModel::LoadKTXTexture(const std::string& filePath) {
-        auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
-        auto& device = vk_Context->GetDevice();
-        auto& physicalDevice = vk_Context->GetPhysicalDevice();
-
-        ModelTexture2D texture{};
-        //ktxTexture2* kTexture = nullptr;
-        ktxTexture* kTexture = nullptr;
-
-        //KTX_error_code result = ktxTexture2_CreateFromNamedFile(filePath.c_str(), KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &kTexture);
-
-        KTX_error_code result = ktxTexture_CreateFromNamedFile(filePath.c_str(), KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &kTexture);
-
-        if (result != KTX_SUCCESS) {
-            throw std::runtime_error("Failed to load KTX texture: " + filePath);
-        }
-
-        // Transcode KTX2 if compressed with Basis Universal
-        if (ktxTexture_NeedsTranscoding(kTexture)) {
-            ktxTexture2* kTexture2 = reinterpret_cast<ktxTexture2*>(kTexture);
-            ktxTexture2_TranscodeBasis(kTexture2, KTX_TTF_BC7_RGBA, 0);
-        }
-
-        // Transcode if Basis Universal supercompressed
-        //if (ktxTexture2_NeedsTranscoding(kTexture)) {
-        //    ktxTexture2_TranscodeBasis(kTexture, KTX_TTF_BC7_RGBA, 0); // Target BC7 for Desktop
-        //}
-
-        // Allocate VkImage and VkDeviceMemory using libktx Vulkan helper or manual staging
-        // (Manual staging pattern shown below for clarity)
-
-        //vk::Format format = static_cast<vk::Format>(kTexture->vkFormat);
-        vk::Format format = static_cast<vk::Format>(ktxTexture_GetVkFormat(kTexture));
-        uint32_t width = kTexture->baseWidth;
-        uint32_t height = kTexture->baseHeight;
-        uint32_t mipLevels = kTexture->numLevels;
-
-        // Create image and allocate/bind memory (NEW)
-        std::tie(texture.image, texture.memory) = CreateImage(device, physicalDevice, width, height,
-            format,
-            mipLevels,
-            vk::ImageTiling::eOptimal,
-            vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled,
-            vk::MemoryPropertyFlagBits::eDeviceLocal);
-
-
-        // Uploading data via staging buffer (NEW)
-        size_t ktxSize = ktxTexture_GetDataSize((ktxTexture*)kTexture);
-        uint8_t* ktxData = ktxTexture_GetData((ktxTexture*)kTexture);
-        auto [stagingBuffer, stagingBufferMemory] = CreateBuffer(device, physicalDevice, ktxSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-
-        // Write to buffer
-        void* data = stagingBufferMemory.mapMemory(0, ktxSize);
-        memcpy(data, ktxData, ktxSize);
-        stagingBufferMemory.unmapMemory();
-
-        // 4. Setup Copy Regions for All Mip Levels
-        std::vector<vk::BufferImageCopy> copyRegions;
-        for (uint32_t level = 0; level < mipLevels; ++level) {
-            ktx_size_t offset = 0;
-            ktxTexture_GetImageOffset((ktxTexture*)kTexture, level, 0, 0, &offset);
-
-            vk::BufferImageCopy region{};
-            region.bufferOffset = offset;
-            region.imageSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
-            region.imageSubresource.mipLevel = level;
-            region.imageSubresource.layerCount = 1;
-            region.imageExtent = vk::Extent3D{
-                std::max(1u, width >> level),
-                std::max(1u, height >> level),
-                1
-            };
-            copyRegions.push_back(region);
-        }
-
-        // Execute copy command (Transition UNDEFINED -> TRANSFER_DST -> SHADER_READ_ONLY)
-        // ... [Execute command buffer containing vkCmdCopyBufferToImage] ...
-        auto& commandPool = vk_Context->GetCommandPool();
-        auto queue = vk_Context->GetGraphicsQueue();
-
-        vk::raii::CommandBuffer commandBuffer = BeginSingleTimeCommands(device, commandPool);
-        TransitionImageLayout(commandBuffer, texture.image, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
-        CopyBufferToImage(commandBuffer, stagingBuffer, texture.image, static_cast<uint32_t>(width), static_cast<uint32_t>(height), copyRegions);
-        TransitionImageLayout(commandBuffer, texture.image, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
-        EndSingleTimeCommands(std::move(commandBuffer), queue);
-
-        ktxTexture_Destroy((ktxTexture*)kTexture);
-
-        // Create image view and sampler (NEW)
-        texture.imageView = CreateImageView(device, texture.image, format, mipLevels);
-        texture.sampler = CreateSampler(device, physicalDevice, static_cast<float>(mipLevels));
-
-        // Allocate and update descriptor Set
-        //auto vk_Allocator = static_cast<VulkanDescriptorAllocator*>(vk_Context->GetDescriptorAllocator().get());
-        //texture.descriptorSet = vk_Allocator->Allocate(SetSlot::Material);
-
-        //vk::DescriptorImageInfo imageInfo { .sampler = texture.sampler, .imageView = texture.imageView, .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal };
-        //vk::WriteDescriptorSet descriptorWrite { .dstSet = texture.descriptorSet,
-        //                                         .dstBinding = 1, // Set 2, Binding 1 (Sampler)
-        //                                         .dstArrayElement = 0,
-        //                                         .descriptorCount = 1,
-        //                                         .descriptorType = vk::DescriptorType::eCombinedImageSampler,
-        //                                         .pImageInfo = &imageInfo };
-
-        //device.updateDescriptorSets(descriptorWrite, {});
-
-        return texture;
-    }
 
     bool VulkanModel::LoadFromFile(const std::string& filePath) {
         auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
@@ -198,7 +87,7 @@ namespace ZEngine {
         CopyBuffer(commandBuffer, stagingBuffer, rawVertexBuffer->GetNativeHandle(), vertexSize);
         EndSingleTimeCommands(std::move(commandBuffer), vk_Context->GetGraphicsQueue());
 
-        // 5. Parse Scene Node Hierarchy
+        // Parse Scene Node Hierarchy
         // (Builds parent/child links and root nodes)
         std::vector<std::shared_ptr<Node>> allNodes(m_Asset.nodes.size());
         for (size_t i = 0; i < m_Asset.nodes.size(); ++i) {
@@ -243,7 +132,7 @@ namespace ZEngine {
     }
 
     void VulkanModel::DrawNode(vk::CommandBuffer cmd, vk::PipelineLayout pipelineLayout, const Node& node) {
-        // 1. Process mesh primitives attached to this node
+        // Process mesh primitives attached to this node
         if (node.meshIndex != -1) {
             // Compute and push the accumulated global matrix (World Transform)
             glm::mat4 globalMatrix = node.GetGlobalMatrix();
@@ -252,17 +141,20 @@ namespace ZEngine {
             const Mesh& mesh = m_Meshes[node.meshIndex];
 
             for (const Primitive& prim : mesh.primitives) {
-                // 2. Bind material/texture descriptor set (Set 1) if assigned
+                // Bind material/texture descriptor set
                 if (prim.materialIndex >= 0 && prim.materialIndex < m_Textures.size()) {
-                    cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelineLayout, static_cast<uint32_t>(SetSlot::Material), *m_Materials[prim.materialIndex].descriptorSet, nullptr);
+                    const auto& mat = static_cast<VulkanMaterial*>(m_Materials[prim.materialIndex].get());
+                    auto& descriptorSet = mat->GetDescriptorSet();
+
+                    cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelineLayout, static_cast<uint32_t>(SetSlot::Material), *descriptorSet, nullptr);
                 }
 
-                // 3. Issue indexed draw call using submesh offsets
+                // Issue indexed draw call using submesh offsets
                 cmd.drawIndexed(prim.indexCount, 1, prim.firstIndex, 0, 0);
             }
         }
 
-        // 3. Recurse down to child nodes
+        // Recurse down to child nodes
         for (const auto& child : node.children) {
             DrawNode(cmd, pipelineLayout, *child);
         }
@@ -282,24 +174,21 @@ namespace ZEngine {
             return;
         }
 
-        // 1. Bind global continuous vertex buffer once for all nodes
+        // Bind global continuous vertex buffer once for all nodes
         vk::Buffer vertexBuffers[] = { *rawVertexBuffer };
         vk::DeviceSize offsets[] = { 0 };
         cmd.bindVertexBuffers(0, vertexBuffers, offsets);
 
-        // 2. Bind global index buffer once
+        // Bind global index buffer once
         cmd.bindIndexBuffer(*rawIndexBuffer, 0, vk::IndexType::eUint32);
 
-        // 3. Traverse all root nodes in the scene hierarchy
+        // Traverse all root nodes in the scene hierarchy
         for (const auto& rootNode : m_RootNodes) {
             DrawNode(cmd, pipelineLayout, *rootNode);
         }
     }
 
     void VulkanModel::LoadTexture(const std::string& baseDir) {
-        // ------------------------------------------------------------------------
-        // STEP A: Load Textures
-        // ------------------------------------------------------------------------
         m_Textures.reserve(m_Asset.textures.size());
 
         for (const auto& gltfTexture : m_Asset.textures) {
@@ -313,13 +202,14 @@ namespace ZEngine {
                     texturePath = baseDir + "/" + std::string(filePathURI.uri.path().begin(), filePathURI.uri.path().end());;
                 },
                 [&](const fastgltf::sources::Vector& vec) {
-                    // If embedded, you can load from memory buffer directly
+                    // If embedded, load from memory buffer directly
                 },
                 [](const auto&) {}
                 }, gltfImage.data);
 
             // Call KTX Texture Loader
-            ModelTexture2D tex = LoadKTXTexture(texturePath);
+            Ref<Texture2D> tex = Texture2D::Create();
+            tex->LoadTexture(texturePath);
             m_Textures.push_back(std::move(tex));
         }
     }
@@ -329,71 +219,37 @@ namespace ZEngine {
         auto& device = vk_Context->GetDevice();
         auto& physicalDevice = vk_Context->GetPhysicalDevice();
 
-        // ------------------------------------------------------------------------
-        // STEP B: Build Materials & Allocate Descriptor Sets (Set Slot 2)
-        // ------------------------------------------------------------------------
         m_Materials.reserve(m_Asset.materials.size());
 
         for (const auto& gltfMaterial : m_Asset.materials) {
-            ModelMaterial mat{};
+            Ref<Material> refMaterial = Material::Create(gltfMaterial.name.c_str());
+            auto vk_Material = static_cast<VulkanMaterial*>(refMaterial.get());
 
-            // 1. Extract PBR Material Parameters
-            MaterialProperties params{};
-            params.Albedo = glm::make_vec4(gltfMaterial.pbrData.baseColorFactor.data());
-            params.Metallic = gltfMaterial.pbrData.metallicFactor;
-            params.Roughness = gltfMaterial.pbrData.roughnessFactor;
+            vk_Material->SetAlbedoColor(glm::make_vec4(gltfMaterial.pbrData.baseColorFactor.data()));
+            vk_Material->SetMetallic(gltfMaterial.pbrData.metallicFactor);
+            vk_Material->SetRoughness(gltfMaterial.pbrData.roughnessFactor);
 
-            // 2. Create Material UBO
-            vk::BufferCreateInfo uboInfo{};
-            uboInfo.size = sizeof(MaterialProperties);
-            uboInfo.usage = vk::BufferUsageFlagBits::eUniformBuffer;
-            mat.ubo = vk::raii::Buffer(device, uboInfo);
-
-            vk::MemoryRequirements memRequirements = mat.ubo.getMemoryRequirements();
-            vk::MemoryAllocateInfo allocInfo{ .allocationSize = memRequirements.size, .memoryTypeIndex = FindMemoryType(physicalDevice, memRequirements.memoryTypeBits, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent) };
-            mat.uboMemory = vk::raii::DeviceMemory(device, allocInfo);
-            mat.ubo.bindMemory(*mat.uboMemory, 0);
+            vk_Material->Init();
 
             // Copy material factors into UBO
-            void* data = mat.uboMemory.mapMemory(0, sizeof(MaterialProperties));
-            memcpy(data, &params, static_cast<size_t>(sizeof(MaterialProperties)));
-            mat.uboMemory.unmapMemory();
+            vk_Material->UpdateBuffer();
 
-            // 3. Allocate Descriptor Set 2
-            auto vk_Allocator = static_cast<VulkanDescriptorAllocator*>(vk_Context->GetDescriptorAllocator().get());
-            mat.descriptorSet = vk_Allocator->Allocate(SetSlot::Material);
+            vk_Material->AllocateDescriptorSet();
 
-            // 4. Determine Albedo Texture Index
+            // Determine Albedo Texture Index
             uint32_t textureIndex = 0; // Default to first loaded texture
             if (gltfMaterial.pbrData.baseColorTexture.has_value()) {
                 textureIndex = static_cast<uint32_t>(gltfMaterial.pbrData.baseColorTexture->textureIndex);
             }
 
-            const ModelTexture2D& targetTex = m_Textures[textureIndex];
+            const Ref<Texture2D>& refTex = m_Textures[textureIndex];
+            const auto& targetTex = static_cast<VulkanTexture2D*>(refTex.get());
 
-            // 5. Update Descriptor Writes
-            vk::DescriptorBufferInfo bufferInfo{ mat.ubo, 0, sizeof(MaterialProperties) };
-            vk::DescriptorImageInfo imageInfo{ targetTex.sampler, targetTex.imageView, vk::ImageLayout::eShaderReadOnlyOptimal };
+            vk_Material->SetAlbedoTexture(refTex);
 
-            std::array<vk::WriteDescriptorSet, 2> descriptorWrites{};
+            vk_Material->UpdateDescriptorSets();
 
-            // Binding 0: Material UBO
-            descriptorWrites[0].dstSet = mat.descriptorSet;
-            descriptorWrites[0].dstBinding = 0;
-            descriptorWrites[0].descriptorCount = 1;
-            descriptorWrites[0].descriptorType = vk::DescriptorType::eUniformBuffer;
-            descriptorWrites[0].pBufferInfo = &bufferInfo;
-
-            // Binding 1: Combined Image Sampler
-            descriptorWrites[1].dstSet = mat.descriptorSet;
-            descriptorWrites[1].dstBinding = 1;
-            descriptorWrites[1].descriptorCount = 1;
-            descriptorWrites[1].descriptorType = vk::DescriptorType::eCombinedImageSampler;
-            descriptorWrites[1].pImageInfo = &imageInfo;
-
-            device.updateDescriptorSets(descriptorWrites, nullptr);
-
-            m_Materials.push_back(std::move(mat));
+            m_Materials.push_back(std::move(refMaterial));
         }
     }
 
@@ -407,10 +263,8 @@ namespace ZEngine {
                 Primitive outPrim;
                 outPrim.firstIndex = static_cast<uint32_t>(allIndices.size());
                 uint32_t vertexStart = static_cast<uint32_t>(allVertices.size());
-
-                // -------------------------------------------------------------------------
-                // A. Extract POSITION
-                // -------------------------------------------------------------------------
+                
+                // Extract position
                 auto posIt = prim.findAttribute("POSITION");
                 if (posIt == prim.attributes.end()) {
                     continue; // Primitive has no positions; skip
@@ -429,9 +283,7 @@ namespace ZEngine {
                     }
                 );
 
-                // -------------------------------------------------------------------------
-                // B. Extract NORMAL (Optional fallback if missing)
-                // -------------------------------------------------------------------------
+                // Extract normal
                 auto normIt = prim.findAttribute("NORMAL");
                 if (normIt != prim.attributes.end()) {
                     auto& normAccessor = m_Asset.accessors[normIt->accessorIndex];
@@ -441,9 +293,7 @@ namespace ZEngine {
                     );
                 }
 
-                // -------------------------------------------------------------------------
-                // C. Extract TEXCOORD_0 (Optional fallback if missing)
-                // -------------------------------------------------------------------------
+                // Extract texture coords 0
                 auto uvIt = prim.findAttribute("TEXCOORD_0");
                 if (uvIt != prim.attributes.end()) {
                     auto& uvAccessor = m_Asset.accessors[uvIt->accessorIndex];
@@ -453,9 +303,7 @@ namespace ZEngine {
                     );
                 }
 
-                // -------------------------------------------------------------------------
-                // D. Extract INDICES
-                // -------------------------------------------------------------------------
+                // Extract indices
                 if (prim.indicesAccessor.has_value()) {
                     auto& indexAccessor = m_Asset.accessors[prim.indicesAccessor.value()];
                     allIndices.reserve(allIndices.size() + indexAccessor.count);
@@ -488,28 +336,6 @@ namespace ZEngine {
 
 namespace {
 
-    std::pair<vk::raii::Image, vk::raii::DeviceMemory> CreateImage(const vk::raii::Device& device, const vk::raii::PhysicalDevice& physicalDevice, uint32_t width, uint32_t height, vk::Format format, uint32_t mipLevels, vk::ImageTiling tiling, vk::ImageUsageFlags usage, vk::MemoryPropertyFlags properties) {
-        vk::ImageCreateInfo imageInfo{ .imageType = vk::ImageType::e2D,
-                                       .format = format,
-                                       .extent = {width, height, 1},
-                                       .mipLevels = mipLevels,
-                                       .arrayLayers = 1,
-                                       .samples = vk::SampleCountFlagBits::e1,
-                                       .tiling = tiling,
-                                       .usage = usage,
-                                       .sharingMode = vk::SharingMode::eExclusive };
-
-        vk::raii::Image image = vk::raii::Image(device, imageInfo);
-
-        vk::MemoryRequirements memRequirements = image.getMemoryRequirements();
-        vk::MemoryAllocateInfo allocInfo{ .allocationSize = memRequirements.size,
-                                         .memoryTypeIndex = FindMemoryType(physicalDevice, memRequirements.memoryTypeBits, properties) };
-        vk::raii::DeviceMemory imageMemory = vk::raii::DeviceMemory(device, allocInfo);
-        image.bindMemory(imageMemory, 0);
-
-        return { std::move(image), std::move(imageMemory) };
-    }
-
     std::pair<vk::raii::Buffer, vk::raii::DeviceMemory> CreateBuffer(const vk::raii::Device& device, const vk::raii::PhysicalDevice& physicalDevice, vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties) {
         vk::BufferCreateInfo   bufferInfo{ .size = size, .usage = usage, .sharingMode = vk::SharingMode::eExclusive };
         vk::raii::Buffer       buffer = vk::raii::Buffer(device, bufferInfo);
@@ -518,77 +344,6 @@ namespace {
         vk::raii::DeviceMemory bufferMemory = vk::raii::DeviceMemory(device, allocInfo);
         buffer.bindMemory(*bufferMemory, 0);
         return { std::move(buffer), std::move(bufferMemory) };
-    }
-
-    vk::raii::ImageView CreateImageView(const vk::raii::Device& device, vk::Image const& image, vk::Format format, uint32_t mipLevels) {
-        vk::ImageViewCreateInfo viewInfo{
-            .image = image,
-            .viewType = vk::ImageViewType::e2D,
-            .format = format,
-            .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor, .baseMipLevel = 0, .levelCount = mipLevels, .baseArrayLayer = 0, .layerCount = 1} };
-        return vk::raii::ImageView(device, viewInfo);
-    }
-
-    vk::raii::Sampler CreateSampler(const vk::raii::Device& device, const vk::raii::PhysicalDevice& physicalDevice, float maxLod) {
-        vk::PhysicalDeviceProperties properties = physicalDevice.getProperties();
-        vk::SamplerCreateInfo        samplerInfo{ .magFilter = vk::Filter::eLinear,
-                                                 .minFilter = vk::Filter::eLinear,
-                                                 .mipmapMode = vk::SamplerMipmapMode::eLinear,
-                                                 .addressModeU = vk::SamplerAddressMode::eRepeat,
-                                                 .addressModeV = vk::SamplerAddressMode::eRepeat,
-                                                 .addressModeW = vk::SamplerAddressMode::eRepeat,
-                                                 .mipLodBias = 0.0f,
-                                                 .anisotropyEnable = vk::False,
-                                                 .maxAnisotropy = 0.0f,
-                                                 .compareEnable = vk::False,
-                                                 .compareOp = {},
-                                                 .minLod = 0.0f,
-                                                 .maxLod = maxLod };
-        return vk::raii::Sampler(device, samplerInfo);
-    }
-
-    void TransitionImageLayout(vk::raii::CommandBuffer& commandBuffer, const vk::raii::Image& image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout) {
-        vk::ImageMemoryBarrier barrier{ .oldLayout = oldLayout,
-                                       .newLayout = newLayout,
-                                       .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
-                                       .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
-                                       .image = image,
-                                       .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor, .levelCount = 1, .layerCount = 1} };
-
-        vk::PipelineStageFlags sourceStage;
-        vk::PipelineStageFlags destinationStage;
-
-        if (oldLayout == vk::ImageLayout::eUndefined && newLayout == vk::ImageLayout::eTransferDstOptimal)
-        {
-            barrier.srcAccessMask = {};
-            barrier.dstAccessMask = vk::AccessFlagBits::eTransferWrite;
-
-            sourceStage = vk::PipelineStageFlagBits::eTopOfPipe;
-            destinationStage = vk::PipelineStageFlagBits::eTransfer;
-        }
-        else if (oldLayout == vk::ImageLayout::eTransferDstOptimal && newLayout == vk::ImageLayout::eShaderReadOnlyOptimal)
-        {
-            barrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
-            barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
-
-            sourceStage = vk::PipelineStageFlagBits::eTransfer;
-            destinationStage = vk::PipelineStageFlagBits::eFragmentShader;
-        }
-        else
-        {
-            throw std::invalid_argument("unsupported layout transition!");
-        }
-        commandBuffer.pipelineBarrier(sourceStage, destinationStage, {}, {}, {}, barrier);
-    }
-
-    void CopyBufferToImage(vk::raii::CommandBuffer& commandBuffer, const vk::raii::Buffer& buffer, vk::raii::Image& image, uint32_t width, uint32_t height, const std::vector<vk::BufferImageCopy>& regions) {
-        vk::BufferImageCopy region{ .bufferOffset = 0,
-                                    .bufferRowLength = 0,
-                                    .bufferImageHeight = 0,
-                                    .imageSubresource = {.aspectMask = vk::ImageAspectFlagBits::eColor, .mipLevel = 0, .baseArrayLayer = 0, .layerCount = 1},
-                                    .imageOffset = {0, 0, 0},
-                                    .imageExtent = {width, height, 1} };
-        commandBuffer.copyBufferToImage(buffer, image, vk::ImageLayout::eTransferDstOptimal, regions);
     }
 
     void CopyBuffer(vk::raii::CommandBuffer& commandBuffer, const vk::raii::Buffer& srcBuffer, const vk::raii::Buffer& dstBuffer, vk::DeviceSize size) {

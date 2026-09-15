@@ -3,6 +3,8 @@
 #include "ZEngine/Core/Application.h"
 #include "VulkanContext.h"
 
+#include <glm/glm.hpp>
+
 namespace ZEngine {
 
     Scope<LayoutManager> LayoutManager::Create() {

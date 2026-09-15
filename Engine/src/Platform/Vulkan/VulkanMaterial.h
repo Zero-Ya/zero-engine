@@ -6,11 +6,11 @@
 
 namespace ZEngine {
 
-    class VulkanUniformBuffer;
+    class UniformBuffer;
 
 	class VulkanMaterial : public Material {
 	public:
-		VulkanMaterial(const std::string& name, const Ref<Texture2D>& texture);
+		VulkanMaterial(const std::string& name);
         ~VulkanMaterial() = default;
 
         void Init() override;
@@ -27,20 +27,19 @@ namespace ZEngine {
         void SetAlbedoTexture(Ref<Texture2D> texture) override;
         Ref<Texture2D> GetAlbedoTexture() const override { return m_AlbedoTexture; }
 
-        const vk::raii::DescriptorSet& GetDescriptorSet() { return m_MaterialSet; }
+        const vk::raii::DescriptorSet& GetDescriptorSet() const { return m_MaterialSet; }
 
         void UpdateBuffer();
 
-    private:
         void AllocateDescriptorSet();
-        void UpdateDescriptorSet();
+        void UpdateDescriptorSets();
 
     private:
         std::string m_Name;
         MaterialProperties m_Properties {};
 
         Ref<Texture2D> m_AlbedoTexture;
-        Ref<VulkanUniformBuffer> m_MaterialUBO;
+        Ref<UniformBuffer> m_MaterialUBO;
 
         vk::raii::DescriptorSet m_MaterialSet = nullptr;
         bool m_IsDirty = true;

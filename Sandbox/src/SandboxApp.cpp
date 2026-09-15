@@ -16,18 +16,21 @@ public:
 		//auto m_Shader = m_ShaderLibrary.Load("Shader.spv");
 
 		// Material and texture
-		m_Texture = ZEngine::Texture2D::Create("shamrock_four.png");
-		m_MaterialInstance = ZEngine::Material::Create("Test Material", m_Texture);
+		m_Texture = ZEngine::Texture2D::Create();
+		//m_Texture->LoadTexture(ASSETS_DIR"/textures/shamrock_four.png");
+		m_Texture->LoadTexture(ASSETS_DIR"/models/BistroModel/Textures/Shopsign_Book_Store_BaseColor.ktx2");
+		m_MaterialInstance = ZEngine::Material::Create("Test Material");
+		m_MaterialInstance->SetAlbedoTexture(m_Texture);
 		m_MaterialInstance->Init();
 
 		// Buffers and array config
 		m_VertexArray = ZEngine::VertexArray::Create();
 		float vertices[7 * 4] = {
 			// Position   Color				TexCoords
-			-0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
-			 0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
-			 0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f,
-			-0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f
+			-0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+			 0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
+			 0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
+			-0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f
 		};
 
 		uint32_t indices[6] = { 0, 1, 2, 2, 3, 0 };
@@ -40,6 +43,13 @@ public:
 			{ ZEngine::ShaderDataType::Float3, "normal" },
 			{ ZEngine::ShaderDataType::Float2, "uv" }
 		};
+		
+		ZEngine::BufferLayout layout1 = {
+			{ ZEngine::ShaderDataType::Float2, "a_Position" },
+			{ ZEngine::ShaderDataType::Float3, "a_Color" },
+			{ ZEngine::ShaderDataType::Float2, "a_TexCoords" }
+		};
+
 		//vertexBuffer->SetLayout(layout);
 
 		ZEngine::Ref<ZEngine::IndexBuffer> indexBuffer;
@@ -54,7 +64,7 @@ public:
 
 		// Model loading
 		m_Model = ZEngine::Model::Create();
-		//m_Model->LoadFromFile(ASSETS_DIR"/models/BistroModel/BistroExterior.gltf");
+		//m_Model->LoadFromFile(ASSETS_DIR"/models/BistroModel/BistroInterior.gltf");
 	}
 
 	void OnUpdate(ZEngine::Timestep ts) override {
@@ -69,7 +79,7 @@ public:
 		glm::mat4 secondTransform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -1.5f));
 
 		ZEngine::Renderer::BeginScene(m_CameraController.GetCamera());
-		ZEngine::Renderer::Submit(m_PipelineState, m_MaterialInstance, firstTransform);
+		//ZEngine::Renderer::Submit(m_PipelineState, m_MaterialInstance, firstTransform);
 		//ZEngine::Renderer::Submit(m_PipelineState, m_MaterialInstance, secondTransform);
 		//ZEngine::Renderer::DrawModel(m_Model, m_PipelineState);
 		//ZEngine::Renderer::EndScene(m_VertexArray);

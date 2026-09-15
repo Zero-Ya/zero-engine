@@ -3,7 +3,6 @@
 #include "ZEngine/Renderer/Buffer.h"
 
 #include <vulkan/vulkan_raii.hpp>
-#include <glm/glm.hpp>
 
 namespace ZEngine {
 

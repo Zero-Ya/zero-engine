@@ -93,7 +93,8 @@ namespace ZEngine {
 
 	// Uniform buffer
 	VulkanUniformBuffer::VulkanUniformBuffer(size_t size)
-		: m_Size(size) {
+		: m_Size(size)
+	{
 		auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
 		auto& device = vk_Context->GetDevice();
 
@@ -102,7 +103,7 @@ namespace ZEngine {
 		m_UniformBuffersMapped.clear();
 
 		for (size_t i = 0; i < vk_Context->GetMaxFramesInFlight(); i++) {
-			vk::DeviceSize         bufferSize = size;
+			vk::DeviceSize         bufferSize = m_Size;
 			vk::raii::Buffer       buffer({});
 			vk::raii::DeviceMemory bufferMemory({});
 
