@@ -18,8 +18,7 @@ namespace ZEngine {
 											  const std::string& fragEntryPoint = "fragMain");
 	};
 
-	class ShaderLibrary
-	{
+	class ShaderLibrary {
 	public:
 		void Add(const std::string& name, const Ref<Shader>& shader);
 		void Add(const Ref<Shader>& shader);

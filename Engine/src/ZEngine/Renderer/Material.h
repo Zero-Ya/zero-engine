@@ -31,6 +31,8 @@ namespace ZEngine {
         virtual void SetAlbedoTexture(Ref<Texture2D> texture) = 0;
         virtual Ref<Texture2D> GetAlbedoTexture() const = 0;
 
+        virtual void AlloUpdateSet() = 0;
+
         static Ref<Material> Create(const std::string& name);
     };
 

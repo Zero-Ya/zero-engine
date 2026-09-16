@@ -10,10 +10,11 @@
 #include <ktxvulkan.h>
 
 #include "VulkanDescriptorAllocator.h"
+#include "VulkanCubemap.h"
 
 namespace {
 
-	vk::raii::ImageView CreateImageView(const vk::raii::Device& device, vk::Image const& image, vk::Format format, uint32_t mipLevels);
+	vk::raii::ImageView CreateImageView(const vk::raii::Device& device, vk::Image const& image, vk::Format format, uint32_t levelCount);
 	std::pair<vk::raii::Image, vk::raii::DeviceMemory> CreateImage(const vk::raii::Device& device, const vk::raii::PhysicalDevice& physicalDevice, uint32_t width, uint32_t height, vk::Format format, uint32_t mipLevels, vk::ImageTiling tiling, vk::ImageUsageFlags usage, vk::MemoryPropertyFlags properties);
 	void TransitionImageLayout(vk::raii::CommandBuffer& commandBuffer, const vk::raii::Image& image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout);
 	void CopyBufferToImage(vk::raii::CommandBuffer& commandBuffer, const vk::raii::Buffer& buffer, vk::raii::Image& image, uint32_t width, uint32_t height, const std::vector<vk::BufferImageCopy>& regions);
@@ -60,7 +61,7 @@ namespace ZEngine {
 
         vk::DescriptorImageInfo imageInfo { .sampler = m_Sampler, .imageView = m_ImageView, .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal };
         vk::WriteDescriptorSet descriptorWrite { .dstSet = *descriptorSet,
-                                                 .dstBinding = 1, // Set 2, Binding 1 (Sampler)
+                                                 .dstBinding = 1, // Set 3, Binding 1 (Sampler)
                                                  .dstArrayElement = 0,
                                                  .descriptorCount = 1,
                                                  .descriptorType = vk::DescriptorType::eCombinedImageSampler,
@@ -188,8 +189,8 @@ namespace ZEngine {
 		CreateTextureSampler(device, physicalDevice, static_cast<float>(mipLevels));
 	}
 
-	void VulkanTexture2D::CreateTextureImageView(const vk::raii::Device& device, vk::Format format, uint32_t mipLevels) {
-		m_ImageView = CreateImageView(device, *m_Image, format, mipLevels);
+	void VulkanTexture2D::CreateTextureImageView(const vk::raii::Device& device, vk::Format format, uint32_t levelCount) {
+		m_ImageView = CreateImageView(device, *m_Image, format, levelCount);
 	}
 
 	void VulkanTexture2D::CreateTextureSampler(const vk::raii::Device& device, const vk::raii::PhysicalDevice& physicalDevice, float maxLod) {
@@ -214,12 +215,12 @@ namespace ZEngine {
 
 namespace {
 
-	vk::raii::ImageView CreateImageView(const vk::raii::Device& device, vk::Image const& image, vk::Format format, uint32_t mipLevels) {
+	vk::raii::ImageView CreateImageView(const vk::raii::Device& device, vk::Image const& image, vk::Format format, uint32_t levelCount) {
 		vk::ImageViewCreateInfo viewInfo{
 			.image = image,
 			.viewType = vk::ImageViewType::e2D,
 			.format = format,
-			.subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor, .baseMipLevel = 0, .levelCount = mipLevels, .baseArrayLayer = 0, .layerCount = 1} };
+			.subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor, .baseMipLevel = 0, .levelCount = levelCount, .baseArrayLayer = 0, .layerCount = 1} };
 		return vk::raii::ImageView(device, viewInfo);
 	}
 

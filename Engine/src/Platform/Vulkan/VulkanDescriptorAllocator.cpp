@@ -47,8 +47,6 @@ namespace ZEngine {
 		auto vk_LayoutManager = static_cast<VulkanLayoutManager*>(vk_Context->GetLayoutManager().get());
 
 		vk::DescriptorSetLayout targetLayout = vk_LayoutManager->GetSetLayout(setSlot);
-
-		//std::vector<vk::DescriptorSetLayout> layouts(1, targetLayout);
 		vk::DescriptorSetAllocateInfo        allocInfo{ .descriptorPool = m_DescriptorPool,
 														.descriptorSetCount = 1,
 														.pSetLayouts = &targetLayout };

@@ -6,6 +6,7 @@
 
 #include "Platform/Vulkan/VulkanBuffer.h"
 #include "Platform/Vulkan/VulkanDescriptorAllocator.h"
+#include "VulkanCubemap.h"
 
 namespace ZEngine {
 
@@ -15,8 +16,12 @@ namespace ZEngine {
 
     void VulkanMaterial::Init() {
         m_MaterialUBO = UniformBuffer::Create(sizeof(MaterialProperties));
-        //AllocateDescriptorSet();
-        //UpdateDescriptorSet();
+    }
+
+    // Temporary method :(
+    void VulkanMaterial::AlloUpdateSet() {
+        AllocateDescriptorSet();
+        UpdateDescriptorSets();
     }
 
     void VulkanMaterial::SetAlbedoColor(const glm::vec4& color) {
@@ -57,7 +62,7 @@ namespace ZEngine {
         vk::DescriptorBufferInfo bufferInfo{ .buffer = materialUBO->GetUniformBuffers()[0], .offset = 0, .range = sizeof(MaterialProperties) };
 
         vk::WriteDescriptorSet uboWrite { .dstSet = *m_MaterialSet,
-                                          .dstBinding = 0, // Set 2, Binding 0 (Material UBO)
+                                          .dstBinding = 0, // Set 3, Binding 0 (Material UBO)
                                           .dstArrayElement = 0,
                                           .descriptorCount = 1,
                                           .descriptorType = vk::DescriptorType::eUniformBuffer,

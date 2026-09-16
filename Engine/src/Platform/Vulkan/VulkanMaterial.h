@@ -34,6 +34,8 @@ namespace ZEngine {
         void AllocateDescriptorSet();
         void UpdateDescriptorSets();
 
+        void AlloUpdateSet() override;
+
     private:
         std::string m_Name;
         MaterialProperties m_Properties {};

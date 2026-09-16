@@ -41,6 +41,10 @@ namespace ZEngine {
             s_RendererAPI->DrawModel(model, pipelineState);
         }
 
+        static void DrawSkybox(const Scope<Cubemap>& skybox) {
+            s_RendererAPI->DrawSkybox(skybox);
+        }
+
 	private:
 		static Scope<RendererAPI> s_RendererAPI;
 	};

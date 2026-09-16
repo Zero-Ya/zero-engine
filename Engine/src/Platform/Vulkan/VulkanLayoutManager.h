@@ -21,6 +21,7 @@ namespace ZEngine {
 
     private:
         void CreateGlobalSetLayout(const vk::raii::Device& device);
+        void CreateSkyboxSetLayout(const vk::raii::Device& device);
         void CreatePassSetLayout(const vk::raii::Device& device);
         void CreateMaterialSetLayout(const vk::raii::Device& device);
 

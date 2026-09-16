@@ -6,8 +6,9 @@ namespace ZEngine {
 
     enum class SetSlot : uint32_t {
         Global = 0,
-        Pass = 1,
-        Material = 2,
+        Skybox = 1,
+        Pass = 2,
+        Material = 3,
     };
 
     struct PushConstantData {

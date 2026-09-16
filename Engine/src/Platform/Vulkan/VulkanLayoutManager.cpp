@@ -20,10 +20,11 @@ namespace ZEngine {
         auto& device = vk_Context->GetDevice();
 
         m_Layouts.clear();
-        m_Layouts.reserve(4);
+        m_Layouts.reserve(5);
 
         // Build individual fixed set layouts
         CreateGlobalSetLayout(device);
+        CreateSkyboxSetLayout(device);
         CreatePassSetLayout(device);
         CreateMaterialSetLayout(device);
 
@@ -35,7 +36,6 @@ namespace ZEngine {
         // Configure push constant range
         std::vector<vk::PushConstantRange> pushConstantRanges;
         pushConstantRanges.reserve(1);
-        //vk::PushConstantRange pushConstantRange{ vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0, sizeof(PushConstantData) };
         vk::PushConstantRange pushConstantRange{ vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0, sizeof(glm::mat4) };
         pushConstantRanges.push_back(pushConstantRange);
 
@@ -59,7 +59,17 @@ namespace ZEngine {
         m_Layouts.emplace_back(vk::raii::DescriptorSetLayout(device, layoutInfo));
     }
 
-    // Set 1: Pass data (Binding 0: Shadow map / G-Buffer sampler)
+    // Set 1: Skybox data (Binding 0: Skybox sampler)
+    void VulkanLayoutManager::CreateSkyboxSetLayout(const vk::raii::Device& device) {
+        std::array bindings = {
+            vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment, nullptr)
+        };
+
+        vk::DescriptorSetLayoutCreateInfo layoutInfo{ .bindingCount = 1, .pBindings = bindings.data() };
+        m_Layouts.emplace_back(vk::raii::DescriptorSetLayout(device, layoutInfo));
+    }
+
+    // Set 2: Pass data (Binding 0: Shadow map / G-Buffer sampler)
     void VulkanLayoutManager::CreatePassSetLayout(const vk::raii::Device& device){
         std::array bindings = {
             vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment, nullptr)
@@ -69,7 +79,7 @@ namespace ZEngine {
         m_Layouts.emplace_back(vk::raii::DescriptorSetLayout(device, layoutInfo));
     }
 
-    // Set 2: Material data (Binding 0: Material UBO params, Binding 1: Albedo texture)
+    // Set 3: Material data (Binding 0: Material UBO params, Binding 1: Albedo texture)
     void VulkanLayoutManager::CreateMaterialSetLayout(const vk::raii::Device& device) {
         std::array bindings = {
             // Binding 0: Material properties (Tint color, roughness, metallic, etc.)

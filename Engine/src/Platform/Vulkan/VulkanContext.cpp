@@ -143,7 +143,8 @@ namespace ZEngine {
 			vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT>();
 		bool supportsRequiredFeatures = features.template get<vk::PhysicalDeviceFeatures2>().features.samplerAnisotropy &&
 			features.template get<vk::PhysicalDeviceVulkan13Features>().dynamicRendering &&
-			features.template get<vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT>().extendedDynamicState;
+			features.template get<vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT>().extendedDynamicState &&
+			features.template get<vk::PhysicalDeviceVulkan11Features>().shaderDrawParameters;
 
 		// Return true if the physicalDevice meets all the criteria
 		return supportsVulkan1_3 && supportsGraphics && supportsAllRequiredExtensions && supportsRequiredFeatures;
@@ -179,20 +180,25 @@ namespace ZEngine {
 		}
 
 		// Query for Vulkan 1.3 features
-		vk::StructureChain<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan13Features, vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT> featureChain = {
+		vk::StructureChain<vk::PhysicalDeviceFeatures2,
+						   vk::PhysicalDeviceVulkan13Features,
+						   vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT,
+						   vk::PhysicalDeviceVulkan11Features>
+		featureChain = {
 			{.features = {.samplerAnisotropy = true}},
 			{.synchronization2 = true, .dynamicRendering = true},
-			{.extendedDynamicState = true}
+			{.extendedDynamicState = true},
+			{.shaderDrawParameters = true}
 		};
 
 		// Create a Device
 		float                     queuePriority = 0.5f;
-		vk::DeviceQueueCreateInfo deviceQueueCreateInfo{ .queueFamilyIndex = queueIndex, .queueCount = 1, .pQueuePriorities = &queuePriority };
-		vk::DeviceCreateInfo      deviceCreateInfo{ .pNext = &featureChain.get<vk::PhysicalDeviceFeatures2>(),
-												   .queueCreateInfoCount = 1,
-												   .pQueueCreateInfos = &deviceQueueCreateInfo,
-												   .enabledExtensionCount = static_cast<uint32_t>(requiredDeviceExtension.size()),
-												   .ppEnabledExtensionNames = requiredDeviceExtension.data() };
+		vk::DeviceQueueCreateInfo deviceQueueCreateInfo { .queueFamilyIndex = queueIndex, .queueCount = 1, .pQueuePriorities = &queuePriority };
+		vk::DeviceCreateInfo      deviceCreateInfo { .pNext = &featureChain.get<vk::PhysicalDeviceFeatures2>(),
+												     .queueCreateInfoCount = 1,
+												     .pQueueCreateInfos = &deviceQueueCreateInfo,
+												     .enabledExtensionCount = static_cast<uint32_t>(requiredDeviceExtension.size()),
+												     .ppEnabledExtensionNames = requiredDeviceExtension.data() };
 
 		m_Device = vk::raii::Device(m_PhysicalDevice, deviceCreateInfo);
 		m_GraphicsQueue = vk::raii::Queue(m_Device, queueIndex, 0);

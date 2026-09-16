@@ -35,8 +35,8 @@ namespace ZEngine {
         s_CameraUBO->SetData(&cameraUBO, sizeof(cameraUBO));
     }
 
-    void Renderer::EndScene(const Ref<VertexArray>& vertexArray) {
-        RenderCommand::DrawIndexed(vertexArray, 0);
+    void Renderer::EndScene() {
+        
     }
 
     void Renderer::Shutdown() {
@@ -51,18 +51,26 @@ namespace ZEngine {
         RenderCommand::DrawModel(model, pipelineState);
     }
 
-    void Renderer::Submit(const Ref<PipelineState>& pipelineState,
-                          const Ref<Material>& material,
-                          const glm::mat4& transform)
-    {
-        PushConstantData pushConstants {};
-        pushConstants.transform = transform;
+    void Renderer::DrawMesh(const Ref<VertexArray>& vertexArray) {
+        RenderCommand::DrawIndexed(vertexArray, 0);
+    }
 
+    void Renderer::DrawSkybox(const Scope<Cubemap>& skybox) {
+        RenderCommand::DrawSkybox(skybox);
+    }
+
+    void Renderer::GlobalBegin(const Ref<PipelineState>& pipelineState) {
         RenderCommand::BindPipelineState(pipelineState);
         RenderCommand::BindGlobalSet(pipelineState);
-        //if (material != nullptr)
-            //RenderCommand::BindMaterialSet(pipelineState, material);
-        //RenderCommand::PushConstant(pipelineState, pushConstants);
+    }
+    
+    void Renderer::MeshBegin(const Ref<PipelineState>& pipelineState, const Ref<Material>& material, const glm::mat4& transform) {
+        PushConstantData pushConstants{};
+        pushConstants.transform = transform;
+
+        if (material != nullptr)
+            RenderCommand::BindMaterialSet(pipelineState, material);
+        RenderCommand::PushConstant(pipelineState, pushConstants);
     }
 
 }

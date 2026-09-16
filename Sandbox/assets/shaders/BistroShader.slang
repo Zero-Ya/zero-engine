@@ -38,17 +38,21 @@ struct VSOutput {
 
 // SET 0: Global Frame Data (Binding 0)
 [[vk::binding(0, 0)]] 
-ConstantBuffer<CameraData> ubo;
+ConstantBuffer<CameraData> camera;
 
-// SET 1: Pass Data (e.g., Shadow Map or G-Buffer Input)
-[[vk::binding(0, 1)]] 
+// SET 1: Skybox Data
+[[vk::binding(0, 1)]]
+SamplerCube skyboxTexture;
+
+// SET 2: Pass Data (e.g., Shadow Map or G-Buffer Input)
+[[vk::binding(0, 2)]] 
 Sampler2D g_ShadowMap;
 
-// SET 2: Material Resources (Binding 0: Params UBO, Binding 1: Albedo Texture)
-[[vk::binding(0, 2)]] 
+// SET 3: Material Resources (Binding 0: Params UBO, Binding 1: Albedo Texture)
+[[vk::binding(0, 3)]] 
 ConstantBuffer<MaterialParams> g_Material;
 
-[[vk::binding(1, 2)]] 
+[[vk::binding(1, 3)]] 
 Sampler2D g_AlbedoMap;
 
 [[vk::push_constant]]
@@ -64,8 +68,8 @@ VSOutput vertMain(VSInput input) {
     
     // Combine Model (Push Constant) * View * Proj matrices
     float4 worldPos = mul(g_Push.transform, float4(input.position, 1.0));
-    float4 viewPos  = mul(ubo.view, worldPos);
-    output.position = mul(ubo.proj, viewPos);
+    float4 viewPos  = mul(camera.view, worldPos);
+    output.position = mul(camera.proj, viewPos);
 
     output.normal = mul((float3x3)g_Push.transform, input.normal);
     output.uv = input.uv;

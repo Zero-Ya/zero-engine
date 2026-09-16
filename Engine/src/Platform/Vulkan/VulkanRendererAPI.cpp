@@ -11,6 +11,7 @@
 #include "VulkanMaterial.h"
 #include "VulkanPipelineState.h"
 #include "VulkanModel.h"
+#include "VulkanCubemap.h"
 
 namespace ZEngine {
 
@@ -210,6 +211,17 @@ namespace ZEngine {
 
     void VulkanRendererAPI::DrawModel(const Scope<Model>& model, const Ref<PipelineState>& pipelineState) {
         model->Draw(m_ActiveCommandBuffer, pipelineState);
+    }
+
+    void VulkanRendererAPI::DrawSkybox(const Scope<Cubemap>& skybox) {
+        auto vulkanCommandBuffer = static_cast<VulkanCommandBuffer*>(m_ActiveCommandBuffer.get());
+        const auto& commandBuffer = vulkanCommandBuffer->GetBuffer();
+
+        auto vk_Skybox = static_cast<VulkanCubemap*>(skybox.get());
+        commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, vk_Skybox->GetNativePipeline());
+        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, vk_Skybox->GetRawNativeLayout(), static_cast<uint32_t>(SetSlot::Skybox), *vk_Skybox->GetDescriptorSet(), nullptr);
+        //commandBuffer.draw(3, 1, 0, 0);
+        commandBuffer.draw(36, 1, 0, 0);
     }
 
     void VulkanRendererAPI::TransitionImageLayout(

@@ -26,6 +26,7 @@ namespace ZEngine {
 		virtual void PushConstant(const Ref<PipelineState>& pipelineState, PushConstantData pushConstants) override;
 
 		virtual void DrawModel(const Scope<Model>& model, const Ref<PipelineState>& pipelineState) override;
+		virtual void DrawSkybox(const Scope<Cubemap>& skybox) override;
 
 	private:
 		void TransitionImageLayout(
