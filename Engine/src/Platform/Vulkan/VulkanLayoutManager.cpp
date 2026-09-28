@@ -1,6 +1,7 @@
 #include "VulkanLayoutManager.h"
 
 #include "ZEngine/Core/Application.h"
+#include "VulkanGraphicsDevice.h"
 #include "VulkanContext.h"
 
 #include <glm/glm.hpp>
@@ -16,8 +17,9 @@ namespace ZEngine {
     }
 
     void VulkanLayoutManager::Init() {
-        auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
-        auto& device = vk_Context->GetDevice();
+        auto vk_GraphicsDevice = static_cast<VulkanGraphicsDevice*>(Application::Get().GetGraphicsDevice().get());
+        auto& vk_Context = vk_GraphicsDevice->GetContext();
+        auto& device = vk_Context.GetDevice();
 
         m_Layouts.clear();
         m_Layouts.reserve(5);

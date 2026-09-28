@@ -1,6 +1,7 @@
 #include "VulkanModel.h"
 
 #include "ZEngine/Core/Application.h"
+#include "VulkanGraphicsDevice.h"
 #include "VulkanContext.h"
 
 #include <ktx.h>
@@ -27,9 +28,10 @@ namespace {
 namespace ZEngine {
 
     bool VulkanModel::LoadFromFile(const std::string& filePath) {
-        auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
-        auto& device = vk_Context->GetDevice();
-        auto& physicalDevice = vk_Context->GetPhysicalDevice();
+        auto vk_GraphicsDevice = static_cast<VulkanGraphicsDevice*>(Application::Get().GetGraphicsDevice().get());
+        auto& vk_Context = vk_GraphicsDevice->GetContext();
+        auto& device = vk_Context.GetDevice();
+        auto& physicalDevice = vk_Context.GetPhysicalDevice();
 
         fastgltf::Parser parser(fastgltf::Extensions::KHR_texture_basisu);
 
@@ -83,9 +85,9 @@ namespace ZEngine {
         memcpy(stagingData, allVertices.data(), vertexSize);
         stagingBufferMemory.unmapMemory();
 
-        vk::raii::CommandBuffer commandBuffer = BeginSingleTimeCommands(device, vk_Context->GetCommandPool());
+        vk::raii::CommandBuffer commandBuffer = BeginSingleTimeCommands(device, vk_Context.GetCurrentFrame().commandPool);
         CopyBuffer(commandBuffer, stagingBuffer, rawVertexBuffer->GetNativeHandle(), vertexSize);
-        EndSingleTimeCommands(std::move(commandBuffer), vk_Context->GetGraphicsQueue());
+        EndSingleTimeCommands(std::move(commandBuffer), vk_Context.GetGraphicsQueue());
 
         // Parse Scene Node Hierarchy
         // (Builds parent/child links and root nodes)
@@ -160,9 +162,11 @@ namespace ZEngine {
         }
     }
 
-    void VulkanModel::Draw(const Ref<RenderCommandBuffer>& commandBuffer, const Ref<PipelineState>& pipelineState) {
-        auto vulkanCommandBuffer = static_cast<VulkanCommandBuffer*>(commandBuffer.get());
-        const auto& cmd = vulkanCommandBuffer->GetBuffer();
+    void VulkanModel::Draw(const Ref<PipelineState>& pipelineState) {
+        auto vk_GraphicsDevice = static_cast<VulkanGraphicsDevice*>(Application::Get().GetGraphicsDevice().get());
+        auto& vk_Context = vk_GraphicsDevice->GetContext();
+
+        auto& cmd = vk_Context.GetCurrentFrame().commandBuffer;
 
         auto vulkanPipeline = static_cast<VulkanPipelineState*>(pipelineState.get());
         auto& pipelineLayout = vulkanPipeline->GetRawNativeLayout();
@@ -215,9 +219,10 @@ namespace ZEngine {
     }
 
     void VulkanModel::LoadMaterial() {
-        auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
-        auto& device = vk_Context->GetDevice();
-        auto& physicalDevice = vk_Context->GetPhysicalDevice();
+        auto vk_GraphicsDevice = static_cast<VulkanGraphicsDevice*>(Application::Get().GetGraphicsDevice().get());
+        auto& vk_Context = vk_GraphicsDevice->GetContext();
+        auto& device = vk_Context.GetDevice();
+        auto& physicalDevice = vk_Context.GetPhysicalDevice();
 
         m_Materials.reserve(m_Asset.materials.size());
 

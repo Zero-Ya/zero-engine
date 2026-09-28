@@ -3,7 +3,9 @@
 #include <stb_image.h>
 
 #include "ZEngine/Core/Application.h"
+#include "VulkanGraphicsDevice.h"
 #include "VulkanContext.h"
+#include "VulkanSwapchain.h"
 
 #include "VulkanShader.h"
 #include "Platform/Vulkan/VulkanBuffer.h"
@@ -39,11 +41,12 @@ namespace ZEngine {
 	}
 
     void VulkanCubemap::LoadCubemap(std::vector<std::string> faces) {
-		auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
-		auto& device = vk_Context->GetDevice();
-		auto& physicalDevice = vk_Context->GetPhysicalDevice();
-		auto& commandPool = vk_Context->GetCommandPool();
-		auto queue = vk_Context->GetGraphicsQueue();
+		auto vk_GraphicsDevice = static_cast<VulkanGraphicsDevice*>(Application::Get().GetGraphicsDevice().get());
+		auto& vk_Context = vk_GraphicsDevice->GetContext();
+		auto& device = vk_Context.GetDevice();
+		auto& physicalDevice = vk_Context.GetPhysicalDevice();
+		auto& commandPool = vk_Context.GetCurrentFrame().commandPool;
+		auto queue = vk_Context.GetGraphicsQueue();
 
 		//stbi_set_flip_vertically_on_load(true);
 
@@ -104,9 +107,12 @@ namespace ZEngine {
     }
 
 	void VulkanCubemap::CreatePipelineState(const PipelineSpecification& spec) {
-		auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
+		auto vk_GraphicsDevice = static_cast<VulkanGraphicsDevice*>(Application::Get().GetGraphicsDevice().get());
+		auto& vk_Context = vk_GraphicsDevice->GetContext();
+		auto& vk_Swapchain = vk_GraphicsDevice->GetSwapchain();
+
 		auto vk_Shader = static_cast<VulkanShader*>(spec.Shader.get());
-		auto& device = vk_Context->GetDevice();
+		auto& device = vk_Context.GetDevice();
 
 		// Shader stages info
 		std::vector<vk::PipelineShaderStageCreateInfo> shaderStages = vk_Shader->GetShaderStages();
@@ -162,10 +168,10 @@ namespace ZEngine {
 		vk::PipelineDynamicStateCreateInfo dynamicState{ .dynamicStateCount = static_cast<uint32_t>(dynamicStates.size()), .pDynamicStates = dynamicStates.data() };
 
 		// Pipeline layout info
-		auto vk_LayoutManager = static_cast<VulkanLayoutManager*>(vk_Context->GetLayoutManager().get());
+		auto vk_LayoutManager = static_cast<VulkanLayoutManager*>(vk_Context.GetLayoutManager().get());
 		m_PipelineLayout = vk_LayoutManager->GetGlobalPipelineLayout();
 
-		vk::Format depthFormat = vk_Context->GetDepthFormat();
+		vk::Format depthFormat = vk_Swapchain.GetDepthFormat();
 		vk::Format colorFormat = vk::Format::eB8G8R8A8Srgb; // We can also get swapchain surface format
 		vk::PipelineRenderingCreateInfo dynamicRenderingInfo{ .colorAttachmentCount = 1, .pColorAttachmentFormats = &colorFormat, .depthAttachmentFormat = depthFormat };
 
@@ -211,15 +217,17 @@ namespace ZEngine {
 	}
 
     void VulkanCubemap::AllocateDescriptorSet() {
-		auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
+		auto vk_GraphicsDevice = static_cast<VulkanGraphicsDevice*>(Application::Get().GetGraphicsDevice().get());
+		auto& vk_Context = vk_GraphicsDevice->GetContext();
 
-		auto vk_Allocator = static_cast<VulkanDescriptorAllocator*>(vk_Context->GetDescriptorAllocator().get());
+		auto vk_Allocator = static_cast<VulkanDescriptorAllocator*>(vk_Context.GetDescriptorAllocator().get());
 		m_DescriptorSet = vk_Allocator->Allocate(SetSlot::Skybox);
     }
 
 	void VulkanCubemap::UpdateDescriptorSet() {
-		auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
-		auto& device = vk_Context->GetDevice();
+		auto vk_GraphicsDevice = static_cast<VulkanGraphicsDevice*>(Application::Get().GetGraphicsDevice().get());
+		auto& vk_Context = vk_GraphicsDevice->GetContext();
+		auto& device = vk_Context.GetDevice();
 
 		vk::DescriptorImageInfo imageInfo { .sampler = m_Sampler, .imageView = m_ImageView, .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal };
 		vk::WriteDescriptorSet descriptorWrite { .dstSet = *m_DescriptorSet,

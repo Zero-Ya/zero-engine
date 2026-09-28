@@ -10,7 +10,7 @@ namespace ZEngine {
         static void SetViewport(uint32_t x, uint32_t y, uint32_t w, uint32_t h) { s_RendererAPI->SetViewport(x, y, w, h); }
         static void SetClearColor(const glm::vec4& color) { s_RendererAPI->SetClearColor(color); }
 
-        static void BeginFrame(const Ref<RenderCommandBuffer>& commandBuffer, uint32_t imageIndex) { s_RendererAPI->BeginFrame(commandBuffer, imageIndex); }
+        static void BeginFrame(uint32_t imageIndex) { s_RendererAPI->BeginFrame(imageIndex); }
         static void EndFrame() { s_RendererAPI->EndFrame(); }
         static void Shutdown() { 
             s_RendererAPI->Shutdown();

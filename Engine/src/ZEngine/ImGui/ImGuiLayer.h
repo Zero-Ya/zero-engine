@@ -20,7 +20,7 @@ namespace ZEngine {
 		virtual void OnImGuiRender() override;
 
 		void Begin();
-		void End(const Ref<RenderCommandBuffer>& renderCommandBuffer);
+		void End();
 
 	private:
 		float m_Time = 0.0f;

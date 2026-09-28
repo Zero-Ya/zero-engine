@@ -1,6 +1,7 @@
 #include "VulkanDescriptorAllocator.h"
 
 #include "ZEngine/Core/Application.h"
+#include "VulkanGraphicsDevice.h"
 #include "VulkanContext.h"
 
 namespace ZEngine {
@@ -14,9 +15,10 @@ namespace ZEngine {
 	}
 
 	void VulkanDescriptorAllocator::CreateDescriptorPool() {
-		auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
+		auto vk_GraphicsDevice = static_cast<VulkanGraphicsDevice*>(Application::Get().GetGraphicsDevice().get());
+		auto& vk_Context = vk_GraphicsDevice->GetContext();
 
-		auto maxFramesInFlight = vk_Context->GetMaxFramesInFlight();
+		auto maxFramesInFlight = vk_Context.MAX_FRAMES_IN_FLIGHT;
 		uint32_t maxMaterials = 10000;
 		uint32_t maxObjects = 10000;
 
@@ -37,14 +39,15 @@ namespace ZEngine {
 			.pPoolSizes = poolSize.data()
 		};
 
-		m_DescriptorPool = vk::raii::DescriptorPool(vk_Context->GetDevice(), poolInfo);
+		m_DescriptorPool = vk::raii::DescriptorPool(vk_Context.GetDevice(), poolInfo);
 	}
 
 	vk::raii::DescriptorSet VulkanDescriptorAllocator::Allocate(SetSlot setSlot) {
-		auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
-		auto& device = vk_Context->GetDevice();
+		auto vk_GraphicsDevice = static_cast<VulkanGraphicsDevice*>(Application::Get().GetGraphicsDevice().get());
+		auto& vk_Context = vk_GraphicsDevice->GetContext();
+		auto& device = vk_Context.GetDevice();
 
-		auto vk_LayoutManager = static_cast<VulkanLayoutManager*>(vk_Context->GetLayoutManager().get());
+		auto vk_LayoutManager = static_cast<VulkanLayoutManager*>(vk_Context.GetLayoutManager().get());
 
 		vk::DescriptorSetLayout targetLayout = vk_LayoutManager->GetSetLayout(setSlot);
 		vk::DescriptorSetAllocateInfo        allocInfo{ .descriptorPool = m_DescriptorPool,
@@ -56,14 +59,15 @@ namespace ZEngine {
 	}
 
 	std::vector<vk::raii::DescriptorSet> VulkanDescriptorAllocator::AllocatePerFrames(SetSlot setSlot) {
-		auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
-		auto& device = vk_Context->GetDevice();
+		auto vk_GraphicsDevice = static_cast<VulkanGraphicsDevice*>(Application::Get().GetGraphicsDevice().get());
+		auto& vk_Context = vk_GraphicsDevice->GetContext();
+		auto& device = vk_Context.GetDevice();
 
-		auto vk_LayoutManager = static_cast<VulkanLayoutManager*>(vk_Context->GetLayoutManager().get());
+		auto vk_LayoutManager = static_cast<VulkanLayoutManager*>(vk_Context.GetLayoutManager().get());
 
 		vk::DescriptorSetLayout targetLayout = vk_LayoutManager->GetSetLayout(setSlot);
 
-		std::vector<vk::DescriptorSetLayout> layouts(vk_Context->GetMaxFramesInFlight(), targetLayout);
+		std::vector<vk::DescriptorSetLayout> layouts(vk_Context.MAX_FRAMES_IN_FLIGHT, targetLayout);
 		vk::DescriptorSetAllocateInfo        allocInfo{ .descriptorPool = m_DescriptorPool,
 														.descriptorSetCount = static_cast<uint32_t>(layouts.size()),
 														.pSetLayouts = layouts.data() };

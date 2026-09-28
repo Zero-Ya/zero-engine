@@ -1,10 +1,12 @@
 #include "VulkanPipelineState.h"
 
-#include "VulkanCommandBuffer.h"
-#include "VulkanShader.h"
 
 #include "ZEngine/Core/Application.h"
+#include "VulkanGraphicsDevice.h"
 #include "VulkanContext.h"
+#include "VulkanSwapchain.h"
+
+#include "VulkanShader.h"
 #include "VulkanLayoutManager.h"
 
 namespace {
@@ -16,9 +18,12 @@ namespace {
 namespace ZEngine {
 
 	VulkanPipelineState::VulkanPipelineState(const PipelineSpecification& spec) {
-		auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
+		auto vk_GraphicsDevice = static_cast<VulkanGraphicsDevice*>(Application::Get().GetGraphicsDevice().get());
+		auto& vk_Context = vk_GraphicsDevice->GetContext();
+		auto& vk_Swapchain = vk_GraphicsDevice->GetSwapchain();
+
 		auto vk_Shader = static_cast<VulkanShader*>(spec.Shader.get());
-		auto& device = vk_Context->GetDevice();
+		auto& device = vk_Context.GetDevice();
 
 		// Shader stages info
 		std::vector<vk::PipelineShaderStageCreateInfo> shaderStages = vk_Shader->GetShaderStages();
@@ -89,10 +94,10 @@ namespace ZEngine {
 		vk::PipelineDynamicStateCreateInfo dynamicState { .dynamicStateCount = static_cast<uint32_t>(dynamicStates.size()), .pDynamicStates = dynamicStates.data() };
 
 		// Pipeline layout info
-		auto vk_LayoutManager = static_cast<VulkanLayoutManager*>(vk_Context->GetLayoutManager().get());
+		auto vk_LayoutManager = static_cast<VulkanLayoutManager*>(vk_Context.GetLayoutManager().get());
 		m_PipelineLayout = vk_LayoutManager->GetGlobalPipelineLayout();
 
-		vk::Format depthFormat = vk_Context->GetDepthFormat();
+		vk::Format depthFormat = vk_Swapchain.GetDepthFormat();
 		vk::Format colorFormat = vk::Format::eB8G8R8A8Srgb; // We can also get swapchain surface format
 		vk::PipelineRenderingCreateInfo dynamicRenderingInfo{ .colorAttachmentCount = 1, .pColorAttachmentFormats = &colorFormat, .depthAttachmentFormat = depthFormat };
 
@@ -131,8 +136,9 @@ namespace ZEngine {
 	}
 
 	[[nodiscard]] vk::raii::ShaderModule VulkanPipelineState::CreateShaderModule(const std::vector<char>& code) {
-		auto vk_Context = static_cast<VulkanContext*>(ZEngine::Application::Get().GetGraphicsContext());
-		auto& device = vk_Context->GetDevice();
+		auto vk_GraphicsDevice = static_cast<VulkanGraphicsDevice*>(Application::Get().GetGraphicsDevice().get());
+		auto& vk_Context = vk_GraphicsDevice->GetContext();
+		auto& device = vk_Context.GetDevice();
 
 		vk::ShaderModuleCreateInfo createInfo{ .codeSize = code.size() * sizeof(char), .pCode = reinterpret_cast<const uint32_t*>(code.data()) };
 		vk::raii::ShaderModule shaderModule{ device, createInfo };

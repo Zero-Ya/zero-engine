@@ -1,7 +1,5 @@
 #pragma once
 
-#include "ZEngine/Renderer/GraphicsContext.h"
-
 #define VULKAN_HPP_HANDLE_ERROR_OUT_OF_DATE_AS_SUCCESS
 #include <vulkan/vulkan_raii.hpp>
 
@@ -16,48 +14,48 @@ namespace ZEngine {
 		constexpr bool enableValidationLayers = false;
 	#endif
 
-	// Forward declaration
-	class RenderCommandBuffer;
-	class VulkanSwapchain;
 	class LayoutManager;
 	class DescriptorAllocator;
 
-	// Actual class
-	class VulkanContext : public GraphicsContext {
+	struct FrameData {
+		vk::raii::CommandPool commandPool = nullptr;
+		vk::raii::CommandBuffer commandBuffer = nullptr;
+
+		vk::raii::Semaphore imageAvailableSemaphore = nullptr;
+		vk::raii::Fence inFlightFence = nullptr;
+	};
+
+	class VulkanContext {
 	public:
 		VulkanContext(GLFWwindow* window);
 		~VulkanContext();
 
-		virtual void Init() override;
-		virtual void SwapBuffers() override;
+		void Init();
 
 		// Getters
 		vk::raii::Instance&		  GetInstance()			 { return m_Instance; }
 		vk::raii::SurfaceKHR&	  GetSurface()			 { return m_Surface; }
 		vk::raii::PhysicalDevice& GetPhysicalDevice()	 { return m_PhysicalDevice; }
-		// Get logical device
 		vk::raii::Device&		  GetDevice()			 { return m_Device; }
-		uint32_t				  GetQueueIndex() const  { return queueIndex; }
+		uint32_t				  GetQueueIndex() const  { return m_QueueIndex; }
 		vk::raii::Queue			  GetGraphicsQueue()	 { return m_GraphicsQueue; }
-		vk::raii::CommandPool&	  GetCommandPool()		 { return m_CommandPool; }
-								  
-		vk::raii::Image&		  GetDepthImage()		 { return m_DepthImage; }
-		vk::raii::ImageView&	  GetDepthImageView()	 { return m_DepthImageView; }
-		vk::Format&				  GetDepthFormat()		 { return m_DepthFormat; }
 
 		Scope<LayoutManager>& GetLayoutManager() { return m_LayoutManager; }
 		Scope<DescriptorAllocator>& GetDescriptorAllocator() { return m_DescriptorAllocator; }
 
-		VulkanSwapchain* GetSwapchain() { return m_Swapchain.get(); }
+		void BeginFrame();
+		void EndFrame(uint32_t imageIndex);
+		vk::Result Present(uint32_t imageIndex, const vk::raii::SwapchainKHR& swapchain);
 
-		uint32_t AcquireNextImage() override;
-		void PresentImage(uint32_t imageIndex, const Ref<RenderCommandBuffer>& renderCommandBuffer) override;
-		void RecreateSwapchain() override;
-		void WaitIdle() override;
-
+		void WaitIdle() { m_Device.waitIdle(); }
 		void QueueWaitIdle() { m_GraphicsQueue.waitIdle(); }
+
+		FrameData& GetCurrentFrame() { return m_Frames[m_CurrentFrameIndex]; }
 		const uint32_t GetCurrentFrameIndex() const { return m_CurrentFrameIndex; }
-		const uint32_t GetMaxFramesInFlight() const { return MAX_FRAMES_IN_FLIGHT; }
+
+		static constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
+
+		void CreateFrameResources();
 
 	private:
 		void CreateInstance();
@@ -66,10 +64,6 @@ namespace ZEngine {
 		bool IsDeviceSuitable(vk::raii::PhysicalDevice const& physicalDevice);
 		void PickPhysicalDevice();
 		void CreateLogicalDevice();
-		void CreateSwapchain();
-		void CreateCommandPool();
-		void CreateDepthResources();
-		void CreateSyncObjects();
 
 	private:
 		GLFWwindow*						 m_Window			= nullptr;
@@ -81,26 +75,16 @@ namespace ZEngine {
 		vk::raii::PhysicalDevice		 m_PhysicalDevice	= nullptr;
 		vk::raii::Device				 m_Device			= nullptr;
 
-		uint32_t						 queueIndex			= ~0;
+		uint32_t						 m_QueueIndex		= 0;
 		vk::raii::Queue					 m_GraphicsQueue	= nullptr;
-		vk::raii::CommandPool			 m_CommandPool		= nullptr;
-
-		Scope<VulkanSwapchain> m_Swapchain;
-
-		std::vector<vk::raii::Semaphore> m_ImageAvailableSemaphores;
-		std::vector<vk::raii::Semaphore> m_RenderFinishedSemaphores;
-		std::vector<vk::raii::Fence> m_InFlightFences;
-
-		vk::raii::Image        m_DepthImage = nullptr;
-		vk::raii::DeviceMemory m_DepthImageMemory = nullptr;
-		vk::raii::ImageView    m_DepthImageView = nullptr;
-		vk::Format			   m_DepthFormat;
 
 		Scope<LayoutManager> m_LayoutManager;
 		Scope<DescriptorAllocator> m_DescriptorAllocator;
 
+		std::array<FrameData, MAX_FRAMES_IN_FLIGHT> m_Frames;
 		uint32_t m_CurrentFrameIndex = 0;
-		const uint32_t MAX_FRAMES_IN_FLIGHT = 2; // Double buffering synchronization tracking
+
+		std::vector<vk::raii::Semaphore> m_RenderFinishedSemaphores;
 
 		const std::vector<char const*> validationLayers = {
 			"VK_LAYER_KHRONOS_validation" };

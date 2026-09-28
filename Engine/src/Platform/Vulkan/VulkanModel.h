@@ -50,7 +50,7 @@ namespace ZEngine {
         ~VulkanModel() = default;
 
         bool LoadFromFile(const std::string& filePath) override;
-        void Draw(const Ref<RenderCommandBuffer>& commandBuffer, const Ref<PipelineState>& pipelineState) override;
+        void Draw(const Ref<PipelineState>& pipelineState) override;
 
     private:
         void LoadTexture(const std::string& baseDir);

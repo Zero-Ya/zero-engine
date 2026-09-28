@@ -1,8 +1,8 @@
 #include "VulkanBuffer.h"
 
 #include "ZEngine/Core/Application.h"
+#include "VulkanGraphicsDevice.h"
 #include "VulkanContext.h"
-#include "VulkanCommandBuffer.h"
 
 namespace ZEngine {
 	uint32_t FindMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties);
@@ -10,8 +10,9 @@ namespace ZEngine {
 	//
 
 	VulkanVertexBuffer::VulkanVertexBuffer(float* vertices, uint32_t size) {
-		auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
-		auto& device = vk_Context->GetDevice();
+		auto vk_GraphicsDevice = static_cast<VulkanGraphicsDevice*>(Application::Get().GetGraphicsDevice().get());
+		auto& vk_Context = vk_GraphicsDevice->GetContext();
+		auto& device = vk_Context.GetDevice();
 
 		vk::BufferCreateInfo bufferInfo { .size = size, .usage = vk::BufferUsageFlagBits::eVertexBuffer, .sharingMode = vk::SharingMode::eExclusive };
 		m_Buffer = vk::raii::Buffer(device, bufferInfo);
@@ -28,8 +29,9 @@ namespace ZEngine {
 	}
 
 	VulkanVertexBuffer::VulkanVertexBuffer(std::vector<Vertex> vertices, uint32_t size) {
-		auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
-		auto& device = vk_Context->GetDevice();
+		auto vk_GraphicsDevice = static_cast<VulkanGraphicsDevice*>(Application::Get().GetGraphicsDevice().get());
+		auto& vk_Context = vk_GraphicsDevice->GetContext();
+		auto& device = vk_Context.GetDevice();
 
 		vk::BufferCreateInfo bufferInfo{ .size = size, .usage = vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst, .sharingMode = vk::SharingMode::eExclusive };
 		m_Buffer = vk::raii::Buffer(device, bufferInfo);
@@ -51,8 +53,9 @@ namespace ZEngine {
 	VulkanIndexBuffer::VulkanIndexBuffer(uint32_t* indices, uint32_t count)
 		: m_Count(count)
 	{
-		auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
-		auto& device = vk_Context->GetDevice();
+		auto vk_GraphicsDevice = static_cast<VulkanGraphicsDevice*>(Application::Get().GetGraphicsDevice().get());
+		auto& vk_Context = vk_GraphicsDevice->GetContext();
+		auto& device = vk_Context.GetDevice();
 		uint32_t size = count * sizeof(uint32_t);
 
 		vk::BufferCreateInfo bufferInfo{ .size = size, .usage = vk::BufferUsageFlagBits::eIndexBuffer, .sharingMode = vk::SharingMode::eExclusive };
@@ -71,8 +74,9 @@ namespace ZEngine {
 
 	VulkanIndexBuffer::VulkanIndexBuffer(std::vector<uint32_t> indices, uint32_t count)
 		: m_Count(count) {
-		auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
-		auto& device = vk_Context->GetDevice();
+		auto vk_GraphicsDevice = static_cast<VulkanGraphicsDevice*>(Application::Get().GetGraphicsDevice().get());
+		auto& vk_Context = vk_GraphicsDevice->GetContext();
+		auto& device = vk_Context.GetDevice();
 		uint32_t size = count * sizeof(uint32_t);
 
 		vk::BufferCreateInfo bufferInfo{ .size = size, .usage = vk::BufferUsageFlagBits::eIndexBuffer, .sharingMode = vk::SharingMode::eExclusive };
@@ -95,14 +99,15 @@ namespace ZEngine {
 	VulkanUniformBuffer::VulkanUniformBuffer(size_t size)
 		: m_Size(size)
 	{
-		auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
-		auto& device = vk_Context->GetDevice();
+		auto vk_GraphicsDevice = static_cast<VulkanGraphicsDevice*>(Application::Get().GetGraphicsDevice().get());
+		auto& vk_Context = vk_GraphicsDevice->GetContext();
+		auto& device = vk_Context.GetDevice();
 
 		m_UniformBuffers.clear();
 		m_UniformBuffersMemory.clear();
 		m_UniformBuffersMapped.clear();
 
-		for (size_t i = 0; i < vk_Context->GetMaxFramesInFlight(); i++) {
+		for (size_t i = 0; i < vk_Context.MAX_FRAMES_IN_FLIGHT; i++) {
 			vk::DeviceSize         bufferSize = m_Size;
 			vk::raii::Buffer       buffer({});
 			vk::raii::DeviceMemory bufferMemory({});
@@ -122,8 +127,9 @@ namespace ZEngine {
 	}
 
 	void VulkanUniformBuffer::SetData(const void* data, uint32_t size, uint32_t offset) {
-		auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
-		uint32_t currentFrame = vk_Context->GetCurrentFrameIndex();
+		auto vk_GraphicsDevice = static_cast<VulkanGraphicsDevice*>(Application::Get().GetGraphicsDevice().get());
+		auto& vk_Context = vk_GraphicsDevice->GetContext();
+		uint32_t currentFrame = vk_Context.GetCurrentFrameIndex();
 
 		// Copy data into the active buffer
 		uint8_t* destination = static_cast<uint8_t*>(m_UniformBuffersMapped[currentFrame]) + offset;
@@ -131,9 +137,10 @@ namespace ZEngine {
 	}
 
 	uint32_t FindMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties) {
-		auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
+		auto vk_GraphicsDevice = static_cast<VulkanGraphicsDevice*>(Application::Get().GetGraphicsDevice().get());
+		auto& vk_Context = vk_GraphicsDevice->GetContext();
 
-		vk::PhysicalDeviceMemoryProperties memProperties = vk_Context->GetPhysicalDevice().getMemoryProperties();
+		vk::PhysicalDeviceMemoryProperties memProperties = vk_Context.GetPhysicalDevice().getMemoryProperties();
 		for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
 			if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
 				return i;

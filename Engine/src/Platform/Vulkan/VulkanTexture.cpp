@@ -1,6 +1,7 @@
 #include "VulkanTexture.h"
 
 #include "ZEngine/Core/Application.h"
+#include "VulkanGraphicsDevice.h"
 #include "VulkanContext.h"
 
 #include <filesystem>
@@ -33,11 +34,12 @@ namespace ZEngine {
 	{}
 
 	void VulkanTexture2D::LoadTexture(const std::string& path) {
-		auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
-		auto& device = vk_Context->GetDevice();
-		auto& physicalDevice = vk_Context->GetPhysicalDevice();
-		auto& commandPool = vk_Context->GetCommandPool();
-		auto queue = vk_Context->GetGraphicsQueue();
+		auto vk_GraphicsDevice = static_cast<VulkanGraphicsDevice*>(Application::Get().GetGraphicsDevice().get());
+		auto& vk_Context = vk_GraphicsDevice->GetContext();
+		auto& device = vk_Context.GetDevice();
+		auto& physicalDevice = vk_Context.GetPhysicalDevice();
+		auto& commandPool = vk_Context.GetCurrentFrame().commandPool;
+		auto queue = vk_Context.GetGraphicsQueue();
 
 		m_Path = path;
 
@@ -56,8 +58,9 @@ namespace ZEngine {
 	}
 
 	void VulkanTexture2D::UpdateDescriptorSet(const vk::raii::DescriptorSet& descriptorSet) {
-		auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
-		auto& device = vk_Context->GetDevice();
+		auto vk_GraphicsDevice = static_cast<VulkanGraphicsDevice*>(Application::Get().GetGraphicsDevice().get());
+		auto& vk_Context = vk_GraphicsDevice->GetContext();
+		auto& device = vk_Context.GetDevice();
 
         vk::DescriptorImageInfo imageInfo { .sampler = m_Sampler, .imageView = m_ImageView, .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal };
         vk::WriteDescriptorSet descriptorWrite { .dstSet = *descriptorSet,

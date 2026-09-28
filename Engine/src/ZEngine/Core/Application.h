@@ -11,7 +11,7 @@
 
 #include "ZEngine/ImGui/ImGuiLayer.h"
 
-#include "ZEngine/Renderer/GraphicsContext.h"
+#include "ZEngine/RHI/GraphicsDevice.h"
 
 namespace ZEngine {
 
@@ -29,22 +29,19 @@ namespace ZEngine {
 
 		inline static Application& Get() { return *s_Instance; }
 		inline Window& GetWindow() { return *m_Window; }
-		inline GraphicsContext* GetGraphicsContext() { return m_Context.get(); }
+		inline Scope<GraphicsDevice>& GetGraphicsDevice() { return m_GraphicsDevice; }
 
 	private:
 		bool OnWindowClose(WindowCloseEvent& e);
 		bool OnWindowResize(WindowResizeEvent& e);
 
 		Scope<Window> m_Window;
-		Scope<GraphicsContext> m_Context;
-
-		bool m_Running = true;
+		Scope<GraphicsDevice> m_GraphicsDevice;
 
 		ImGuiLayer* m_ImGuiLayer;
 		LayerStack m_LayerStack;
 
-		Ref<RenderCommandBuffer> m_FrameCommandBuffer;
-
+		bool m_Running = true;
 		float m_LastFrameTime = 0.0f;
 
 	private:

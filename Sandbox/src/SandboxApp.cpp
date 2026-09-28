@@ -72,7 +72,7 @@ public:
 
 		// Model loading
 		m_Model = ZEngine::Model::Create();
-		//m_Model->LoadFromFile(ASSETS_DIR"/models/BistroModel/BistroExterior.gltf");
+		m_Model->LoadFromFile(ASSETS_DIR"/models/BistroModel/BistroExterior.gltf");
 
 		// Skybox
 		std::vector<std::string> skyboxTextures = {
@@ -94,7 +94,12 @@ public:
 		m_CameraController.OnUpdate(ts);
 
 		// Render
-		ZEngine::RenderCommand::SetViewport(0, 0, ZEngine::Application::Get().GetWindow().GetWidth(), ZEngine::Application::Get().GetWindow().GetHeight());
+		auto& graphicsDevice = ZEngine::Application::Get().GetGraphicsDevice();
+		auto& commandList = graphicsDevice->GetMainCommandList();
+		commandList.SetViewport(0, 0, ZEngine::Application::Get().GetWindow().GetWidth(), ZEngine::Application::Get().GetWindow().GetHeight());
+		commandList.SetScissor(0, 0, ZEngine::Application::Get().GetWindow().GetWidth(), ZEngine::Application::Get().GetWindow().GetHeight());
+
+		//ZEngine::RenderCommand::SetViewport(0, 0, ZEngine::Application::Get().GetWindow().GetWidth(), ZEngine::Application::Get().GetWindow().GetHeight());
 		ZEngine::RenderCommand::SetClearColor(glm::vec4(0.0f, 0.0f, 0.1f, 0.0f));
 
 		glm::mat4 firstTransform = glm::translate(glm::mat4(1.0f), glm::vec3(-0.5f, 0.0f, -1.0f));
@@ -104,7 +109,7 @@ public:
 		ZEngine::Renderer::GlobalBegin(m_ModelPipeline);
 		//ZEngine::Renderer::GlobalBegin(m_DefaultPipeline);
 		//ZEngine::Renderer::MeshBegin(m_DefaultPipeline, m_MaterialInstance, secondTransform);
-		//ZEngine::Renderer::DrawModel(m_Model, m_ModelPipeline); // Needs to be changed later
+		ZEngine::Renderer::DrawModel(m_Model, m_ModelPipeline); // Needs to be changed later
 		//ZEngine::Renderer::DrawMesh(m_VertexArray);
 		ZEngine::Renderer::DrawSkybox(m_Skybox);
 		ZEngine::Renderer::EndScene();

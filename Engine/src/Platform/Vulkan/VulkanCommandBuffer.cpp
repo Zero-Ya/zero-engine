@@ -1,15 +1,18 @@
 #include "VulkanCommandBuffer.h"
+
 #include "ZEngine/Core/Application.h"
-#include "Platform/Vulkan/VulkanContext.h"
+#include "VulkanGraphicsDevice.h"
+#include "VulkanContext.h"
 
 namespace ZEngine {
 
 	VulkanCommandBuffer::VulkanCommandBuffer() {
-		auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
-		auto& device = vk_Context->GetDevice();
-		auto& commandPool = vk_Context->GetCommandPool();
+		auto vk_GraphicsDevice = static_cast<VulkanGraphicsDevice*>(Application::Get().GetGraphicsDevice().get());
+		auto& vk_Context = vk_GraphicsDevice->GetContext();
+		auto& device = vk_Context.GetDevice();
+		auto& commandPool = vk_Context.GetCurrentFrame().commandPool;
 
-		const auto framesInFlight = vk_Context->GetMaxFramesInFlight();
+		const auto framesInFlight = vk_Context.MAX_FRAMES_IN_FLIGHT;
 
 		vk::CommandBufferAllocateInfo allocInfo;
 		allocInfo.commandPool = *commandPool;
@@ -34,8 +37,9 @@ namespace ZEngine {
 	}
 
 	const vk::raii::CommandBuffer& VulkanCommandBuffer::GetBuffer() const {
-		auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
-		uint32_t activeFrameIndex = vk_Context->GetCurrentFrameIndex();
+		auto vk_GraphicsDevice = static_cast<VulkanGraphicsDevice*>(Application::Get().GetGraphicsDevice().get());
+		auto& vk_Context = vk_GraphicsDevice->GetContext();
+		uint32_t activeFrameIndex = vk_Context.GetCurrentFrameIndex();
 
 		return m_CommandBuffers[activeFrameIndex];
 	}

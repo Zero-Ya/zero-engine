@@ -19,11 +19,10 @@ namespace ZEngine {
 
 		m_Window = Scope<Window>(Window::Create());
 		m_Window->SetEventCallback(BIND_EVENT_FN(OnEvent));
-		m_Context = GraphicsContext::Create(m_Window->GetNativeWindow());
-		m_Context->Init();
+		m_GraphicsDevice = GraphicsDevice::Create(m_Window->GetNativeWindow(), m_Window->GetWidth(), m_Window->GetHeight());
+		m_GraphicsDevice->Init();
 
 		ZEngine::Renderer::Init();
-		m_FrameCommandBuffer = RenderCommandBuffer::Create();
 
 		// ImGui layer
 		m_ImGuiLayer = new ImGuiLayer();
@@ -31,11 +30,7 @@ namespace ZEngine {
 	}
 
 	Application::~Application() {
-		if (m_Context)
-			m_Context->WaitIdle();
-
-		// Destroy sandbox before renderer
-		m_LayerStack.~LayerStack();
+		m_GraphicsDevice->WaitIdle();
 
 		Renderer::Shutdown();
 	}
@@ -68,12 +63,8 @@ namespace ZEngine {
 			Timestep timestep = time - m_LastFrameTime;
 			m_LastFrameTime = time;
 
-			uint32_t imageIndex = m_Context->AcquireNextImage();
-
-			m_FrameCommandBuffer->Reset();
-			m_FrameCommandBuffer->Begin();
-
-			ZEngine::RenderCommand::BeginFrame(m_FrameCommandBuffer, imageIndex);
+			m_GraphicsDevice->BeginFrame();
+			m_GraphicsDevice->GetMainCommandList().BeginRendering(m_GraphicsDevice->GetSwapchainTextureHandle(), m_GraphicsDevice->GetSwapchainDepthHandle());
 
 			// Sandbox layers
 			for (Layer* layer : m_LayerStack)
@@ -84,13 +75,11 @@ namespace ZEngine {
 			for (Layer* layer : m_LayerStack) {
 				layer->OnImGuiRender();
 			}
-			m_ImGuiLayer->End(m_FrameCommandBuffer);
+			m_ImGuiLayer->End();
 			//
 
-			ZEngine::RenderCommand::EndFrame();
-			m_FrameCommandBuffer->End();
-
-			m_Context->PresentImage(imageIndex, m_FrameCommandBuffer);
+			m_GraphicsDevice->GetMainCommandList().EndRendering(m_GraphicsDevice->GetSwapchainTextureHandle());
+			m_GraphicsDevice->EndFrame();
 
 			m_Window->OnUpdate();
 		}
@@ -102,6 +91,7 @@ namespace ZEngine {
 	}
 
 	bool Application::OnWindowResize(WindowResizeEvent& e) {
+		m_GraphicsDevice->OnResize(e.GetWidth(), e.GetHeight());
 		return true;
 	}
 }

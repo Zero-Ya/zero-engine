@@ -1,11 +1,12 @@
-#include "Platform/Vulkan/VulkanMaterial.h"
-#include "Platform/Vulkan/VulkanTexture.h"
+#include "VulkanMaterial.h"
+#include "VulkanTexture.h"
 
 #include "ZEngine/Core/Application.h"
-#include "Platform/Vulkan/VulkanContext.h"
+#include "VulkanGraphicsDevice.h"
+#include "VulkanContext.h"
 
-#include "Platform/Vulkan/VulkanBuffer.h"
-#include "Platform/Vulkan/VulkanDescriptorAllocator.h"
+#include "VulkanBuffer.h"
+#include "VulkanDescriptorAllocator.h"
 #include "VulkanCubemap.h"
 
 namespace ZEngine {
@@ -45,17 +46,19 @@ namespace ZEngine {
     }
 
     void VulkanMaterial::AllocateDescriptorSet() {
-        auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
+        auto vk_GraphicsDevice = static_cast<VulkanGraphicsDevice*>(Application::Get().GetGraphicsDevice().get());
+        auto& vk_Context = vk_GraphicsDevice->GetContext();
 
-        auto vk_Allocator = static_cast<VulkanDescriptorAllocator*>(vk_Context->GetDescriptorAllocator().get());
+        auto vk_Allocator = static_cast<VulkanDescriptorAllocator*>(vk_Context.GetDescriptorAllocator().get());
         m_MaterialSet = vk_Allocator->Allocate(SetSlot::Material);
     }
 
     void VulkanMaterial::UpdateDescriptorSets() {
         ZE_CORE_ASSERT(*m_MaterialSet != nullptr, "Material DescriptorSet has not been allocated!");
 
-        auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
-        auto& device = vk_Context->GetDevice();
+        auto vk_GraphicsDevice = static_cast<VulkanGraphicsDevice*>(Application::Get().GetGraphicsDevice().get());
+        auto& vk_Context = vk_GraphicsDevice->GetContext();
+        auto& device = vk_Context.GetDevice();
 
         // Binding 0: Material properties uniform buffer
         const auto& materialUBO = static_cast<VulkanUniformBuffer*>(m_MaterialUBO.get());

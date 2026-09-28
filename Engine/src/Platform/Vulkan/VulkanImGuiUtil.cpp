@@ -1,8 +1,9 @@
 #include "VulkanImGuiUtil.h"
+
 #include "ZEngine/Core/Application.h"
-#include "Platform/Vulkan/VulkanContext.h"
-#include "Platform/Vulkan/VulkanSwapchain.h"
-#include "Platform/Vulkan/VulkanCommandBuffer.h"
+#include "VulkanGraphicsDevice.h"
+#include "VulkanContext.h"
+#include "VulkanSwapchain.h"
 
 #include <backends/imgui_impl_vulkan.h>
 #include <backends/imgui_impl_glfw.h>
@@ -10,27 +11,29 @@
 namespace ZEngine {
 
 	void VulkanImGuiUtil::Init(GLFWwindow* window) {
-        auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
-        auto vk_Swapchain = vk_Context->GetSwapchain();
-        VkFormat colorAttachmentFormat = static_cast<VkFormat>(vk_Swapchain->GetSurfaceFormat().format);
+        auto vk_GraphicsDevice = static_cast<VulkanGraphicsDevice*>(Application::Get().GetGraphicsDevice().get());
+
+        auto& vk_Context = vk_GraphicsDevice->GetContext();
+        auto& vk_Swapchain = vk_GraphicsDevice->GetSwapchain();
+        VkFormat colorAttachmentFormat = static_cast<VkFormat>(vk_Swapchain.GetSurfaceFormat().format);
 
         ImGui_ImplGlfw_InitForVulkan(window, true);
 
         ImGui_ImplVulkan_InitInfo initInfo = {};
-        initInfo.Instance = *vk_Context->GetInstance();
-        initInfo.PhysicalDevice = *vk_Context->GetPhysicalDevice();
-        initInfo.Device = *vk_Context->GetDevice();
-        initInfo.QueueFamily = vk_Context->GetQueueIndex();
-        initInfo.Queue = *vk_Context->GetGraphicsQueue();
+        initInfo.Instance = *vk_Context.GetInstance();
+        initInfo.PhysicalDevice = *vk_Context.GetPhysicalDevice();
+        initInfo.Device = *vk_Context.GetDevice();
+        initInfo.QueueFamily = vk_Context.GetQueueIndex();
+        initInfo.Queue = *vk_Context.GetGraphicsQueue();
         initInfo.DescriptorPool = *m_DescriptorPool;
-        initInfo.MinImageCount = vk_Swapchain->GetMinImageCount();
-        initInfo.ImageCount = vk_Swapchain->GetImageCount();
+        initInfo.MinImageCount = vk_Swapchain.GetMinImageCount();
+        initInfo.ImageCount = vk_Swapchain.GetImageCount();
         initInfo.DescriptorPoolSize = 1000;
 
         // For dynamic rendering
         initInfo.UseDynamicRendering = true;
         initInfo.PipelineInfoMain.PipelineRenderingCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
-        initInfo.PipelineInfoMain.PipelineRenderingCreateInfo.depthAttachmentFormat = static_cast<VkFormat>(vk_Context->GetDepthFormat());
+        initInfo.PipelineInfoMain.PipelineRenderingCreateInfo.depthAttachmentFormat = static_cast<VkFormat>(vk_Swapchain.GetDepthFormat());
         initInfo.PipelineInfoMain.PipelineRenderingCreateInfo.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
         initInfo.PipelineInfoMain.PipelineRenderingCreateInfo.colorAttachmentCount = 1;
         initInfo.PipelineInfoMain.PipelineRenderingCreateInfo.pColorAttachmentFormats = &colorAttachmentFormat;
@@ -47,7 +50,8 @@ namespace ZEngine {
     }
 
     void VulkanImGuiUtil::CreateDescriptorPool() {
-        auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
+        auto vk_GraphicsDevice = static_cast<VulkanGraphicsDevice*>(Application::Get().GetGraphicsDevice().get());
+        auto& vk_Context = vk_GraphicsDevice->GetContext();
 
         std::array poolSize {
             vk::DescriptorPoolSize(vk::DescriptorType::eSampler, 1000),
@@ -70,7 +74,7 @@ namespace ZEngine {
             .pPoolSizes = poolSize.data()
         };
 
-        m_DescriptorPool = vk::raii::DescriptorPool(vk_Context->GetDevice(), poolInfo);
+        m_DescriptorPool = vk::raii::DescriptorPool(vk_Context.GetDevice(), poolInfo);
     }
 
     void VulkanImGuiUtil::Shutdown() {
@@ -84,10 +88,11 @@ namespace ZEngine {
         ImGui::NewFrame();
     }
 
-    void VulkanImGuiUtil::EndFrame(const Ref<RenderCommandBuffer>& renderCommandBuffer) {
-        auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
-        auto vulkanCommandBuffer = static_cast<VulkanCommandBuffer*>(renderCommandBuffer.get());
-        const auto& commandBuffer = vulkanCommandBuffer->GetBuffer();
+    void VulkanImGuiUtil::EndFrame() {
+        auto vk_GraphicsDevice = static_cast<VulkanGraphicsDevice*>(Application::Get().GetGraphicsDevice().get());
+        auto& vk_Context = vk_GraphicsDevice->GetContext();
+
+        const auto& commandBuffer = vk_Context.GetCurrentFrame().commandBuffer;
 
         ImGui::Render();
         ImDrawData* drawData = ImGui::GetDrawData();
@@ -104,7 +109,7 @@ namespace ZEngine {
             ImGui::UpdatePlatformWindows();
             ImGui::RenderPlatformWindowsDefault();
 
-            vk_Context->QueueWaitIdle();
+            vk_Context.QueueWaitIdle();
             // Restore context state
             glfwMakeContextCurrent(backupCurrentContext);
         }

@@ -1,6 +1,7 @@
 #include "VulkanRendererAPI.h"
 
 #include "ZEngine/Core/Application.h"
+#include "VulkanGraphicsDevice.h"
 #include "VulkanContext.h"
 #include "VulkanSwapchain.h"
 
@@ -16,17 +17,18 @@
 namespace ZEngine {
 
 	void VulkanRendererAPI::Init(const Ref<UniformBuffer>& cameraUBO) {
-        auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
-        auto& device = vk_Context->GetDevice();
+        auto vk_GraphicsDevice = static_cast<VulkanGraphicsDevice*>(Application::Get().GetGraphicsDevice().get());
+        auto& vk_Context = vk_GraphicsDevice->GetContext();
+        auto& device = vk_Context.GetDevice();
 
-        auto vk_Allocator = static_cast<VulkanDescriptorAllocator*>(vk_Context->GetDescriptorAllocator().get());
+        auto vk_Allocator = static_cast<VulkanDescriptorAllocator*>(vk_Context.GetDescriptorAllocator().get());
 
         m_GlobalSet = vk_Allocator->AllocatePerFrames(SetSlot::Global);
 
         auto vk_CameraUBO = static_cast<VulkanUniformBuffer*>(cameraUBO.get());
         auto& cameraBuffers = vk_CameraUBO->GetUniformBuffers();
 
-        for (size_t i = 0; i < vk_Context->GetMaxFramesInFlight(); i++) {
+        for (size_t i = 0; i < vk_Context.MAX_FRAMES_IN_FLIGHT; i++) {
             vk::DescriptorBufferInfo bufferInfo { .buffer = cameraBuffers[i], .offset = 0, .range = vk_CameraUBO->GetSize() };
             vk::WriteDescriptorSet   descriptorWrite { .dstSet = m_GlobalSet[i],
                                                        .dstBinding = 0,
@@ -39,10 +41,9 @@ namespace ZEngine {
 	}
 
     void VulkanRendererAPI::SetViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
-        if (!m_ActiveCommandBuffer) return;
-
-        auto vulkanCommandBuffer = static_cast<VulkanCommandBuffer*>(m_ActiveCommandBuffer.get());
-        const auto& commandBuffer = vulkanCommandBuffer->GetBuffer();
+        auto vk_GraphicsDevice = static_cast<VulkanGraphicsDevice*>(Application::Get().GetGraphicsDevice().get());
+        auto& vk_Context = vk_GraphicsDevice->GetContext();
+        const auto& commandBuffer = vk_Context.GetCurrentFrame().commandBuffer;
 
         vk::Viewport viewport(float(x), float(height), static_cast<float>(width), -(static_cast<float>(height)), 0.0f, 1.0f);
         vk::Rect2D scissor({ (int32_t)x, (int32_t)y }, {width, height});
@@ -59,18 +60,17 @@ namespace ZEngine {
         // No need to do anything
     }
 
-    void VulkanRendererAPI::BeginFrame(const Ref<RenderCommandBuffer>& renderCommandBuffer, uint32_t imageIndex) {
-        m_ActiveCommandBuffer = renderCommandBuffer;
+    void VulkanRendererAPI::BeginFrame(uint32_t imageIndex) {
         m_CurrentImageIndex = imageIndex;
 
-        auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
-        auto swapchain = vk_Context->GetSwapchain();
-        auto vulkanCommandBuffer = static_cast<VulkanCommandBuffer*>(m_ActiveCommandBuffer.get());
-        const auto& commandBuffer = vulkanCommandBuffer->GetBuffer();
+        auto vk_GraphicsDevice = static_cast<VulkanGraphicsDevice*>(Application::Get().GetGraphicsDevice().get());
+        auto& vk_Context = vk_GraphicsDevice->GetContext();
+        auto& vk_Swapchain = vk_GraphicsDevice->GetSwapchain();
+        const auto& commandBuffer = vk_Context.GetCurrentFrame().commandBuffer;
 
         // Transition the swapchain image to vk::ImageLayout::eColorAttachmentOptimal
         TransitionImageLayout(
-            swapchain->GetImage(m_CurrentImageIndex),
+            vk_Swapchain.GetImage(m_CurrentImageIndex),
             vk::ImageLayout::eUndefined,
             vk::ImageLayout::eColorAttachmentOptimal,
             {},
@@ -82,7 +82,7 @@ namespace ZEngine {
 
         // Transition depth image to depth attachment optimal layout
         TransitionImageLayout(
-            *vk_Context->GetDepthImage(),
+            *vk_Swapchain.GetDepthImage(),
             vk::ImageLayout::eUndefined,
             vk::ImageLayout::eDepthAttachmentOptimal,
             vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
@@ -97,7 +97,7 @@ namespace ZEngine {
         vk::ClearValue clearDepth = vk::ClearDepthStencilValue(1.0f, 0);
 
         vk::RenderingAttachmentInfo colorAttachmentInfo {
-            .imageView = swapchain->GetImageView(m_CurrentImageIndex),
+            .imageView = vk_Swapchain.GetImageView(m_CurrentImageIndex),
             .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
             .loadOp = vk::AttachmentLoadOp::eClear,
             .storeOp = vk::AttachmentStoreOp::eStore,
@@ -105,14 +105,14 @@ namespace ZEngine {
         };
 
         vk::RenderingAttachmentInfo depthAttachmentInfo = {
-            .imageView = vk_Context->GetDepthImageView(),
+            .imageView = vk_Swapchain.GetDepthImageView(),
             .imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
             .loadOp = vk::AttachmentLoadOp::eClear,
             .storeOp = vk::AttachmentStoreOp::eDontCare,
             .clearValue = clearDepth
         };
 
-        const vk::Extent2D& extent = swapchain->GetExtent();
+        const vk::Extent2D& extent = vk_Swapchain.GetExtent();
 
         vk::RenderingInfo renderingInfo {
             .flags = vk::RenderingFlags{},
@@ -130,19 +130,17 @@ namespace ZEngine {
     }
 
     void VulkanRendererAPI::EndFrame() {
-        if (!m_ActiveCommandBuffer) return;
-
-        auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
-        auto swapchain = vk_Context->GetSwapchain();
-        auto vulkanCommandBuffer = static_cast<VulkanCommandBuffer*>(m_ActiveCommandBuffer.get());
-        const auto& commandBuffer = vulkanCommandBuffer->GetBuffer();
+        auto vk_GraphicsDevice = static_cast<VulkanGraphicsDevice*>(Application::Get().GetGraphicsDevice().get());
+        auto& vk_Context = vk_GraphicsDevice->GetContext();
+        auto& vk_Swapchain = vk_GraphicsDevice->GetSwapchain();
+        const auto& commandBuffer = vk_Context.GetCurrentFrame().commandBuffer;
 
         // End the dynamic rendering block
         commandBuffer.endRendering();
 
         // After rendering, transition the swapchain image to vk::ImageLayout::ePresentSrcKHR
         TransitionImageLayout(
-            swapchain->GetImage(m_CurrentImageIndex),
+            vk_Swapchain.GetImage(m_CurrentImageIndex),
             vk::ImageLayout::eColorAttachmentOptimal,
             vk::ImageLayout::ePresentSrcKHR,
             vk::AccessFlagBits2::eColorAttachmentWrite,
@@ -158,8 +156,9 @@ namespace ZEngine {
     }
 
     void VulkanRendererAPI::DrawIndexed(const Ref<VertexArray>& vertexArray, uint32_t indexCount) {
-        auto vulkanCommandBuffer = static_cast<VulkanCommandBuffer*>(m_ActiveCommandBuffer.get());
-        const auto& commandBuffer = vulkanCommandBuffer->GetBuffer();
+        auto vk_GraphicsDevice = static_cast<VulkanGraphicsDevice*>(Application::Get().GetGraphicsDevice().get());
+        auto& vk_Context = vk_GraphicsDevice->GetContext();
+        const auto& commandBuffer = vk_Context.GetCurrentFrame().commandBuffer;
 
         auto vulkanVertexArray = static_cast<VulkanVertexArray*>(vertexArray.get());
         vulkanVertexArray->BindToCommandBuffer(commandBuffer);
@@ -171,19 +170,21 @@ namespace ZEngine {
 
     // We can probably combine this and the one below or something
     void VulkanRendererAPI::BindPipelineState(const Ref<PipelineState>& pipelineState) {
-        auto vulkanCommandBuffer = static_cast<VulkanCommandBuffer*>(m_ActiveCommandBuffer.get());
-        const auto& commandBuffer = vulkanCommandBuffer->GetBuffer();
+        auto vk_GraphicsDevice = static_cast<VulkanGraphicsDevice*>(Application::Get().GetGraphicsDevice().get());
+        auto& vk_Context = vk_GraphicsDevice->GetContext();
+        const auto& commandBuffer = vk_Context.GetCurrentFrame().commandBuffer;
+
         auto vulkanPipeline = static_cast<VulkanPipelineState*>(pipelineState.get());
 
         commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, vulkanPipeline->GetNativePipeline());
     }
 
     void VulkanRendererAPI::BindGlobalSet(const Ref<PipelineState>& pipelineState) {
-        auto vk_Context = static_cast<VulkanContext*>(Application::Get().GetGraphicsContext());
-        auto currentFrame = vk_Context->GetCurrentFrameIndex();
+        auto vk_GraphicsDevice = static_cast<VulkanGraphicsDevice*>(Application::Get().GetGraphicsDevice().get());
+        auto& vk_Context = vk_GraphicsDevice->GetContext();
+        auto currentFrame = vk_Context.GetCurrentFrameIndex();
 
-        auto vulkanCommandBuffer = static_cast<VulkanCommandBuffer*>(m_ActiveCommandBuffer.get());
-        const auto& commandBuffer = vulkanCommandBuffer->GetBuffer();
+        const auto& commandBuffer = vk_Context.GetCurrentFrame().commandBuffer;
 
         auto vulkanPipeline = static_cast<VulkanPipelineState*>(pipelineState.get());
 
@@ -191,8 +192,9 @@ namespace ZEngine {
     }
 
     void VulkanRendererAPI::BindMaterialSet(const Ref<PipelineState>& pipelineState, const Ref<Material>& material) {
-        auto vulkanCommandBuffer = static_cast<VulkanCommandBuffer*>(m_ActiveCommandBuffer.get());
-        const auto& commandBuffer = vulkanCommandBuffer->GetBuffer();
+        auto vk_GraphicsDevice = static_cast<VulkanGraphicsDevice*>(Application::Get().GetGraphicsDevice().get());
+        auto& vk_Context = vk_GraphicsDevice->GetContext();
+        const auto& commandBuffer = vk_Context.GetCurrentFrame().commandBuffer;
 
         auto vk_Material = static_cast<VulkanMaterial*>(material.get());
         auto vulkanPipeline = static_cast<VulkanPipelineState*>(pipelineState.get());
@@ -201,8 +203,9 @@ namespace ZEngine {
     }
 
     void VulkanRendererAPI::PushConstant(const Ref<PipelineState>& pipelineState, PushConstantData pushConstants) {
-        auto vulkanCommandBuffer = static_cast<VulkanCommandBuffer*>(m_ActiveCommandBuffer.get());
-        const auto& commandBuffer = vulkanCommandBuffer->GetBuffer();
+        auto vk_GraphicsDevice = static_cast<VulkanGraphicsDevice*>(Application::Get().GetGraphicsDevice().get());
+        auto& vk_Context = vk_GraphicsDevice->GetContext();
+        const auto& commandBuffer = vk_Context.GetCurrentFrame().commandBuffer;
 
         auto vulkanPipeline = static_cast<VulkanPipelineState*>(pipelineState.get());
 
@@ -210,12 +213,13 @@ namespace ZEngine {
     }
 
     void VulkanRendererAPI::DrawModel(const Scope<Model>& model, const Ref<PipelineState>& pipelineState) {
-        model->Draw(m_ActiveCommandBuffer, pipelineState);
+        model->Draw(pipelineState);
     }
 
     void VulkanRendererAPI::DrawSkybox(const Scope<Cubemap>& skybox) {
-        auto vulkanCommandBuffer = static_cast<VulkanCommandBuffer*>(m_ActiveCommandBuffer.get());
-        const auto& commandBuffer = vulkanCommandBuffer->GetBuffer();
+        auto vk_GraphicsDevice = static_cast<VulkanGraphicsDevice*>(Application::Get().GetGraphicsDevice().get());
+        auto& vk_Context = vk_GraphicsDevice->GetContext();
+        const auto& commandBuffer = vk_Context.GetCurrentFrame().commandBuffer;
 
         auto vk_Skybox = static_cast<VulkanCubemap*>(skybox.get());
         commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, vk_Skybox->GetNativePipeline());
@@ -234,8 +238,9 @@ namespace ZEngine {
         vk::PipelineStageFlags2 dst_stage_mask,
         vk::ImageAspectFlags    image_aspect_flags)
     {
-        auto vulkanCommandBuffer = static_cast<VulkanCommandBuffer*>(m_ActiveCommandBuffer.get());
-        const auto& commandBuffer = vulkanCommandBuffer->GetBuffer();
+        auto vk_GraphicsDevice = static_cast<VulkanGraphicsDevice*>(Application::Get().GetGraphicsDevice().get());
+        auto& vk_Context = vk_GraphicsDevice->GetContext();
+        const auto& commandBuffer = vk_Context.GetCurrentFrame().commandBuffer;
 
         vk::ImageMemoryBarrier2 barrier = {
             .srcStageMask = src_stage_mask,

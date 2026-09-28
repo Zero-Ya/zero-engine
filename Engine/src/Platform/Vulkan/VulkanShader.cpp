@@ -1,6 +1,8 @@
 #include "VulkanShader.h"
-#include "VulkanContext.h"
+
 #include "ZEngine/Core/Application.h"
+#include "VulkanGraphicsDevice.h"
+#include "VulkanContext.h"
 
 namespace ZEngine {
 	VulkanShader::VulkanShader(const std::string& spirvFilePath) {
@@ -35,8 +37,9 @@ namespace ZEngine {
 	}
 
 	void VulkanShader::CreateShaderModuleAndStages() {
-		auto vk_Context = static_cast<VulkanContext*>(ZEngine::Application::Get().GetGraphicsContext());
-		auto& device = vk_Context->GetDevice();
+		auto vk_GraphicsDevice = static_cast<VulkanGraphicsDevice*>(Application::Get().GetGraphicsDevice().get());
+		auto& vk_Context = vk_GraphicsDevice->GetContext();
+		auto& device = vk_Context.GetDevice();
 
 		vk::ShaderModuleCreateInfo createInfo { .codeSize = m_SpirvCode.size() * sizeof(char), .pCode = reinterpret_cast<const uint32_t*>(m_SpirvCode.data()) };
 		m_ShaderModule = vk::raii::ShaderModule(device, createInfo);

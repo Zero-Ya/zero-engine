@@ -13,7 +13,7 @@ namespace ZEngine {
 		virtual void SetClearColor(const glm::vec4& color) override;
 		virtual void Clear() override;
 
-		virtual void BeginFrame(const Ref<RenderCommandBuffer>& commandBuffer, uint32_t imageIndex) override;
+		virtual void BeginFrame(uint32_t imageIndex) override;
 		virtual void EndFrame() override;
 		virtual void Shutdown() override;
 
@@ -41,8 +41,6 @@ namespace ZEngine {
 
 	private:
 		glm::vec4 m_ClearColor = { 0.1f, 0.1f, 0.1f, 1.0f };
-
-		Ref<RenderCommandBuffer> m_ActiveCommandBuffer = nullptr;
 		uint32_t m_CurrentImageIndex = 0;
 
 		// Temporary
