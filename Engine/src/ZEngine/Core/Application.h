@@ -30,6 +30,7 @@ namespace ZEngine {
 		inline static Application& Get() { return *s_Instance; }
 		inline Window& GetWindow() { return *m_Window; }
 		inline Scope<GraphicsDevice>& GetGraphicsDevice() { return m_GraphicsDevice; }
+		inline ImGuiLayer* GetImGuiLayer() { return m_ImGuiLayer; }
 
 	private:
 		bool OnWindowClose(WindowCloseEvent& e);

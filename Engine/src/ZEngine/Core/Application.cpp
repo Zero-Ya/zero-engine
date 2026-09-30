@@ -64,21 +64,11 @@ namespace ZEngine {
 			m_LastFrameTime = time;
 
 			m_GraphicsDevice->BeginFrame();
-			m_GraphicsDevice->GetMainCommandList().BeginRendering(m_GraphicsDevice->GetSwapchainTextureHandle(), m_GraphicsDevice->GetSwapchainDepthHandle());
-
+			
 			// Sandbox layers
 			for (Layer* layer : m_LayerStack)
 				layer->OnUpdate(timestep);
 
-			// ImGui overlay
-			m_ImGuiLayer->Begin();
-			for (Layer* layer : m_LayerStack) {
-				layer->OnImGuiRender();
-			}
-			m_ImGuiLayer->End();
-			//
-
-			m_GraphicsDevice->GetMainCommandList().EndRendering(m_GraphicsDevice->GetSwapchainTextureHandle());
 			m_GraphicsDevice->EndFrame();
 
 			m_Window->OnUpdate();

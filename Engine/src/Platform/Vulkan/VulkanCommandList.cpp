@@ -23,7 +23,7 @@ namespace ZEngine {
          colorAttachmentInfo.storeOp = vk::AttachmentStoreOp::eStore;
          colorAttachmentInfo.clearValue = vk::ClearColorValue{ 0.0f, 0.0f, 0.0f, 1.0f };
          
-         TransitionImageLayout(swapchainTexture, TextureLayout::UNDEFINED, TextureLayout::COLOR_ATTACHMENT);
+         //TransitionImageLayout(swapchainTexture, TextureLayout::UNDEFINED, TextureLayout::COLOR_ATTACHMENT);
 
         vk::RenderingAttachmentInfo depthAttachmentInfo {};
         auto depthTextureResource = m_GraphicsDevice->ResolveTexture(depthTexture);
@@ -36,7 +36,7 @@ namespace ZEngine {
             .clearValue = vk::ClearDepthStencilValue(1.0f, 0)
         };
         
-        TransitionImageLayout(depthTexture, TextureLayout::UNDEFINED, TextureLayout::DEPTH_ATTACHMENT);
+        //TransitionImageLayout(depthTexture, TextureLayout::UNDEFINED, TextureLayout::DEPTH_ATTACHMENT);
 
         auto& swapchain = m_GraphicsDevice->GetSwapchain();
         const auto& extent = swapchain.GetExtent();
@@ -52,10 +52,8 @@ namespace ZEngine {
         m_CommandBuffer.beginRendering(renderingInfo);
     }
 
-    void VulkanCommandList::EndRendering(const TextureHandle& swapchainTexture) {
+    void VulkanCommandList::EndRendering() {
         m_CommandBuffer.endRendering();
-
-        TransitionImageLayout(swapchainTexture, TextureLayout::COLOR_ATTACHMENT, TextureLayout::PRESENT_SRC);
     }
 
     void VulkanCommandList::SetViewport(float x, float y, float width, float height, float minDepth, float maxDepth) {

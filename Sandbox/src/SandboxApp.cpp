@@ -87,6 +87,10 @@ public:
 		m_Skybox = ZEngine::Cubemap::Create();
 		m_Skybox->LoadCubemap(skyboxTextures);
 		m_Skybox->Init(skyboxSpec);
+
+		// Render graph
+		m_RenderGraph = std::make_unique<ZEngine::RenderGraph>();
+
 	}
 
 	void OnUpdate(ZEngine::Timestep ts) override {
@@ -96,23 +100,84 @@ public:
 		// Render
 		auto& graphicsDevice = ZEngine::Application::Get().GetGraphicsDevice();
 		auto& commandList = graphicsDevice->GetMainCommandList();
-		commandList.SetViewport(0, 0, ZEngine::Application::Get().GetWindow().GetWidth(), ZEngine::Application::Get().GetWindow().GetHeight());
-		commandList.SetScissor(0, 0, ZEngine::Application::Get().GetWindow().GetWidth(), ZEngine::Application::Get().GetWindow().GetHeight());
-
-		//ZEngine::RenderCommand::SetViewport(0, 0, ZEngine::Application::Get().GetWindow().GetWidth(), ZEngine::Application::Get().GetWindow().GetHeight());
-		ZEngine::RenderCommand::SetClearColor(glm::vec4(0.0f, 0.0f, 0.1f, 0.0f));
 
 		glm::mat4 firstTransform = glm::translate(glm::mat4(1.0f), glm::vec3(-0.5f, 0.0f, -1.0f));
 		glm::mat4 secondTransform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -1.5f));
 
-		ZEngine::Renderer::BeginScene(m_CameraController.GetCamera());
-		ZEngine::Renderer::GlobalBegin(m_ModelPipeline);
-		//ZEngine::Renderer::GlobalBegin(m_DefaultPipeline);
-		//ZEngine::Renderer::MeshBegin(m_DefaultPipeline, m_MaterialInstance, secondTransform);
-		ZEngine::Renderer::DrawModel(m_Model, m_ModelPipeline); // Needs to be changed later
-		//ZEngine::Renderer::DrawMesh(m_VertexArray);
-		ZEngine::Renderer::DrawSkybox(m_Skybox);
-		ZEngine::Renderer::EndScene();
+		// Handles for render graph
+		ZEngine::TextureHandle swapchainTexture = graphicsDevice->GetSwapchainTextureHandle();
+		ZEngine::TextureHandle depthTexture = graphicsDevice->GetSwapchainDepthHandle();
+
+		m_RenderGraph->Clear();
+
+		// Pass 1: Main pass
+		m_RenderGraph->AddPass(
+			"MainPass",
+			[&](ZEngine::RenderGraphPassBuilder& builder) {
+				builder.WriteColor(swapchainTexture);
+				builder.WriteDepth(depthTexture);
+			},
+			[&](ZEngine::RHICommandList& command) {
+				command.BeginRendering(swapchainTexture, depthTexture);
+
+				commandList.SetViewport(0, 0, ZEngine::Application::Get().GetWindow().GetWidth(), ZEngine::Application::Get().GetWindow().GetHeight());
+				commandList.SetScissor(0, 0, ZEngine::Application::Get().GetWindow().GetWidth(), ZEngine::Application::Get().GetWindow().GetHeight());
+
+				//ZEngine::RenderCommand::SetViewport(0, 0, ZEngine::Application::Get().GetWindow().GetWidth(), ZEngine::Application::Get().GetWindow().GetHeight());
+				ZEngine::RenderCommand::SetClearColor(glm::vec4(0.0f, 0.0f, 0.1f, 0.0f));
+
+				ZEngine::Renderer::BeginScene(m_CameraController.GetCamera());
+				ZEngine::Renderer::GlobalBegin(m_ModelPipeline);
+				//ZEngine::Renderer::GlobalBegin(m_DefaultPipeline);
+				//ZEngine::Renderer::MeshBegin(m_DefaultPipeline, m_MaterialInstance, secondTransform);
+				ZEngine::Renderer::DrawModel(m_Model, m_ModelPipeline); // Needs to be changed later
+				//ZEngine::Renderer::DrawMesh(m_VertexArray);
+				ZEngine::Renderer::DrawSkybox(m_Skybox);
+				ZEngine::Renderer::EndScene();
+
+				// ImGui (Temporary)
+				auto imGuiLayer = ZEngine::Application::Get().GetImGuiLayer();
+				imGuiLayer->Begin();
+				imGuiLayer->OnImGuiRender();
+				imGuiLayer->End();
+
+				command.EndRendering();
+			}
+		);
+
+		// Pass 2: ImGui pass
+		//m_RenderGraph->AddPass(
+		//	"ImGuiPass",
+		//	[&](ZEngine::RenderGraphPassBuilder& builder) {
+		//		builder.WriteColor(swapchainTexture);
+		//	},
+		//	[&](ZEngine::RHICommandList& command) {
+		//		command.BeginRendering(swapchainTexture, depthTexture);
+
+		//		auto imGuiLayer = ZEngine::Application::Get().GetImGuiLayer();
+
+		//		imGuiLayer->Begin();
+		//		imGuiLayer->OnImGuiRender();
+		//		imGuiLayer->End();
+
+		//		command.EndRendering();
+		//	}
+		//);
+
+		// Final pass: Present-to-image pass (Is it always final?)
+		m_RenderGraph->AddPass(
+			"PresentPass",
+			[&](ZEngine::RenderGraphPassBuilder& builder) {
+				builder.Read(swapchainTexture, ZEngine::TextureLayout::PRESENT_SRC);
+			},
+			[&](ZEngine::RHICommandList& command) {
+				// No commands needed
+			}
+		);
+
+		// Compile and execute graph (No compile yet)
+		m_RenderGraph->Execute(commandList);
+
 	}
 
 	void OnEvent(ZEngine::Event& e) override {
@@ -128,6 +193,8 @@ private:
 	ZEngine::Ref<ZEngine::PipelineState> m_ModelPipeline;
 	ZEngine::Scope<ZEngine::Model> m_Model;
 	ZEngine::Scope<ZEngine::Cubemap> m_Skybox;
+
+	ZEngine::Scope<ZEngine::RenderGraph> m_RenderGraph;
 
 	ZEngine::PerspectiveCameraController m_CameraController;
 	//ZEngine::OrthographicCameraController m_CameraController;

@@ -10,7 +10,7 @@ namespace ZEngine {
 
         // Dynamic rendering commands
         virtual void BeginRendering(const TextureHandle& swapchainTexture, const TextureHandle& depthTexture) = 0;
-        virtual void EndRendering(const TextureHandle& swapchainTexture) = 0;
+        virtual void EndRendering() = 0;
 
         // Layout transitions and synchronization
         virtual void TransitionImageLayout(
