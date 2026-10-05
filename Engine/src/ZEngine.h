@@ -32,6 +32,8 @@
 #include "ZEngine/Renderer/Cubemap.h"
 #include "ZEngine/Renderer/RenderGraph.h"
 
+#include "ZEngine/Renderer/ResourceManager.h"
+
 #include "ZEngine/Renderer/PerspectiveCamera.h"
 #include "ZEngine/Renderer/OrthographicCamera.h"
 // -----------------------------------

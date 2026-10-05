@@ -13,6 +13,7 @@ namespace ZEngine {
     };
 
     class VulkanGraphicsDevice;
+    class VulkanResourceManager;
 
     class VulkanCommandList : public RHICommandList {
     public:
@@ -23,13 +24,14 @@ namespace ZEngine {
 
         // Call at the start of each frame to point to the active frame's command buffer
         void SetTargetCommandBuffer(const vk::raii::CommandBuffer& commandBuffer);
+        void SetResourceManager(const Scope<ResourceManager>& resourceManager) override;
 
-        // --- RHICommandList Overrides ---
-        void BeginRendering(const TextureHandle& swapchainTexture, const TextureHandle& depthTexture) override;
+        void BeginRendering(const RenderingInfo& renderingInfo) override;
         void EndRendering() override;
 
         void SetViewport(float x, float y, float width, float height, float minDepth = 0.0f, float maxDepth = 1.0f) override;
         void SetScissor(int32_t x, int32_t y, uint32_t width, uint32_t height) override;
+        //void SetClearColor(float r, float g, float b, float a) override;
 
         void TransitionImageLayout(
             TextureHandle texture,
@@ -37,6 +39,7 @@ namespace ZEngine {
             TextureLayout newLayout
         ) override;
 
+        void BindPipeline(const PipelineHandle& pipelineHandle) override;
         void BindVertexBuffer(BufferHandle buffer, uint64_t offset = 0) override;
         void BindIndexBuffer(BufferHandle buffer, uint64_t offset = 0, IndexType indexType = IndexType::UINT32) override;
         void PushConstants(uint32_t stageFlags, uint32_t offset, uint32_t size, const void* pValues) override;
@@ -57,6 +60,8 @@ namespace ZEngine {
         VulkanStateMapping MapStateToVulkan(TextureLayout layout);
 
         vk::CommandBuffer m_CommandBuffer = nullptr;
+
+        VulkanResourceManager* m_ResourceManager = nullptr;
         VulkanGraphicsDevice* m_GraphicsDevice = nullptr;
     };
 

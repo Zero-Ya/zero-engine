@@ -4,13 +4,17 @@
 
 namespace ZEngine {
 
+    class ResourceManager;
+
     class RHICommandList {
     public:
         virtual ~RHICommandList() = default;
 
         // Dynamic rendering commands
-        virtual void BeginRendering(const TextureHandle& swapchainTexture, const TextureHandle& depthTexture) = 0;
+        virtual void BeginRendering(const RenderingInfo& renderingInfo) = 0;
         virtual void EndRendering() = 0;
+
+        virtual void SetResourceManager(const Scope<ResourceManager>& resourceManager) = 0;
 
         // Layout transitions and synchronization
         virtual void TransitionImageLayout(
@@ -22,9 +26,10 @@ namespace ZEngine {
         // State commands
         virtual void SetViewport(float x, float y, float width, float height, float minDepth = 0.0f, float maxDepth = 1.0f) = 0;
         virtual void SetScissor(int32_t x, int32_t y, uint32_t width, uint32_t height) = 0;
-        //virtual void BindPipeline(PipelineHandle pipeline) = 0;
+        //virtual void SetClearColor(float r, float g, float b, float a) = 0;
 
-        // Draw/Bind commands
+        // Draw/bind commands
+        virtual void BindPipeline(const PipelineHandle& pipelineHandle) = 0;
         virtual void BindVertexBuffer(BufferHandle buffer, uint64_t offset = 0) = 0;
         virtual void BindIndexBuffer(BufferHandle buffer, uint64_t offset = 0, IndexType indexType = IndexType::UINT32) = 0;
         virtual void PushConstants(uint32_t stageFlags, uint32_t offset, uint32_t size, const void* pValues) = 0;

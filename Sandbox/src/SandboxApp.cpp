@@ -10,6 +10,9 @@ public:
 	TestLayer()
 		: Layer("Test"), m_CameraController(1280.0f / 720.0f)
 	{
+		auto& graphicsDevice = ZEngine::Application::Get().GetGraphicsDevice();
+		auto& commandList = graphicsDevice->GetMainCommandList();
+
 		// Shader
 		auto m_DefaultShader = m_ShaderLibrary.Load("Default Shader", "Shader.spv");
 		auto m_BistroShader = m_ShaderLibrary.Load("Bistro Shader", "BistroShader.spv");
@@ -91,6 +94,9 @@ public:
 		// Render graph
 		m_RenderGraph = std::make_unique<ZEngine::RenderGraph>();
 
+		// Resource manager
+		m_ResourceManager = ZEngine::ResourceManager::Create(graphicsDevice);
+		commandList.SetResourceManager(m_ResourceManager);
 	}
 
 	void OnUpdate(ZEngine::Timestep ts) override {
@@ -108,6 +114,9 @@ public:
 		ZEngine::TextureHandle swapchainTexture = graphicsDevice->GetSwapchainTextureHandle();
 		ZEngine::TextureHandle depthTexture = graphicsDevice->GetSwapchainDepthHandle();
 
+		// Create the resources for the two handles above
+		m_ResourceManager->InitRenderingHandles();
+
 		m_RenderGraph->Clear();
 
 		// Pass 1: Main pass
@@ -118,7 +127,21 @@ public:
 				builder.WriteDepth(depthTexture);
 			},
 			[&](ZEngine::RHICommandList& command) {
-				command.BeginRendering(swapchainTexture, depthTexture);
+				ZEngine::ColorAttachmentInfo colorAttachmentInfo {
+					.texture = swapchainTexture,
+					.layout = ZEngine::TextureLayout::COLOR_ATTACHMENT
+				};
+
+				ZEngine::RenderingInfo renderingInfo {
+					.renderWidth = ZEngine::Application::Get().GetWindow().GetWidth(),
+					.renderHeight = ZEngine::Application::Get().GetWindow().GetHeight(),
+					.colorAttachments = std::vector(1, colorAttachmentInfo),
+					.colorAttachmentCount = 1,
+					.depthAttachment = depthTexture,
+					.hasDepth = true
+				};
+
+				command.BeginRendering(renderingInfo);
 
 				commandList.SetViewport(0, 0, ZEngine::Application::Get().GetWindow().GetWidth(), ZEngine::Application::Get().GetWindow().GetHeight());
 				commandList.SetScissor(0, 0, ZEngine::Application::Get().GetWindow().GetWidth(), ZEngine::Application::Get().GetWindow().GetHeight());
@@ -195,6 +218,8 @@ private:
 	ZEngine::Scope<ZEngine::Cubemap> m_Skybox;
 
 	ZEngine::Scope<ZEngine::RenderGraph> m_RenderGraph;
+
+	ZEngine::Scope<ZEngine::ResourceManager> m_ResourceManager;
 
 	ZEngine::PerspectiveCameraController m_CameraController;
 	//ZEngine::OrthographicCameraController m_CameraController;

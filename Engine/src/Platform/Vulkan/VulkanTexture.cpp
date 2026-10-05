@@ -228,15 +228,15 @@ namespace {
 	}
 
 	std::pair<vk::raii::Image, vk::raii::DeviceMemory> CreateImage(const vk::raii::Device& device, const vk::raii::PhysicalDevice& physicalDevice, uint32_t width, uint32_t height, vk::Format format, uint32_t mipLevels, vk::ImageTiling tiling, vk::ImageUsageFlags usage, vk::MemoryPropertyFlags properties) {
-		vk::ImageCreateInfo imageInfo{ .imageType = vk::ImageType::e2D,
-									   .format = format,
-									   .extent = {width, height, 1},
-									   .mipLevels = mipLevels,
-									   .arrayLayers = 1,
-									   .samples = vk::SampleCountFlagBits::e1,
-									   .tiling = tiling,
-									   .usage = usage,
-									   .sharingMode = vk::SharingMode::eExclusive };
+		vk::ImageCreateInfo imageInfo { .imageType = vk::ImageType::e2D,
+									    .format = format,
+									    .extent = {width, height, 1},
+									    .mipLevels = mipLevels,
+									    .arrayLayers = 1,
+									    .samples = vk::SampleCountFlagBits::e1,
+									    .tiling = tiling,
+									    .usage = usage,
+									    .sharingMode = vk::SharingMode::eExclusive };
 
 		vk::raii::Image image = vk::raii::Image(device, imageInfo);
 

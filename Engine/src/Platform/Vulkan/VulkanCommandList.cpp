@@ -3,6 +3,8 @@
 #include "VulkanGraphicsDevice.h"
 #include "VulkanSwapchain.h"
 
+#include "VulkanResourceManager.h"
+
 namespace ZEngine {
 
     void VulkanCommandList::Init(VulkanGraphicsDevice* graphicsDevice) {
@@ -13,8 +15,13 @@ namespace ZEngine {
         m_CommandBuffer = commandBuffer;
     }
 
-    void VulkanCommandList::BeginRendering(const TextureHandle& swapchainTexture, const TextureHandle& depthTexture) {
-         auto colorTextureResource = m_GraphicsDevice->ResolveTexture(swapchainTexture);
+    void VulkanCommandList::SetResourceManager(const Scope<ResourceManager>& resourceManager) {
+        auto vulkanResourceManager = static_cast<VulkanResourceManager*>(resourceManager.get());
+        m_ResourceManager = vulkanResourceManager;
+    }
+
+    void VulkanCommandList::BeginRendering(const RenderingInfo& renderingInfo) {
+         auto colorTextureResource = m_ResourceManager->ResolveTexture(renderingInfo.colorAttachments[0].texture);
 
          vk::RenderingAttachmentInfo colorAttachmentInfo {};
          colorAttachmentInfo.imageView = colorTextureResource->imageView;
@@ -26,7 +33,7 @@ namespace ZEngine {
          //TransitionImageLayout(swapchainTexture, TextureLayout::UNDEFINED, TextureLayout::COLOR_ATTACHMENT);
 
         vk::RenderingAttachmentInfo depthAttachmentInfo {};
-        auto depthTextureResource = m_GraphicsDevice->ResolveTexture(depthTexture);
+        auto depthTextureResource = m_ResourceManager->ResolveTexture(renderingInfo.depthAttachment.texture);
 
         depthAttachmentInfo = vk::RenderingAttachmentInfo{
             .imageView = depthTextureResource->imageView,
@@ -41,7 +48,7 @@ namespace ZEngine {
         auto& swapchain = m_GraphicsDevice->GetSwapchain();
         const auto& extent = swapchain.GetExtent();
 
-        vk::RenderingInfo renderingInfo {
+        vk::RenderingInfo vkRenderingInfo {
             .renderArea = vk::Rect2D{ vk::Offset2D{0, 0}, extent },
             .layerCount = 1,
             .colorAttachmentCount = 1,
@@ -49,7 +56,7 @@ namespace ZEngine {
             .pDepthAttachment = &depthAttachmentInfo
         };
 
-        m_CommandBuffer.beginRendering(renderingInfo);
+        m_CommandBuffer.beginRendering(vkRenderingInfo);
     }
 
     void VulkanCommandList::EndRendering() {
@@ -76,7 +83,7 @@ namespace ZEngine {
         auto [srcStage, srcAccess, oldLayout] = MapStateToVulkan(oldTextureLayout);
         auto [dstStage, dstAccess, newLayout] = MapStateToVulkan(newTextureLayout);
 
-        auto colorTextureResource = m_GraphicsDevice->ResolveTexture(texture);
+        auto colorTextureResource = m_ResourceManager->ResolveTexture(texture);
         vk::Image image = colorTextureResource->image;
 
         vk::ImageAspectFlags aspectMask = (newTextureLayout == TextureLayout::DEPTH_ATTACHMENT)
@@ -106,28 +113,25 @@ namespace ZEngine {
         m_CommandBuffer.pipelineBarrier2(dependency_info);
     }
 
+    void VulkanCommandList::BindPipeline(const PipelineHandle& pipelineHandle) {
+
+    }
+
     void VulkanCommandList::BindVertexBuffer(BufferHandle buffer, uint64_t offset) {
-        auto bufferResource = m_GraphicsDevice->ResolveBuffer(buffer);
+        auto bufferResource = m_ResourceManager->ResolveBuffer(buffer);
         vk::Buffer vkBuffer = bufferResource->buffer;
         m_CommandBuffer.bindVertexBuffers(0, { vkBuffer }, { offset });
     }
 
     void VulkanCommandList::BindIndexBuffer(BufferHandle buffer, uint64_t offset, IndexType indexType) {
-        auto bufferResource = m_GraphicsDevice->ResolveBuffer(buffer);
+        auto bufferResource = m_ResourceManager->ResolveBuffer(buffer);
         vk::Buffer vkBuffer = bufferResource->buffer;
         vk::IndexType vkIndexType = (indexType == IndexType::UINT32) ? vk::IndexType::eUint32 : vk::IndexType::eUint16;
         m_CommandBuffer.bindIndexBuffer(vkBuffer, offset, vkIndexType);
     }
 
     void VulkanCommandList::PushConstants(uint32_t stageFlags, uint32_t offset, uint32_t size, const void* pValues) {
-        // Stage flags directly map to vk::ShaderStageFlagBits
-        //m_CommandBuffer.pushConstants(
-        //    nullptr, // Bound Pipeline Layout handled in Phase 3
-        //    static_cast<vk::ShaderStageFlags>(stageFlags),
-        //    offset,
-        //    size,
-        //    pValues
-        //);
+        //m_CommandBuffer.pushConstants(nullptr, static_cast<vk::ShaderStageFlags>(stageFlags), offset, size, pValues);
     }
 
     void VulkanCommandList::DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance) {
@@ -138,6 +142,7 @@ namespace ZEngine {
         m_CommandBuffer.draw(vertexCount, instanceCount, firstVertex, firstInstance);
     }
 
+    // Leave for now? obsolete
     vk::ImageLayout VulkanCommandList::ConvertLayout(TextureLayout layout) const {
         switch (layout) {
             case TextureLayout::GENERAL:          return vk::ImageLayout::eGeneral;
@@ -151,7 +156,7 @@ namespace ZEngine {
             default:                              return vk::ImageLayout::eUndefined;
         }
     }
-
+    // Uhhhh....
     VulkanStateMapping VulkanCommandList::MapStateToVulkan(TextureLayout layout) {
         switch (layout) {
             case TextureLayout::UNDEFINED:
