@@ -19,8 +19,6 @@ namespace ZEngine {
 
         // RHI command and handle accessors 
         virtual RHICommandList& GetMainCommandList() = 0;
-        virtual TextureHandle GetSwapchainTextureHandle() const = 0;
-        virtual TextureHandle GetSwapchainDepthHandle() const = 0;
 
         static Scope<GraphicsDevice> Create(void* window, uint32_t width, uint32_t height);
     };

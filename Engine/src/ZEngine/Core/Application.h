@@ -12,6 +12,8 @@
 #include "ZEngine/ImGui/ImGuiLayer.h"
 
 #include "ZEngine/RHI/GraphicsDevice.h"
+#include "ZEngine/Renderer/ResourceManager.h"
+#include "ZEngine/Renderer/BindlessDescriptorManager.h"
 
 namespace ZEngine {
 
@@ -32,12 +34,18 @@ namespace ZEngine {
 		inline Scope<GraphicsDevice>& GetGraphicsDevice() { return m_GraphicsDevice; }
 		inline ImGuiLayer* GetImGuiLayer() { return m_ImGuiLayer; }
 
+		inline Scope<ResourceManager>& GetResourceManager() { return m_ResourceManager; }
+		inline Scope<BindlessDescriptorManager>& GetBindlessManager() { return m_BindlessManager; }
+
 	private:
 		bool OnWindowClose(WindowCloseEvent& e);
 		bool OnWindowResize(WindowResizeEvent& e);
 
 		Scope<Window> m_Window;
 		Scope<GraphicsDevice> m_GraphicsDevice;
+
+		Scope<ResourceManager> m_ResourceManager;
+		Scope<BindlessDescriptorManager> m_BindlessManager;
 
 		ImGuiLayer* m_ImGuiLayer;
 		LayerStack m_LayerStack;

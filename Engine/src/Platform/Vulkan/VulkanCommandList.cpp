@@ -21,22 +21,38 @@ namespace ZEngine {
     }
 
     void VulkanCommandList::BeginRendering(const RenderingInfo& renderingInfo) {
-         auto colorTextureResource = m_ResourceManager->ResolveTexture(renderingInfo.colorAttachments[0].texture);
+
+        vk::ImageView colorImageView;
+        if (renderingInfo.colorAttachments[0].texture.IsExternal()) {
+            auto colorTextureResource = m_ResourceManager->ResolveExternal(renderingInfo.colorAttachments[0].texture);
+            colorImageView = colorTextureResource->imageView;
+        }
+        else {
+            auto colorTextureResource = m_ResourceManager->ResolveTexture(renderingInfo.colorAttachments[0].texture);
+            colorImageView = colorTextureResource->imageView;
+        }
 
          vk::RenderingAttachmentInfo colorAttachmentInfo {};
-         colorAttachmentInfo.imageView = colorTextureResource->imageView;
+         colorAttachmentInfo.imageView = colorImageView;
          colorAttachmentInfo.imageLayout = ConvertLayout(TextureLayout::COLOR_ATTACHMENT);
          colorAttachmentInfo.loadOp = vk::AttachmentLoadOp::eClear;
          colorAttachmentInfo.storeOp = vk::AttachmentStoreOp::eStore;
-         colorAttachmentInfo.clearValue = vk::ClearColorValue{ 0.0f, 0.0f, 0.0f, 1.0f };
+         colorAttachmentInfo.clearValue = vk::ClearColorValue{ 0.5f, 0.0f, 0.5f, 1.0f };
          
          //TransitionImageLayout(swapchainTexture, TextureLayout::UNDEFINED, TextureLayout::COLOR_ATTACHMENT);
 
-        vk::RenderingAttachmentInfo depthAttachmentInfo {};
-        auto depthTextureResource = m_ResourceManager->ResolveTexture(renderingInfo.depthAttachment.texture);
+        vk::ImageView depthImageView;
+        if (renderingInfo.depthAttachment.texture.IsExternal()) {
+            auto depthTextureResource = m_ResourceManager->ResolveExternal(renderingInfo.depthAttachment.texture);
+            depthImageView = depthTextureResource->imageView;
+        }
+        else {
+            auto depthTextureResource = m_ResourceManager->ResolveTexture(renderingInfo.depthAttachment.texture);
+            depthImageView = depthTextureResource->imageView;
+        }
 
-        depthAttachmentInfo = vk::RenderingAttachmentInfo{
-            .imageView = depthTextureResource->imageView,
+        vk::RenderingAttachmentInfo depthAttachmentInfo {
+            .imageView = depthImageView,
             .imageLayout = ConvertLayout(TextureLayout::DEPTH_ATTACHMENT),
             .loadOp = vk::AttachmentLoadOp::eClear,
             .storeOp = vk::AttachmentStoreOp::eStore,
@@ -83,8 +99,15 @@ namespace ZEngine {
         auto [srcStage, srcAccess, oldLayout] = MapStateToVulkan(oldTextureLayout);
         auto [dstStage, dstAccess, newLayout] = MapStateToVulkan(newTextureLayout);
 
-        auto colorTextureResource = m_ResourceManager->ResolveTexture(texture);
-        vk::Image image = colorTextureResource->image;
+        vk::Image image; 
+        if (texture.IsExternal()) {
+            auto colorTextureResource = m_ResourceManager->ResolveExternal(texture);
+            image = colorTextureResource->image;
+        }
+        else {
+            auto colorTextureResource = m_ResourceManager->ResolveTexture(texture);
+            image = colorTextureResource->image;
+        }
 
         vk::ImageAspectFlags aspectMask = (newTextureLayout == TextureLayout::DEPTH_ATTACHMENT)
             ? vk::ImageAspectFlagBits::eDepth
@@ -142,7 +165,6 @@ namespace ZEngine {
         m_CommandBuffer.draw(vertexCount, instanceCount, firstVertex, firstInstance);
     }
 
-    // Leave for now? obsolete
     vk::ImageLayout VulkanCommandList::ConvertLayout(TextureLayout layout) const {
         switch (layout) {
             case TextureLayout::GENERAL:          return vk::ImageLayout::eGeneral;

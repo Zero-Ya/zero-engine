@@ -20,19 +20,18 @@
 #include "ZEngine/RHI/RHICommandList.h"
 
 // ---Renderer------------------------
-#include "ZEngine/Renderer/Renderer.h"
-#include "ZEngine/Renderer/Renderer2D.h"
+//#include "ZEngine/Renderer/Renderer2D.h"
 
 #include "ZEngine/Renderer/Buffer.h"
 #include "ZEngine/Renderer/Shader.h"
-#include "ZEngine/Renderer/VertexArray.h"
-#include "ZEngine/Renderer/Texture.h"
-#include "ZEngine/Renderer/Material.h"
-#include "ZEngine/Renderer/Model.h"
-#include "ZEngine/Renderer/Cubemap.h"
-#include "ZEngine/Renderer/RenderGraph.h"
+#include "ZEngine/Renderer/PipelineState.h"
+//#include "ZEngine/Renderer/Cubemap.h"
 
 #include "ZEngine/Renderer/ResourceManager.h"
+#include "ZEngine/Renderer/BindlessDescriptorManager.h"
+#include "ZEngine/Renderer/ModelLoader.h"
+#include "ZEngine/Renderer/RenderGraph.h"
+#include "ZEngine/Renderer/SceneRenderer.h"
 
 #include "ZEngine/Renderer/PerspectiveCamera.h"
 #include "ZEngine/Renderer/OrthographicCamera.h"

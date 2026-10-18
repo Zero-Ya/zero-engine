@@ -161,16 +161,22 @@ namespace ZEngine {
 			throw std::runtime_error("Could not find a queue for graphics and present -> terminating");
 		}
 
-		// Query for Vulkan 1.3 features
+		// Query for Vulkan features
 		vk::StructureChain<vk::PhysicalDeviceFeatures2,
 						   vk::PhysicalDeviceVulkan13Features,
 						   vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT,
-						   vk::PhysicalDeviceVulkan11Features>
+						   vk::PhysicalDeviceVulkan11Features,
+						   vk::PhysicalDeviceVulkan12Features>
 		featureChain = {
 			{.features = {.samplerAnisotropy = true}},
 			{.synchronization2 = true, .dynamicRendering = true},
 			{.extendedDynamicState = true},
-			{.shaderDrawParameters = true}
+			// Vulkan 1.1 features
+			{.shaderDrawParameters = true},
+			// Vulkan 1.2 features
+			{.descriptorBindingSampledImageUpdateAfterBind = true,
+			 .descriptorBindingPartiallyBound = true,
+			 .runtimeDescriptorArray = true},
 		};
 
 		// Create a Device

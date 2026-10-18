@@ -53,7 +53,7 @@ set(SHADER_SOURCES
 	${ASSETS_DIR}/shaders/Shader.slang
 	${ASSETS_DIR}/shaders/FlatShader.slang
 	${ASSETS_DIR}/shaders/SkyboxShader.slang
-	${ASSETS_DIR}/shaders/BistroShader.slang
+	${ASSETS_DIR}/shaders/ModelShader.slang
 )
 set(SPIRV_FILES "")
 set(ENTRY_POINTS -entry vertMain -entry fragMain)

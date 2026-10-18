@@ -4,6 +4,17 @@
 #include "VulkanContext.h"
 #include "VulkanSwapchain.h"
 
+namespace {
+
+    void TransitionImageLayout(vk::raii::CommandBuffer& commandBuffer, const vk::raii::Image & image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout, uint32_t layerCount = 1);
+    void CopyBufferToImage(vk::raii::CommandBuffer& commandBuffer, const vk::raii::Buffer& buffer, vk::raii::Image& image, uint32_t width, uint32_t height, const std::vector<vk::BufferImageCopy>& regions);
+    void CopyBuffer(vk::raii::CommandBuffer& commandBuffer, const vk::raii::Buffer& srcBuffer, const vk::raii::Buffer& dstBuffer, vk::DeviceSize size);
+
+    vk::raii::CommandBuffer BeginSingleTimeCommands(const vk::raii::Device& device, const vk::raii::CommandPool& commandPool);
+    void EndSingleTimeCommands(vk::raii::CommandBuffer&& commandBuffer, const vk::raii::Queue queue);
+
+}
+
 namespace ZEngine {
 
 	Scope<ResourceManager> ResourceManager::Create(const Scope<GraphicsDevice>& graphicsDevice) {
@@ -13,14 +24,14 @@ namespace ZEngine {
     VulkanResourceManager::VulkanResourceManager(const Scope<GraphicsDevice>& graphicsDevice) {
         m_GraphicsDevice = static_cast<VulkanGraphicsDevice*>(graphicsDevice.get());
 
-        InitRenderingHandles();
+        ImportExternalResources();
     }
 
-    void VulkanResourceManager::InitRenderingHandles() {
+    void VulkanResourceManager::ImportExternalResources() {
         auto& swapchain = m_GraphicsDevice->GetSwapchain();
         auto imageIndex = m_GraphicsDevice->GetCurrentImageIndex();
 
-        m_Textures[SWAPCHAIN_TEXTURE_HANDLE.id] = VulkanTextureResource{
+        m_ExternalPool[SWAPCHAIN_TEXTURE_ID] = ExternalTextureResource {
             .image = swapchain.GetImage(imageIndex),
             .imageView = swapchain.GetImageView(imageIndex),
             .memory = nullptr,
@@ -29,7 +40,7 @@ namespace ZEngine {
             .height = swapchain.GetExtent().height,
         };
 
-        m_Textures[SWAPCHAIN_DEPTH_HANDLE.id] = VulkanTextureResource{
+        m_ExternalPool[SWAPCHAIN_DEPTH_ID] = ExternalTextureResource{
             .image = swapchain.GetDepthImage(),
             .imageView = swapchain.GetDepthImageView(),
             .memory = nullptr,
@@ -43,7 +54,7 @@ namespace ZEngine {
         auto& context = m_GraphicsDevice->GetContext();
 
         auto size = info.size;
-        auto usage = static_cast<vk::BufferUsageFlagBits>(info.usageFlags);
+        auto usage = ConvertBufferUsageFlags(info.usageFlags);
 
         // Create buffer
         vk::BufferCreateInfo createInfo {
@@ -77,14 +88,13 @@ namespace ZEngine {
         }
 
         // Create buffer resource for buffer handle
-        uint64_t handleId = m_NextBufferId++;
-        m_Buffers[handleId] = VulkanBufferResource{
+        VulkanBufferResource resource {
             .buffer = std::move(buffer),
             .memory = std::move(memory),
             .size = size,
             .mappedData = mappedPtr
         };
-        return BufferHandle{ handleId };
+        return m_BufferPool.Allocate(std::move(resource));
     }
 
     TextureHandle VulkanResourceManager::CreateTexture(const TextureCreateInfo& info) {
@@ -99,7 +109,7 @@ namespace ZEngine {
         vk::ImageCreateInfo imageInfo { .imageType = vk::ImageType::e2D,
                                         .format = format,
                                         .extent = { width, height, 1 },
-                                        .mipLevels = 1,
+                                        .mipLevels = info.levelCount,
                                         .arrayLayers = 1,
                                         .samples = vk::SampleCountFlagBits::e1,
                                         .tiling = vk::ImageTiling::eOptimal,
@@ -119,13 +129,12 @@ namespace ZEngine {
             .image = image,
             .viewType = vk::ImageViewType::e2D,
             .format = format,
-            .subresourceRange = { .aspectMask = vk::ImageAspectFlagBits::eColor, .baseMipLevel = 0, .levelCount = 1, .baseArrayLayer = 0, .layerCount = 1 }
+            .subresourceRange = { .aspectMask = vk::ImageAspectFlagBits::eColor, .baseMipLevel = 0, .levelCount = info.levelCount, .baseArrayLayer = 0, .layerCount = 1 }
         };
         auto imageView = vk::raii::ImageView(context.GetDevice(), viewInfo);
 
         // Create texture resource for texture handle
-        uint64_t textureId = m_NextTextureId++;
-        m_Textures[textureId] = VulkanTextureResource {
+        VulkanTextureResource resource {
             .image = std::move(image),
             .imageView = std::move(imageView),
             .memory = std::move(memory),
@@ -133,36 +142,129 @@ namespace ZEngine {
             .width = width,
             .height = height
         };
-        return TextureHandle { textureId };
+
+        return m_TexturePool.Allocate(std::move(resource));
+    }
+
+    void VulkanResourceManager::UploadBufferData(BufferHandle dstHandle, const void* data, uint64_t size, BufferUsageFlags usage) {
+        auto& context = m_GraphicsDevice->GetContext();
+        auto& device = context.GetDevice();
+
+        BufferCreateInfo stagingInfo {
+            .size = size,
+            .usageFlags = BufferUsageFlags::TransferSrc,
+            .isHostVisible = true
+        };
+
+        auto stagingHandle = CreateBuffer(stagingInfo);
+        auto stagingResource = ResolveBuffer(stagingHandle);
+
+        void* stagingData = stagingResource->mappedData;
+        memcpy(stagingData, data, size);
+        stagingResource->memory.unmapMemory();
+
+        auto dstResource = ResolveBuffer(dstHandle);
+
+        vk::raii::CommandBuffer commandBuffer = BeginSingleTimeCommands(device, context.GetCurrentFrame().commandPool);
+        CopyBuffer(commandBuffer, stagingResource->buffer, dstResource->buffer, size);
+        EndSingleTimeCommands(std::move(commandBuffer), context.GetGraphicsQueue());
+
+        DestroyBuffer(stagingHandle);
     }
 
     void VulkanResourceManager::DestroyBuffer(BufferHandle handle) {
-        auto it = m_Buffers.find(handle.id);
-        if (it != m_Buffers.end()) {
-            delete it->second.buffer;
-            delete it->second.memory;
-            m_Buffers.erase(it);
-        }
+        m_BufferPool.Free(handle);
+    }
+
+    void VulkanResourceManager::UploadTextureData(TextureHandle dstHandle,
+                                                  const void* pixelData,
+                                                  uint32_t width,
+                                                  uint32_t height,
+                                                  size_t size,
+                                                  const std::vector<vk::BufferImageCopy>& regions)
+    {
+        auto& context = m_GraphicsDevice->GetContext();
+        auto& device = context.GetDevice();
+
+        // Staging buffer (Host visible)
+        BufferCreateInfo stagingInfo{
+            .size = size,
+            .usageFlags = BufferUsageFlags::TransferSrc,
+            .isHostVisible = true
+        };
+
+        auto stagingHandle = CreateBuffer(stagingInfo);
+        auto stagingResource = ResolveBuffer(stagingHandle);
+
+        void* stagingData = stagingResource->mappedData;
+        memcpy(stagingData, pixelData, size);
+        stagingResource->memory.unmapMemory();
+
+        auto dstResource = ResolveTexture(dstHandle);
+
+        vk::raii::CommandBuffer commandBuffer = BeginSingleTimeCommands(device, context.GetCurrentFrame().commandPool);
+        TransitionImageLayout(commandBuffer, dstResource->image, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal, 1);
+        CopyBufferToImage(commandBuffer, stagingResource->buffer, dstResource->image, static_cast<uint32_t>(width), static_cast<uint32_t>(height), regions);
+        TransitionImageLayout(commandBuffer, dstResource->image, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal, 1);
+        EndSingleTimeCommands(std::move(commandBuffer), context.GetGraphicsQueue());
+
+        DestroyBuffer(stagingHandle);
     }
 
     void VulkanResourceManager::DestroyTexture(TextureHandle handle) {
-        auto it = m_Textures.find(handle.id);
-        if (it != m_Textures.end()) {
-            delete it->second.imageView;
-            delete it->second.image;
-            delete it->second.memory;
-            m_Textures.erase(it);
-        }
+        m_TexturePool.Free(handle);
+    }
+
+    SamplerHandle VulkanResourceManager::CreateSampler(const SamplerCreateInfo& info) {
+        auto& context = m_GraphicsDevice->GetContext();
+        auto& device = context.GetDevice();
+        auto& physicalDevice = context.GetPhysicalDevice();
+
+        vk::PhysicalDeviceProperties properties = physicalDevice.getProperties();
+        vk::SamplerCreateInfo        samplerInfo{ .magFilter = info.magFilter,
+                                                  .minFilter = info.minFilter,
+                                                  .mipmapMode = info.mipmapMode,
+                                                  .addressModeU = info.addressModeU,
+                                                  .addressModeV = info.addressModeV,
+                                                  .addressModeW = info.addressModeW,
+                                                  .mipLodBias = info.mipLodBias,
+                                                  .anisotropyEnable = info.enableAnisotropy,
+                                                  .maxAnisotropy = info.maxAnisotropy,
+                                                  .compareEnable = info.enableCompare,
+                                                  .compareOp = info.compareOp,
+                                                  .minLod = info.minLod,
+                                                  .maxLod = info.maxLod };
+        auto sampler = vk::raii::Sampler(device, samplerInfo);
+
+        // Create sampler resource for sampler handle
+        VulkanSamplerResource resource {
+            .sampler = std::move(sampler)
+        };
+
+        return m_SamplerPool.Allocate(std::move(resource));
+    }
+
+    void VulkanResourceManager::DestroySampler(SamplerHandle handle) {
+        m_SamplerPool.Free(handle);
     }
 
     VulkanBufferResource* VulkanResourceManager::ResolveBuffer(BufferHandle handle) {
-        auto it = m_Buffers.find(handle.id);
-        return (it != m_Buffers.end()) ? &it->second : nullptr;
+        return m_BufferPool.Get(handle);
     }
 
     VulkanTextureResource* VulkanResourceManager::ResolveTexture(TextureHandle handle) {
-        auto it = m_Textures.find(handle.id);
-        return (it != m_Textures.end()) ? &it->second : nullptr;
+        return m_TexturePool.Get(handle);
+    }
+
+    VulkanSamplerResource* VulkanResourceManager::ResolveSampler(SamplerHandle handle) {
+        return m_SamplerPool.Get(handle);
+    }
+
+    ExternalTextureResource* VulkanResourceManager::ResolveExternal(TextureHandle handle) {
+        assert(this != nullptr && "The containing class instance is NULL!");
+
+        auto it = m_ExternalPool.find(handle.GetIndex());
+        return (it != m_ExternalPool.end()) ? &it->second : nullptr;
     }
 
     uint32_t VulkanResourceManager::FindMemoryType(uint32_t typeFilter, uint32_t propertyFlags) const {
@@ -186,21 +288,125 @@ namespace ZEngine {
             case TextureFormat::BGRA8_SRGB:        return vk::Format::eB8G8R8A8Srgb;
             case TextureFormat::D32_FLOAT:         return vk::Format::eD32Sfloat;
             case TextureFormat::D24_UNORM_S8_UINT: return vk::Format::eD24UnormS8Uint;
-            default:                               return vk::Format::eUndefined;
+            case TextureFormat::BC7_UNORM:         return vk::Format::eBc7UnormBlock;
+            case TextureFormat::BC7_SRBG:          return vk::Format::eBc7SrgbBlock;
+            default:                               return vk::Format::eR8G8B8A8Srgb;
         }
     }
 
-    vk::ImageUsageFlagBits VulkanResourceManager::ConvertTextureUsageFlags(TextureUsageFlags flag) {
-        switch (flag) {
-            case TextureUsageFlags::Sampled: return vk::ImageUsageFlagBits::eSampled;
-            case TextureUsageFlags::ColorAttachment: return vk::ImageUsageFlagBits::eColorAttachment;
-            case TextureUsageFlags::DepthAttachment: return vk::ImageUsageFlagBits::eDepthStencilAttachment;
-            case TextureUsageFlags::TransferSrc: return vk::ImageUsageFlagBits::eTransferSrc;
-            case TextureUsageFlags::TransferDst: return vk::ImageUsageFlagBits::eTransferDst;
-            default:                             return vk::ImageUsageFlagBits::eColorAttachment;
+    vk::BufferUsageFlags VulkanResourceManager::ConvertBufferUsageFlags(BufferUsageFlags flags) {
+        vk::BufferUsageFlags vkFlags{};
+
+        uint32_t rawFlags = static_cast<uint32_t>(flags);
+
+        if (rawFlags & static_cast<uint32_t>(BufferUsageFlags::VertexBuffer)) {
+            vkFlags |= vk::BufferUsageFlagBits::eVertexBuffer;
         }
+        if (rawFlags & static_cast<uint32_t>(BufferUsageFlags::IndexBuffer)) {
+            vkFlags |= vk::BufferUsageFlagBits::eIndexBuffer;
+        }
+        if (rawFlags & static_cast<uint32_t>(BufferUsageFlags::UniformBuffer)) {
+            vkFlags |= vk::BufferUsageFlagBits::eUniformBuffer;
+        }
+        if (rawFlags & static_cast<uint32_t>(BufferUsageFlags::StorageBuffer)) {
+            vkFlags |= vk::BufferUsageFlagBits::eStorageBuffer;
+        }
+        if (rawFlags & static_cast<uint32_t>(BufferUsageFlags::TransferSrc)) {
+            vkFlags |= vk::BufferUsageFlagBits::eTransferSrc;
+        }
+        if (rawFlags & static_cast<uint32_t>(BufferUsageFlags::TransferDst)) {
+            vkFlags |= vk::BufferUsageFlagBits::eTransferDst;
+        }
+
+        return vkFlags;
     }
 
+    vk::ImageUsageFlags VulkanResourceManager::ConvertTextureUsageFlags(TextureUsageFlags flags) {
+        vk::ImageUsageFlags vkFlags {};
 
+        uint32_t rawFlags = static_cast<uint32_t>(flags);
+
+        if (rawFlags & static_cast<uint32_t>(TextureUsageFlags::Sampled)) {
+            vkFlags |= vk::ImageUsageFlagBits::eSampled;
+        }
+        if (rawFlags & static_cast<uint32_t>(TextureUsageFlags::ColorAttachment)) {
+            vkFlags |= vk::ImageUsageFlagBits::eColorAttachment;
+        }
+        if (rawFlags & static_cast<uint32_t>(TextureUsageFlags::DepthAttachment)) {
+            vkFlags |= vk::ImageUsageFlagBits::eDepthStencilAttachment;
+        }
+        if (rawFlags & static_cast<uint32_t>(TextureUsageFlags::TransferSrc)) {
+            vkFlags |= vk::ImageUsageFlagBits::eTransferSrc;
+        }
+        if (rawFlags & static_cast<uint32_t>(TextureUsageFlags::TransferDst)) {
+            vkFlags |= vk::ImageUsageFlagBits::eTransferDst;
+        }
+
+        return vkFlags;
+    }
+
+}
+
+namespace {
+
+    void TransitionImageLayout(vk::raii::CommandBuffer& commandBuffer, const vk::raii::Image& image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout, uint32_t layerCount) {
+        vk::ImageMemoryBarrier barrier{ .oldLayout = oldLayout,
+                                         .newLayout = newLayout,
+                                         .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+                                         .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
+                                         .image = image,
+                                         .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor, .levelCount = 1, .layerCount = layerCount} };
+
+        vk::PipelineStageFlags sourceStage;
+        vk::PipelineStageFlags destinationStage;
+
+        if (oldLayout == vk::ImageLayout::eUndefined && newLayout == vk::ImageLayout::eTransferDstOptimal) {
+            barrier.srcAccessMask = {};
+            barrier.dstAccessMask = vk::AccessFlagBits::eTransferWrite;
+
+            sourceStage = vk::PipelineStageFlagBits::eTopOfPipe;
+            destinationStage = vk::PipelineStageFlagBits::eTransfer;
+        }
+        else if (oldLayout == vk::ImageLayout::eTransferDstOptimal && newLayout == vk::ImageLayout::eShaderReadOnlyOptimal) {
+            barrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
+            barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
+
+            sourceStage = vk::PipelineStageFlagBits::eTransfer;
+            destinationStage = vk::PipelineStageFlagBits::eFragmentShader;
+        }
+        else {
+            throw std::invalid_argument("unsupported layout transition!");
+        }
+        commandBuffer.pipelineBarrier(sourceStage, destinationStage, {}, {}, {}, barrier);
+    }
+
+    void CopyBufferToImage(vk::raii::CommandBuffer& commandBuffer, const vk::raii::Buffer& buffer, vk::raii::Image& image, uint32_t width, uint32_t height, const std::vector<vk::BufferImageCopy>& regions) {
+        commandBuffer.copyBufferToImage(buffer, image, vk::ImageLayout::eTransferDstOptimal, regions);
+    }
+
+    void CopyBuffer(vk::raii::CommandBuffer& commandBuffer, const vk::raii::Buffer& srcBuffer, const vk::raii::Buffer& dstBuffer, vk::DeviceSize size) {
+        vk::BufferCopy region{ .srcOffset = 0,
+                               .dstOffset = 0,
+                               .size = size };
+        commandBuffer.copyBuffer(srcBuffer, dstBuffer, region);
+    }
+
+    vk::raii::CommandBuffer BeginSingleTimeCommands(const vk::raii::Device& device, const vk::raii::CommandPool& commandPool) {
+        vk::CommandBufferAllocateInfo allocInfo{ .commandPool = commandPool, .level = vk::CommandBufferLevel::ePrimary, .commandBufferCount = 1 };
+        vk::raii::CommandBuffer       commandBuffer = std::move(vk::raii::CommandBuffers(device, allocInfo).front());
+
+        vk::CommandBufferBeginInfo beginInfo{ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit };
+        commandBuffer.begin(beginInfo);
+
+        return commandBuffer;
+    }
+
+    void EndSingleTimeCommands(vk::raii::CommandBuffer&& commandBuffer, const vk::raii::Queue queue) {
+        commandBuffer.end();
+
+        vk::SubmitInfo submitInfo{ .commandBufferCount = 1, .pCommandBuffers = &*commandBuffer };
+        queue.submit(submitInfo, nullptr);
+        queue.waitIdle();
+    }
 
 }

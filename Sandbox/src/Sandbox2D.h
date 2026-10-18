@@ -18,7 +18,7 @@ private:
 
 	ZEngine::OrthographicCameraController m_CameraController;
 
-	ZEngine::Ref<ZEngine::VertexArray> m_SquareVertexArray;
+	//ZEngine::Ref<ZEngine::VertexArray> m_SquareVertexArray;
 	ZEngine::Ref<ZEngine::Shader> m_FlatShader;
 	ZEngine::Ref<ZEngine::PipelineState> m_PipelineState;
 

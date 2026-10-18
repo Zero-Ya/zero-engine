@@ -10,93 +10,62 @@ public:
 	TestLayer()
 		: Layer("Test"), m_CameraController(1280.0f / 720.0f)
 	{
-		auto& graphicsDevice = ZEngine::Application::Get().GetGraphicsDevice();
+		auto& app = ZEngine::Application::Get();
+		auto& graphicsDevice = app.GetGraphicsDevice();
 		auto& commandList = graphicsDevice->GetMainCommandList();
 
+		auto& bindlessManager = app.GetBindlessManager();
+		auto& resourceManager = app.GetResourceManager();
+
+		commandList.SetResourceManager(resourceManager);
+
+		// Render graph
+		m_RenderGraph = std::make_unique<ZEngine::RenderGraph>();
+
+		// Model loader
+		m_ModelLoader = ZEngine::ModelLoader::Create(graphicsDevice, resourceManager, bindlessManager);
+
+		// Scene renderer
+		m_SceneRenderer = ZEngine::SceneRenderer::Create(graphicsDevice, resourceManager, bindlessManager);
+
+		// Create swapchain texture and depth handle
+		m_SwapchainTextureHandle = ZEngine::TextureHandle::MakeExternal(ZEngine::SWAPCHAIN_TEXTURE_ID);
+		m_SwapchainDepthHandle = ZEngine::TextureHandle::MakeExternal(ZEngine::SWAPCHAIN_DEPTH_ID);
+
 		// Shader
-		auto m_DefaultShader = m_ShaderLibrary.Load("Default Shader", "Shader.spv");
 		auto m_BistroShader = m_ShaderLibrary.Load("Bistro Shader", "BistroShader.spv");
 		auto m_SkyboxShader = m_ShaderLibrary.Load("Skybox Shader", "SkyboxShader.spv");
 
-		// Material and texture (We're imitating a model instance since we don't have a mesh class yet...)
-		m_Texture = ZEngine::Texture2D::Create();
-		//m_Texture->LoadTexture(ASSETS_DIR"/textures/shamrock_four.png");
-		m_Texture->LoadTexture(ASSETS_DIR"/models/BistroModel/Textures/Shopsign_Book_Store_BaseColor.ktx2");
-		m_MaterialInstance = ZEngine::Material::Create("Test Material");
-		m_MaterialInstance->SetAlbedoTexture(m_Texture);
-		m_MaterialInstance->Init();
-		m_MaterialInstance->AlloUpdateSet();
-
-		// Buffers and array config
-		m_VertexArray = ZEngine::VertexArray::Create();
-		float vertices[7 * 4] = {
-			// Position   Color				TexCoords
-			-0.5f, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-			 0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
-			 0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
-			-0.5f,  0.5f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f
-		};
-
-		uint32_t indices[6] = { 0, 1, 2, 2, 3, 0 };
-
-		ZEngine::Ref<ZEngine::VertexBuffer> vertexBuffer;
-		vertexBuffer = ZEngine::VertexBuffer::Create(vertices, sizeof(vertices));
-
-		ZEngine::BufferLayout defaultLayout = {
-			{ ZEngine::ShaderDataType::Float2, "a_Position" },
-			{ ZEngine::ShaderDataType::Float3, "a_Color" },
-			{ ZEngine::ShaderDataType::Float2, "a_TexCoords" }
-		};
-
+		// Model layout for pipeline
 		ZEngine::BufferLayout modelLayout = {
 			{ ZEngine::ShaderDataType::Float3, "position" },
 			{ ZEngine::ShaderDataType::Float3, "normal" },
 			{ ZEngine::ShaderDataType::Float2, "uv" }
 		};
 
-		//vertexBuffer->SetLayout(layout);
-
-		ZEngine::Ref<ZEngine::IndexBuffer> indexBuffer;
-		indexBuffer = ZEngine::IndexBuffer::Create(indices, sizeof(indices) / sizeof(uint32_t));
-
-		m_VertexArray->SetVertexBuffer(vertexBuffer);
-		m_VertexArray->SetIndexBuffer(indexBuffer);
-
-		// Default pipeline state
-		ZEngine::PipelineSpecification defaultSpec{ m_DefaultShader, defaultLayout, false, false };
-		m_DefaultPipeline = ZEngine::PipelineState::Create(defaultSpec);
-
 		// Model pipeline state
-		ZEngine::PipelineSpecification modelSpec{ m_BistroShader, modelLayout, false, false };
+		ZEngine::PipelineSpecification modelSpec { m_BistroShader, modelLayout, false, false };
 		m_ModelPipeline = ZEngine::PipelineState::Create(modelSpec);
 
 		// Skybox pipeline state
-		ZEngine::PipelineSpecification skyboxSpec{ m_SkyboxShader, {}, false, false };
+		ZEngine::PipelineSpecification skyboxSpec { m_SkyboxShader, {}, false, false };
 
 		// Model loading
-		m_Model = ZEngine::Model::Create();
-		m_Model->LoadFromFile(ASSETS_DIR"/models/BistroModel/BistroExterior.gltf");
+		m_Model = m_ModelLoader->LoadModel(ASSETS_DIR"/models/SponzaModel/Sponza.gltf").value();
+		//m_Model = m_ModelLoader->LoadModel(ASSETS_DIR"/models/BistroModel/BistroExterior.gltf").value();
 
 		// Skybox
-		std::vector<std::string> skyboxTextures = {
-			ASSETS_DIR"/textures/skybox/right.jpg",
-			ASSETS_DIR"/textures/skybox/left.jpg",
-			ASSETS_DIR"/textures/skybox/top.jpg",
-			ASSETS_DIR"/textures/skybox/bottom.jpg",
-			ASSETS_DIR"/textures/skybox/front.jpg",
-			ASSETS_DIR"/textures/skybox/back.jpg",
-		};
-
-		m_Skybox = ZEngine::Cubemap::Create();
-		m_Skybox->LoadCubemap(skyboxTextures);
-		m_Skybox->Init(skyboxSpec);
-
-		// Render graph
-		m_RenderGraph = std::make_unique<ZEngine::RenderGraph>();
-
-		// Resource manager
-		m_ResourceManager = ZEngine::ResourceManager::Create(graphicsDevice);
-		commandList.SetResourceManager(m_ResourceManager);
+		//std::vector<std::string> skyboxTextures = {
+		//	ASSETS_DIR"/textures/skybox/right.jpg",
+		//	ASSETS_DIR"/textures/skybox/left.jpg",
+		//	ASSETS_DIR"/textures/skybox/top.jpg",
+		//	ASSETS_DIR"/textures/skybox/bottom.jpg",
+		//	ASSETS_DIR"/textures/skybox/front.jpg",
+		//	ASSETS_DIR"/textures/skybox/back.jpg",
+		//};
+		//m_Skybox = ZEngine::Cubemap::Create();
+		//m_Skybox->LoadCubemap(skyboxTextures);
+		//m_Skybox->Init(skyboxSpec);
 	}
 
 	void OnUpdate(ZEngine::Timestep ts) override {
@@ -106,29 +75,24 @@ public:
 		// Render
 		auto& graphicsDevice = ZEngine::Application::Get().GetGraphicsDevice();
 		auto& commandList = graphicsDevice->GetMainCommandList();
+		auto& resourceManager = ZEngine::Application::Get().GetResourceManager();
 
-		glm::mat4 firstTransform = glm::translate(glm::mat4(1.0f), glm::vec3(-0.5f, 0.0f, -1.0f));
-		glm::mat4 secondTransform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -1.5f));
-
-		// Handles for render graph
-		ZEngine::TextureHandle swapchainTexture = graphicsDevice->GetSwapchainTextureHandle();
-		ZEngine::TextureHandle depthTexture = graphicsDevice->GetSwapchainDepthHandle();
-
-		// Create the resources for the two handles above
-		m_ResourceManager->InitRenderingHandles();
-
+		resourceManager->ImportExternalResources();
 		m_RenderGraph->Clear();
 
-		// Pass 1: Main pass
+		m_SceneRenderer->BeginFrame();
+		m_SceneRenderer->SubmitModel(m_Model, glm::mat4(1.0f));
+
+		// Main pass
 		m_RenderGraph->AddPass(
 			"MainPass",
 			[&](ZEngine::RenderGraphPassBuilder& builder) {
-				builder.WriteColor(swapchainTexture);
-				builder.WriteDepth(depthTexture);
+				builder.WriteColor(m_SwapchainTextureHandle);
+				builder.WriteDepth(m_SwapchainDepthHandle);
 			},
 			[&](ZEngine::RHICommandList& command) {
 				ZEngine::ColorAttachmentInfo colorAttachmentInfo {
-					.texture = swapchainTexture,
+					.texture = m_SwapchainTextureHandle,
 					.layout = ZEngine::TextureLayout::COLOR_ATTACHMENT
 				};
 
@@ -137,26 +101,21 @@ public:
 					.renderHeight = ZEngine::Application::Get().GetWindow().GetHeight(),
 					.colorAttachments = std::vector(1, colorAttachmentInfo),
 					.colorAttachmentCount = 1,
-					.depthAttachment = depthTexture,
+					.depthAttachment = m_SwapchainDepthHandle,
 					.hasDepth = true
 				};
 
 				command.BeginRendering(renderingInfo);
 
-				commandList.SetViewport(0, 0, ZEngine::Application::Get().GetWindow().GetWidth(), ZEngine::Application::Get().GetWindow().GetHeight());
-				commandList.SetScissor(0, 0, ZEngine::Application::Get().GetWindow().GetWidth(), ZEngine::Application::Get().GetWindow().GetHeight());
+				command.SetViewport(0, 0, ZEngine::Application::Get().GetWindow().GetWidth(), ZEngine::Application::Get().GetWindow().GetHeight());
+				command.SetScissor(0, 0, ZEngine::Application::Get().GetWindow().GetWidth(), ZEngine::Application::Get().GetWindow().GetHeight());
+				// SetClearColor
 
-				//ZEngine::RenderCommand::SetViewport(0, 0, ZEngine::Application::Get().GetWindow().GetWidth(), ZEngine::Application::Get().GetWindow().GetHeight());
-				ZEngine::RenderCommand::SetClearColor(glm::vec4(0.0f, 0.0f, 0.1f, 0.0f));
+				m_SceneRenderer->UpdateSceneBuffers(m_CameraController.GetCamera());
+				m_SceneRenderer->SetPipeline(m_ModelPipeline);
+				m_SceneRenderer->RecordOpaquePass(command);
 
-				ZEngine::Renderer::BeginScene(m_CameraController.GetCamera());
-				ZEngine::Renderer::GlobalBegin(m_ModelPipeline);
-				//ZEngine::Renderer::GlobalBegin(m_DefaultPipeline);
-				//ZEngine::Renderer::MeshBegin(m_DefaultPipeline, m_MaterialInstance, secondTransform);
-				ZEngine::Renderer::DrawModel(m_Model, m_ModelPipeline); // Needs to be changed later
-				//ZEngine::Renderer::DrawMesh(m_VertexArray);
-				ZEngine::Renderer::DrawSkybox(m_Skybox);
-				ZEngine::Renderer::EndScene();
+				//DrawSkybox(m_Skybox);
 
 				// ImGui (Temporary)
 				auto imGuiLayer = ZEngine::Application::Get().GetImGuiLayer();
@@ -168,7 +127,7 @@ public:
 			}
 		);
 
-		// Pass 2: ImGui pass
+		// ImGui pass
 		//m_RenderGraph->AddPass(
 		//	"ImGuiPass",
 		//	[&](ZEngine::RenderGraphPassBuilder& builder) {
@@ -191,7 +150,7 @@ public:
 		m_RenderGraph->AddPass(
 			"PresentPass",
 			[&](ZEngine::RenderGraphPassBuilder& builder) {
-				builder.Read(swapchainTexture, ZEngine::TextureLayout::PRESENT_SRC);
+				builder.Read(m_SwapchainTextureHandle, ZEngine::TextureLayout::PRESENT_SRC);
 			},
 			[&](ZEngine::RHICommandList& command) {
 				// No commands needed
@@ -200,7 +159,6 @@ public:
 
 		// Compile and execute graph (No compile yet)
 		m_RenderGraph->Execute(commandList);
-
 	}
 
 	void OnEvent(ZEngine::Event& e) override {
@@ -209,17 +167,16 @@ public:
 
 private:
 	ZEngine::ShaderLibrary m_ShaderLibrary;
-	ZEngine::Ref<ZEngine::Texture2D> m_Texture;
-	ZEngine::Ref<ZEngine::Material> m_MaterialInstance;
-	ZEngine::Ref<ZEngine::VertexArray> m_VertexArray;
-	ZEngine::Ref<ZEngine::PipelineState> m_DefaultPipeline;
 	ZEngine::Ref<ZEngine::PipelineState> m_ModelPipeline;
-	ZEngine::Scope<ZEngine::Model> m_Model;
-	ZEngine::Scope<ZEngine::Cubemap> m_Skybox;
+	ZEngine::Model m_Model;
+	//ZEngine::Scope<ZEngine::Cubemap> m_Skybox;
 
+	ZEngine::TextureHandle m_SwapchainTextureHandle;
+	ZEngine::TextureHandle m_SwapchainDepthHandle;
+
+	ZEngine::Scope<ZEngine::ModelLoader> m_ModelLoader;
 	ZEngine::Scope<ZEngine::RenderGraph> m_RenderGraph;
-
-	ZEngine::Scope<ZEngine::ResourceManager> m_ResourceManager;
+	ZEngine::Scope<ZEngine::SceneRenderer> m_SceneRenderer;
 
 	ZEngine::PerspectiveCameraController m_CameraController;
 	//ZEngine::OrthographicCameraController m_CameraController;

@@ -2,8 +2,6 @@
 #include "Log.h"
 #include "Input.h"
 
-#include "ZEngine/Renderer/Renderer.h"
-
 #include <GLFW/glfw3.h>
 
 namespace ZEngine {
@@ -22,7 +20,9 @@ namespace ZEngine {
 		m_GraphicsDevice = GraphicsDevice::Create(m_Window->GetNativeWindow(), m_Window->GetWidth(), m_Window->GetHeight());
 		m_GraphicsDevice->Init();
 
-		ZEngine::Renderer::Init();
+		m_ResourceManager = ResourceManager::Create(m_GraphicsDevice);
+		m_BindlessManager = BindlessDescriptorManager::Create(m_GraphicsDevice);
+		m_BindlessManager->SetResourceManager(m_ResourceManager); // Mmm
 
 		// ImGui layer
 		m_ImGuiLayer = new ImGuiLayer();
@@ -31,8 +31,6 @@ namespace ZEngine {
 
 	Application::~Application() {
 		m_GraphicsDevice->WaitIdle();
-
-		Renderer::Shutdown();
 	}
 
 	void Application::PushLayer(Layer* layer) {
@@ -64,7 +62,7 @@ namespace ZEngine {
 			m_LastFrameTime = time;
 
 			m_GraphicsDevice->BeginFrame();
-			
+
 			// Sandbox layers
 			for (Layer* layer : m_LayerStack)
 				layer->OnUpdate(timestep);

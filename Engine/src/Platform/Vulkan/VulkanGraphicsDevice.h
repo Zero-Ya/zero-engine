@@ -25,8 +25,6 @@ namespace ZEngine {
         void WaitIdle() override;
 
         RHICommandList& GetMainCommandList() override;
-        TextureHandle GetSwapchainTextureHandle() const override { return SWAPCHAIN_TEXTURE_HANDLE; }
-        TextureHandle GetSwapchainDepthHandle() const override { return SWAPCHAIN_DEPTH_HANDLE; }
 
         VulkanContext& GetContext() { return *m_Context; }
         VulkanSwapchain& GetSwapchain() { return *m_Swapchain; }

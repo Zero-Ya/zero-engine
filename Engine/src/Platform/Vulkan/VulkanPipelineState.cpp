@@ -7,7 +7,8 @@
 #include "VulkanSwapchain.h"
 
 #include "VulkanShader.h"
-#include "VulkanLayoutManager.h"
+//#include "VulkanLayoutManager.h"
+#include "VulkanBindlessManager.h"
 
 namespace {
 
@@ -94,8 +95,8 @@ namespace ZEngine {
 		vk::PipelineDynamicStateCreateInfo dynamicState { .dynamicStateCount = static_cast<uint32_t>(dynamicStates.size()), .pDynamicStates = dynamicStates.data() };
 
 		// Pipeline layout info
-		auto vk_LayoutManager = static_cast<VulkanLayoutManager*>(vk_Context.GetLayoutManager().get());
-		m_PipelineLayout = vk_LayoutManager->GetGlobalPipelineLayout();
+		auto bindlessManager = static_cast<VulkanBindlessManager*>(Application::Get().GetBindlessManager().get());
+		m_PipelineLayout = bindlessManager->GetPipelineLayout();
 
 		vk::Format depthFormat = vk_Swapchain.GetDepthFormat();
 		vk::Format colorFormat = vk::Format::eB8G8R8A8Srgb; // We can also get swapchain surface format

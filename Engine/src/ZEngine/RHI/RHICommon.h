@@ -2,34 +2,85 @@
 
 namespace ZEngine {
 
-	// Opaque handle types
-    struct BufferHandle {
-        uint64_t id = 0;
-        bool IsValid() const { return id != 0; }
-        bool operator==(const BufferHandle& other) const { return id == other.id; }
-        bool operator!=(const BufferHandle& other) const { return id != other.id; }
-    };
+    // 20 bits for Index, 12 bits for Generation
+    constexpr uint32_t HANDLE_INDEX_BITS = 20;
+    constexpr uint32_t HANDLE_INDEX_MASK = (1u << HANDLE_INDEX_BITS) - 1u;
+    constexpr uint32_t HANDLE_GEN_MASK = (1u << (32 - HANDLE_INDEX_BITS)) - 1u; // 11 bits for gen now (32 - 20 - 1 = 11)
+    constexpr uint32_t HANDLE_EXTERNAL_BIT = 1u << 31; // Bit 31 flag
 
+    // Opaque handle types
     struct TextureHandle {
-        uint64_t id = 0;
-        bool IsValid() const { return id != 0; }
-        bool operator==(const TextureHandle& other) const { return id == other.id; }
-        bool operator!=(const TextureHandle& other) const { return id != other.id; }
+        uint32_t id = std::numeric_limits<uint32_t>::max();
+
+        constexpr uint32_t GetIndex() const { return id & HANDLE_INDEX_MASK; }
+        constexpr uint32_t GetGeneration() const { return (id >> HANDLE_INDEX_BITS) & HANDLE_GEN_MASK; }
+
+        constexpr bool IsValid() const { return id != std::numeric_limits<uint32_t>::max(); }
+        constexpr bool IsExternal() const { return (id & HANDLE_EXTERNAL_BIT) != 0; }
+
+        constexpr bool operator==(const TextureHandle& other) const { return id == other.id; }
+        constexpr bool operator!=(const TextureHandle& other) const { return id != other.id; }
+
+        // Factory method for regular pool-allocated assets
+        static constexpr TextureHandle Make(uint32_t index, uint32_t generation) {
+            return TextureHandle{ (index & HANDLE_INDEX_MASK) | ((generation & HANDLE_GEN_MASK) << HANDLE_INDEX_BITS) };
+        }
+
+        // Factory method for external resources
+        static constexpr TextureHandle MakeExternal(uint32_t externalID) {
+            return TextureHandle{
+                HANDLE_EXTERNAL_BIT | (externalID & HANDLE_INDEX_MASK)
+            };
+        }
     };
 
-    // Reserved Pseudo-Handles for Swapchain Targets
-    inline constexpr TextureHandle SWAPCHAIN_TEXTURE_HANDLE{ 0xFFFFFFFFFFFFFFFF };
-    inline constexpr TextureHandle SWAPCHAIN_DEPTH_HANDLE{ 0xFFFFFFFFFFFFFFFE };
+    struct BufferHandle {
+        uint32_t id = std::numeric_limits<uint32_t>::max();
+
+        constexpr uint32_t GetIndex() const { return id & HANDLE_INDEX_MASK; }
+        constexpr uint32_t GetGeneration() const { return (id >> HANDLE_INDEX_BITS) & HANDLE_GEN_MASK; }
+
+        constexpr bool IsValid() const { return id != std::numeric_limits<uint32_t>::max(); }
+        constexpr bool operator==(const BufferHandle& other) const { return id == other.id; }
+        constexpr bool operator!=(const BufferHandle& other) const { return id != other.id; }
+
+        static constexpr BufferHandle Make(uint32_t index, uint32_t generation) {
+            return BufferHandle{ (index & HANDLE_INDEX_MASK) | ((generation & HANDLE_GEN_MASK) << HANDLE_INDEX_BITS) };
+        }
+    };
+
+    struct SamplerHandle {
+        uint32_t id = std::numeric_limits<uint32_t>::max();
+
+        constexpr uint32_t GetIndex() const { return id & HANDLE_INDEX_MASK; }
+        constexpr uint32_t GetGeneration() const { return (id >> HANDLE_INDEX_BITS) & HANDLE_GEN_MASK; }
+
+        constexpr bool IsValid() const { return id != std::numeric_limits<uint32_t>::max(); }
+        constexpr bool operator==(const SamplerHandle& other) const { return id == other.id; }
+        constexpr bool operator!=(const SamplerHandle& other) const { return id != other.id; }
+
+        static constexpr SamplerHandle Make(uint32_t index, uint32_t generation) {
+            return SamplerHandle{ (index & HANDLE_INDEX_MASK) | ((generation & HANDLE_GEN_MASK) << HANDLE_INDEX_BITS) };
+        }
+    };
+
+    // Reserved Pseudo-handles for swapchain targets
+    inline constexpr TextureHandle SWAPCHAIN_TEXTURE_HANDLE { 0xFFFFFFFF };
+    inline constexpr TextureHandle SWAPCHAIN_DEPTH_HANDLE { 0xFFFFFFFE };
+
+    inline constexpr uint32_t SWAPCHAIN_TEXTURE_ID{ 0 };
+    inline constexpr uint32_t SWAPCHAIN_DEPTH_ID{ 1 };
 
     struct PipelineHandle {
         uint64_t id = 0;
         bool IsValid() const { return id != 0; }
-        bool operator==(const TextureHandle& other) const { return id == other.id; }
-        bool operator!=(const TextureHandle& other) const { return id != other.id; }
+        bool operator==(const PipelineHandle& other) const { return id == other.id; }
+        bool operator!=(const PipelineHandle& other) const { return id != other.id; }
     };
 
     // RHI Enums
 
+    // Buffer usage flags
     enum class BufferUsageFlags : uint32_t {
         VertexBuffer = 1 << 0,
         IndexBuffer = 1 << 1,
@@ -42,6 +93,20 @@ namespace ZEngine {
     inline BufferUsageFlags operator|(BufferUsageFlags a, BufferUsageFlags b) {
         return static_cast<BufferUsageFlags>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
     }
+
+    inline BufferUsageFlags& operator|=(BufferUsageFlags& a, BufferUsageFlags b) {
+        a = a | b;
+        return a;
+    }
+
+    inline constexpr BufferUsageFlags operator&(BufferUsageFlags a, BufferUsageFlags b) {
+        return static_cast<BufferUsageFlags>(static_cast<uint32_t>(a) & static_cast<uint32_t>(b));
+    }
+
+    inline constexpr bool HasFlag(BufferUsageFlags flags, BufferUsageFlags flag) {
+        return (static_cast<uint32_t>(flags) & static_cast<uint32_t>(flag)) != 0;
+    }
+    //
 
     struct BufferCreateInfo {
         uint64_t size = 0;
@@ -56,9 +121,12 @@ namespace ZEngine {
         RGBA8_SRGB,
         BGRA8_SRGB,
         D32_FLOAT,
-        D24_UNORM_S8_UINT
+        D24_UNORM_S8_UINT,
+        BC7_UNORM,
+        BC7_SRBG
     };
 
+    // Texture usage flags
     enum class TextureUsageFlags : uint32_t {
         Sampled = 1 << 0,
         ColorAttachment = 1 << 1,
@@ -67,11 +135,30 @@ namespace ZEngine {
         TransferDst = 1 << 4
     };
 
+    inline constexpr TextureUsageFlags operator|(TextureUsageFlags a, TextureUsageFlags b) {
+        return static_cast<TextureUsageFlags>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
+    }
+
+    inline TextureUsageFlags& operator|=(TextureUsageFlags& a, TextureUsageFlags b) {
+        a = a | b;
+        return a;
+    }
+
+    inline constexpr TextureUsageFlags operator&(TextureUsageFlags a, TextureUsageFlags b) {
+        return static_cast<TextureUsageFlags>(static_cast<uint32_t>(a) & static_cast<uint32_t>(b));
+    }
+
+    inline constexpr bool HasFlag(TextureUsageFlags flags, TextureUsageFlags flag) {
+        return (static_cast<uint32_t>(flags) & static_cast<uint32_t>(flag)) != 0;
+    }
+    //
+
     struct TextureCreateInfo {
         uint32_t width = 0;
         uint32_t height = 0;
         TextureFormat format = TextureFormat::RGBA8_UNORM;
         TextureUsageFlags usageFlags;
+        uint32_t levelCount = 1;
     };
 
     enum class TextureLayout {
@@ -116,7 +203,7 @@ namespace ZEngine {
         TextureHandle texture;
         TextureLayout layout = TextureLayout::COLOR_ATTACHMENT;
         //std::array<float, 4> clearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
-        ClearColorValue clearColor { 0.0f, 0.0f, 0.0f, 1.0f };
+        ClearColorValue clearColor { 1.0f, 0.0f, 0.0f, 1.0f };
         bool clearOnLoad = true;
     };
 
