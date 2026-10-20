@@ -2,10 +2,23 @@
 // Data Structures
 // ----------------------------------------------------------------------------
 
+struct DirectionalLight {
+    float3 direction;
+    float  intensity;
+    float3 color;
+    float  padding;
+};
+
 struct CameraData {
     float4x4 model;
     float4x4 view;
     float4x4 proj;
+};
+
+struct SceneUniformData {
+    CameraData       camera;
+    DirectionalLight sunLight;
+    float4           cameraPos;
 };
 
 struct MaterialData {
@@ -45,7 +58,7 @@ struct PushConstants {
 [[vk::binding(2, 0)]] StructuredBuffer<MaterialData> g_Materials;
 
 // Set 1: Per-Frame / Scene Data
-[[vk::binding(0, 1)]] ConstantBuffer<CameraData> camera;
+[[vk::binding(0, 1)]] ConstantBuffer<SceneUniformData> scene;
 
 // Push Constants
 [[vk::push_constant]]
@@ -67,6 +80,7 @@ struct VSOutput {
     float4 position : SV_Position;
     float3 normal   : NORMAL;
     float2 uv       : TEXCOORD0;
+    float3 fragPos;
 };
 
 
@@ -81,12 +95,14 @@ VSOutput vertMain(VSInput input) {
     
     // Combine Model (Push Constant) * View * Proj matrices
     float4 worldPos = mul(g_Push.modelMatrix, float4(input.position, 1.0));
-    float4 viewPos  = mul(camera.view, worldPos);
-    output.position = mul(camera.proj, viewPos);
+    float4 viewPos  = mul(scene.camera.view, worldPos);
+    output.position = mul(scene.camera.proj, viewPos);
 
     // Transform normals correctly using upper 3x3 of model matrix
     output.normal = mul((float3x3)g_Push.modelMatrix, input.normal);
     output.uv = input.uv;
+
+    output.fragPos = worldPos.xyz;
 
     return output;
 }
@@ -101,11 +117,11 @@ VSOutput vertMain(VSInput input) {
 float4 fragMain(VSOutput input) : SV_Target {
     // Resolve texture and sampler indices from Push Constants (Bindless lookup)
     uint albedoTextureIndex = g_Push.albedoTextureIndex;
-    uint samplerIndex   = g_Push.samplerIndex;
+    uint samplerIndex       = g_Push.samplerIndex;
 
     // Sample base color texture from global bindless array (Set 0)
-    float4 albedoTex = g_Textures[albedoTextureIndex].Sample(g_Samplers[samplerIndex], input.uv);
-    if (albedoTex.a < 0.5) {
+    float4 albedoTexture = g_Textures[albedoTextureIndex].Sample(g_Samplers[samplerIndex], input.uv);
+    if (albedoTexture.a < 0.5) {
         discard;
     }
 
@@ -113,15 +129,39 @@ float4 fragMain(VSOutput input) : SV_Target {
     float4 baseColorFactor = float4(1.0, 1.0, 1.0, 1.0);
 
     // Combine base color texture with material factor multiplier
-    float4 finalColor = albedoTex * baseColorFactor;
+    float4 finalColor = albedoTexture * baseColorFactor;
 
-    // Basic directional light test (Sun light vector)
-    float3 lightDir = normalize(float3(0.5, 1.0, 0.3));
+    // Use dynamic directional light from SceneUniformData (Set 1)
+    float3 lightDir = normalize(-scene.sunLight.direction); // Direction light points toward scene
     float3 N = normalize(input.normal);
-    float NdotL = max(dot(N, lightDir), 0.1); // Add 0.1 ambient floor
+    float NdotL = max(dot(N, lightDir), 0.1); // Ambient floor
 
-    // Apply lighting factor to final RGB output
-    finalColor.rgb *= NdotL;
+    // Apply color, intensity, and lighting factor
+    finalColor.rgb *= scene.sunLight.color * scene.sunLight.intensity * NdotL;
 
     return finalColor;
+
+    //////////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////////
+
+    //float3 lightColor = float3(0.0, 0.0, 0.0);
+    //
+    //// Ambient
+    //float3 ambient = 0.1 * lightColor;
+    //
+    //// Diffuse
+    //float3 N = normalize(input.normal);
+    //float3 lightDir = normalize(float3(0.5, 1.0, 0.3) - input.fragPos);
+    //float diff = max(dot(N, lightDir), 0.0);
+    //float3 diffuse = diff * lightColor;
+    //
+    //// Specular
+    //float3 viewDir = normalize(scene.cameraPos.xyz - input.fragPos);
+    //float3 reflectDir = reflect(-lightDir, N);
+    //float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+    //float3 specular = 0.5 * spec * lightColor;
+    //
+    //float3 result = (ambient + diffuse + specular) * albedoTexture.xyz;
+    //return float4(result, 1.0);
 }

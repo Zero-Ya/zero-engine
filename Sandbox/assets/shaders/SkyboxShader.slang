@@ -1,3 +1,13 @@
+// ----------------------------------------------------------------------------
+// Data Structures
+// ----------------------------------------------------------------------------
+
+struct DirectionalLight {
+    float3 direction;
+    float  intensity;
+    float3 color;
+    float  padding;
+};
 
 struct CameraData {
     float4x4 model;
@@ -5,20 +15,35 @@ struct CameraData {
     float4x4 proj;
 };
 
-struct MaterialParams {
-    float4 albedo;
-    float roughness;
-    float metallic;
-    float2 padding;
+struct SceneUniformData {
+    CameraData       camera;
+    DirectionalLight sunLight;
+    float4           cameraPos;
 };
 
-struct PushData {
-    float4x4 transform;
+struct PushConstants {
+    uint   textureIndex;
+    uint   samplerIndex;
 };
 
-//
-//
-//
+
+
+// ----------------------------------------------------------------------------
+// Resource Bindings
+// ----------------------------------------------------------------------------
+
+// Set 0: Global Bindless Textures, Samplers, and Material SSBO
+[[vk::binding(0, 0)]] TextureCube      g_CubeTextures[];
+[[vk::binding(1, 0)]] SamplerState     g_Samplers[];
+
+// Set 1: Per-Frame / Scene Data
+[[vk::binding(0, 1)]] ConstantBuffer<SceneUniformData> scene;
+
+// Push Constants
+[[vk::push_constant]]
+PushConstants g_Push;
+
+
 
 // Generate a unit cube directly in the vertex shader via 36 vertex indices
 static const float3 CUBE_VERTICES[8] = {
@@ -47,36 +72,22 @@ static const uint CUBE_INDICES[36] = {
     3, 7, 6, 3, 6, 2
 };
 
+
+
+// ----------------------------------------------------------------------------
+// Vertex Input / Output
+// ----------------------------------------------------------------------------
+
 struct VSOutput {
     float4 position : SV_Position;
     float3 uv       : TEXCOORD0;
 };
 
-// SET 0: Global Frame Data (Binding 0)
-[[vk::binding(0, 0)]] 
-ConstantBuffer<CameraData> camera;
 
-// SET 1: Skybox Data
-[[vk::binding(0, 1)]]
-SamplerCube skyboxTexture;
 
-// SET 2: Pass Data (e.g., Shadow Map or G-Buffer Input)
-[[vk::binding(0, 2)]] 
-Sampler2D g_ShadowMap;
-
-// SET 3: Material Resources (Binding 0: Params UBO, Binding 1: Albedo Texture)
-[[vk::binding(0, 3)]] 
-ConstantBuffer<MaterialParams> g_Material;
-
-[[vk::binding(1, 3)]] 
-Sampler2D g_AlbedoMap;
-
-[[vk::push_constant]]
-ConstantBuffer<PushData> g_Push;
-
-//
-//
-//
+// ----------------------------------------------------------------------------
+// Vertex Shader
+// ----------------------------------------------------------------------------
 
 [shader("vertex")]
 VSOutput vertMain(uint vertexID : SV_VertexID) {
@@ -90,8 +101,8 @@ VSOutput vertMain(uint vertexID : SV_VertexID) {
     output.uv = pos;
 
     // Strip translation from view matrix so skybox stays centered on camera
-    float3x3 staticView = (float3x3)camera.view;
-    float4 clipPos = mul(camera.proj, float4(mul(staticView, pos), 1.0));
+    float3x3 staticView = (float3x3)scene.camera.view;
+    float4 clipPos = mul(scene.camera.proj, float4(mul(staticView, pos), 1.0));
 
     // Force z = w so that z/w = 1.0 (Far Plane) after perspective division
     output.position = clipPos.xyww;
@@ -99,7 +110,14 @@ VSOutput vertMain(uint vertexID : SV_VertexID) {
     return output;
 }
 
+
+
+// ----------------------------------------------------------------------------
+// Fragment Shader
+// ----------------------------------------------------------------------------
+
 [shader("fragment")]
-float4 fragMain(VSOutput input) : SV_Target {
-    return skyboxTexture.Sample(input.uv);
+float4 fragMain(VSOutput output) : SV_Target {
+    float3 skyboxTexture = g_CubeTextures[g_Push.textureIndex].Sample(g_Samplers[g_Push.samplerIndex], output.uv).rgb;
+    return float4(skyboxTexture, 1.0);
 }

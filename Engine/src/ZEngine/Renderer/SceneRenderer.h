@@ -15,6 +15,7 @@ namespace ZEngine {
 
     class RHICommandList;
     class PipelineState;
+    class Cubemap;
 
     // Internal draw command extracted from tree traversal
     struct DrawCommand {
@@ -29,22 +30,23 @@ namespace ZEngine {
     public:
         ~SceneRenderer() = default;
 
-        // Frame Lifecycle
+        // Frame lifecycle
         virtual void BeginFrame() = 0;
         virtual void EndFrame() = 0;
 
-        // Hierarchical Model & Submesh Submission
+        // Hierarchical model & submesh submission
         virtual void SubmitModel(const Model& model, const glm::mat4& worldTransform) = 0;
         virtual void SubmitSubmesh(const Submesh& submesh, const glm::mat4& worldTransform) = 0;
 
         virtual void UpdateSceneBuffers(PerspectiveCamera& camera) = 0;
 
-        // RenderGraph Pass Registration
+        // Render graph pass registration
         virtual void RegisterPasses(RenderGraph& renderGraph, PerspectiveCamera& camera, TextureHandle colorTarget, TextureHandle depthTarget) = 0;
 
         virtual void SetPipeline(const Ref<PipelineState>& pipeline) = 0;
 
         virtual void RecordOpaquePass(RHICommandList& cmdList) = 0;
+        virtual void RecordSkyboxPass(RHICommandList& cmdList, const Scope<Cubemap>& cubemap) = 0;
 
         static Scope<SceneRenderer>Create(const Scope<GraphicsDevice>& graphicsDevice,
                                           const Scope<ResourceManager>& resourceManager,

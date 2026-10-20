@@ -33,7 +33,7 @@ public:
 		m_SwapchainDepthHandle = ZEngine::TextureHandle::MakeExternal(ZEngine::SWAPCHAIN_DEPTH_ID);
 
 		// Shader
-		auto m_BistroShader = m_ShaderLibrary.Load("Bistro Shader", "BistroShader.spv");
+		auto m_BistroShader = m_ShaderLibrary.Load("Model Shader", "ModelShader.spv");
 		auto m_SkyboxShader = m_ShaderLibrary.Load("Skybox Shader", "SkyboxShader.spv");
 
 		// Model layout for pipeline
@@ -51,21 +51,21 @@ public:
 		ZEngine::PipelineSpecification skyboxSpec { m_SkyboxShader, {}, false, false };
 
 		// Model loading
-		m_Model = m_ModelLoader->LoadModel(ASSETS_DIR"/models/SponzaModel/Sponza.gltf").value();
-		//m_Model = m_ModelLoader->LoadModel(ASSETS_DIR"/models/BistroModel/BistroExterior.gltf").value();
+		//m_Model = m_ModelLoader->LoadModel(ASSETS_DIR"/models/SponzaModel/Sponza.gltf").value();
+		m_Model = m_ModelLoader->LoadModel(ASSETS_DIR"/models/BistroModel/BistroExterior.gltf").value();
 
 		// Skybox
-		//std::vector<std::string> skyboxTextures = {
-		//	ASSETS_DIR"/textures/skybox/right.jpg",
-		//	ASSETS_DIR"/textures/skybox/left.jpg",
-		//	ASSETS_DIR"/textures/skybox/top.jpg",
-		//	ASSETS_DIR"/textures/skybox/bottom.jpg",
-		//	ASSETS_DIR"/textures/skybox/front.jpg",
-		//	ASSETS_DIR"/textures/skybox/back.jpg",
-		//};
-		//m_Skybox = ZEngine::Cubemap::Create();
-		//m_Skybox->LoadCubemap(skyboxTextures);
-		//m_Skybox->Init(skyboxSpec);
+		std::vector<std::string> skyboxTextures = {
+			ASSETS_DIR"/textures/skybox/right.jpg",
+			ASSETS_DIR"/textures/skybox/left.jpg",
+			ASSETS_DIR"/textures/skybox/top.jpg",
+			ASSETS_DIR"/textures/skybox/bottom.jpg",
+			ASSETS_DIR"/textures/skybox/front.jpg",
+			ASSETS_DIR"/textures/skybox/back.jpg",
+		};
+		m_Cubemap = ZEngine::Cubemap::Create(graphicsDevice, bindlessManager, resourceManager);
+		m_Cubemap->LoadCubemap(skyboxTextures);
+		m_Cubemap->Init(skyboxSpec);
 	}
 
 	void OnUpdate(ZEngine::Timestep ts) override {
@@ -114,8 +114,7 @@ public:
 				m_SceneRenderer->UpdateSceneBuffers(m_CameraController.GetCamera());
 				m_SceneRenderer->SetPipeline(m_ModelPipeline);
 				m_SceneRenderer->RecordOpaquePass(command);
-
-				//DrawSkybox(m_Skybox);
+				m_SceneRenderer->RecordSkyboxPass(command, m_Cubemap);
 
 				// ImGui (Temporary)
 				auto imGuiLayer = ZEngine::Application::Get().GetImGuiLayer();
@@ -127,26 +126,7 @@ public:
 			}
 		);
 
-		// ImGui pass
-		//m_RenderGraph->AddPass(
-		//	"ImGuiPass",
-		//	[&](ZEngine::RenderGraphPassBuilder& builder) {
-		//		builder.WriteColor(swapchainTexture);
-		//	},
-		//	[&](ZEngine::RHICommandList& command) {
-		//		command.BeginRendering(swapchainTexture, depthTexture);
-
-		//		auto imGuiLayer = ZEngine::Application::Get().GetImGuiLayer();
-
-		//		imGuiLayer->Begin();
-		//		imGuiLayer->OnImGuiRender();
-		//		imGuiLayer->End();
-
-		//		command.EndRendering();
-		//	}
-		//);
-
-		// Final pass: Present-to-image pass (Is it always final?)
+		// Final pass: Present-to-image pass
 		m_RenderGraph->AddPass(
 			"PresentPass",
 			[&](ZEngine::RenderGraphPassBuilder& builder) {
@@ -169,12 +149,12 @@ private:
 	ZEngine::ShaderLibrary m_ShaderLibrary;
 	ZEngine::Ref<ZEngine::PipelineState> m_ModelPipeline;
 	ZEngine::Model m_Model;
-	//ZEngine::Scope<ZEngine::Cubemap> m_Skybox;
 
 	ZEngine::TextureHandle m_SwapchainTextureHandle;
 	ZEngine::TextureHandle m_SwapchainDepthHandle;
 
 	ZEngine::Scope<ZEngine::ModelLoader> m_ModelLoader;
+	ZEngine::Scope<ZEngine::Cubemap> m_Cubemap;
 	ZEngine::Scope<ZEngine::RenderGraph> m_RenderGraph;
 	ZEngine::Scope<ZEngine::SceneRenderer> m_SceneRenderer;
 

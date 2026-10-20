@@ -4,6 +4,8 @@
 #include "VulkanContext.h"
 #include "VulkanSwapchain.h"
 
+#include <stb_image.h>
+
 namespace {
 
     void TransitionImageLayout(vk::raii::CommandBuffer& commandBuffer, const vk::raii::Image & image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout, uint32_t layerCount = 1);
@@ -246,6 +248,96 @@ namespace ZEngine {
 
     void VulkanResourceManager::DestroySampler(SamplerHandle handle) {
         m_SamplerPool.Free(handle);
+    }
+
+    TextureHandle VulkanResourceManager::CreateCubemap(const TextureCreateInfo& info) {
+        auto& context = m_GraphicsDevice->GetContext();
+
+        auto format = ConvertTextureFormat(info.format);
+        auto width = info.width;
+        auto height = info.height;
+        auto usage = ConvertTextureUsageFlags(info.usageFlags);
+
+        // Create image
+        vk::ImageCreateInfo imageInfo{ .flags = vk::ImageCreateFlagBits::eCubeCompatible,
+                                       .imageType = vk::ImageType::e2D,
+                                       .format = format,
+                                       .extent = {width, height, 1},
+                                       .mipLevels = info.levelCount,
+                                       .arrayLayers = 6,
+                                       .samples = vk::SampleCountFlagBits::e1,
+                                       .tiling = vk::ImageTiling::eOptimal,
+                                       .usage = usage,
+                                       .sharingMode = vk::SharingMode::eExclusive };
+        auto image = vk::raii::Image(context.GetDevice(), imageInfo);
+
+        // Allocate device memory
+        vk::MemoryRequirements memRequirements = image.getMemoryRequirements();
+        vk::MemoryAllocateInfo allocInfo{ .allocationSize = memRequirements.size, .memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits, static_cast<uint32_t>(vk::MemoryPropertyFlagBits::eDeviceLocal)) };
+
+        auto memory = vk::raii::DeviceMemory(context.GetDevice(), allocInfo);
+        image.bindMemory(memory, 0);
+
+        // Create image view
+        vk::ImageViewCreateInfo viewInfo {
+            .image = image,
+            .viewType = vk::ImageViewType::eCube,
+            .format = format,
+            .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor, .baseMipLevel = 0, .levelCount = info.levelCount, .baseArrayLayer = 0, .layerCount = 6}
+        };
+        auto imageView = vk::raii::ImageView(context.GetDevice(), viewInfo);
+
+        // Create texture resource for texture handle
+        VulkanTextureResource resource {
+            .image = std::move(image),
+            .imageView = std::move(imageView),
+            .memory = std::move(memory),
+            .format = format,
+            .width = width,
+            .height = height
+        };
+
+        return m_TexturePool.Allocate(std::move(resource));
+    }
+
+    void VulkanResourceManager::UploadCubemapData(TextureHandle dstHandle,
+        void* pixelData,
+        uint32_t width,
+        uint32_t height,
+        vk::DeviceSize layerSize,
+        vk::DeviceSize imageSize,
+        const std::vector<vk::BufferImageCopy>& regions)
+    {
+        auto& context = m_GraphicsDevice->GetContext();
+        auto& device = context.GetDevice();
+
+        BufferCreateInfo stagingInfo{
+            .size = imageSize,
+            .usageFlags = BufferUsageFlags::TransferSrc,
+            .isHostVisible = true
+        };
+        auto stagingHandle = CreateBuffer(stagingInfo);
+        auto stagingResource = ResolveBuffer(stagingHandle);
+        void* stagingData = stagingResource->mappedData;
+
+        stbi_uc** originalPixels = static_cast<stbi_uc**>(pixelData);
+        for (int i = 0; i < 6; ++i) {
+            stbi_uc* singleFacePtr = originalPixels[i];
+
+            uint8_t* dest = static_cast<uint8_t*>(stagingData) + (i * layerSize);
+            memcpy(dest, singleFacePtr, static_cast<size_t>(layerSize));
+        }
+        stagingResource->memory.unmapMemory();
+
+        auto dstResource = ResolveTexture(dstHandle);
+
+        vk::raii::CommandBuffer commandBuffer = BeginSingleTimeCommands(device, context.GetCurrentFrame().commandPool);
+        TransitionImageLayout(commandBuffer, dstResource->image, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal, 6);
+        CopyBufferToImage(commandBuffer, stagingResource->buffer, dstResource->image, static_cast<uint32_t>(width), static_cast<uint32_t>(height), regions);
+        TransitionImageLayout(commandBuffer, dstResource->image, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal, 6);
+        EndSingleTimeCommands(std::move(commandBuffer), context.GetGraphicsQueue());
+
+        DestroyBuffer(stagingHandle);
     }
 
     VulkanBufferResource* VulkanResourceManager::ResolveBuffer(BufferHandle handle) {

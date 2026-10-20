@@ -33,6 +33,7 @@ namespace ZEngine {
         void SetPipeline(const Ref<PipelineState>& pipeline) override;
 
         void RecordOpaquePass(RHICommandList& cmdList) override;
+        void RecordSkyboxPass(RHICommandList& cmdList, const Scope<Cubemap>& cubemap) override;
 
     private:
         void SubmitNodeRecursive(const std::shared_ptr<Node>& node, const glm::mat4& parentMatrix, const Model& model);

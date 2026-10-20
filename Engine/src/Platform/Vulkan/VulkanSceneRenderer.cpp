@@ -1,12 +1,13 @@
 #include "VulkanSceneRenderer.h"
 
-#include "Platform/Vulkan/VulkanGraphicsDevice.h"
-#include "Platform/Vulkan/VulkanResourceManager.h"
-#include "Platform/Vulkan/VulkanBindlessManager.h"
+#include "VulkanGraphicsDevice.h"
+#include "VulkanResourceManager.h"
+#include "VulkanBindlessManager.h"
 
-#include "ZEngine/Core/Application.h"
-#include "Platform/Vulkan/VulkanContext.h"
-#include "Platform/Vulkan/VulkanPipelineState.h"
+#include "VulkanContext.h"
+#include "VulkanPipelineState.h"
+
+#include "VulkanCubemap.h"
 
 namespace ZEngine {
 
@@ -37,7 +38,7 @@ namespace ZEngine {
         m_SceneUniformBuffers.resize(maxFramesInFlight);
         for (uint32_t i = 0; i < maxFramesInFlight; ++i) {
             BufferCreateInfo createInfo{
-                .size = sizeof(CameraData),
+                .size = sizeof(SceneUniformData),
                 .usageFlags = BufferUsageFlags::UniformBuffer | BufferUsageFlags::TransferDst,
                 .isHostVisible = false
             };
@@ -121,20 +122,21 @@ namespace ZEngine {
     }
 
     void VulkanSceneRenderer::UpdateSceneBuffers(PerspectiveCamera& camera) {
-        auto vk_GraphicsDevice = static_cast<VulkanGraphicsDevice*>(Application::Get().GetGraphicsDevice().get());
-        auto& vk_Context = vk_GraphicsDevice->GetContext();
-        auto currentFrame = vk_Context.GetCurrentFrameIndex();
+        auto& context = m_GraphicsDevice->GetContext();
+        auto currentFrame = context.GetCurrentFrameIndex();
 
-        CameraData cameraUBO{};
-        cameraUBO.model = glm::mat4(1.0f);
-        cameraUBO.view = camera.GetViewMatrix();
-        cameraUBO.proj = camera.GetProjectionMatrix();
+        SceneUniformData ubo{};
+        ubo.camera.model = glm::mat4(1.0f);
+        ubo.camera.view = camera.GetViewMatrix();
+        ubo.camera.proj = camera.GetProjectionMatrix();
 
-        m_ResourceManager->UploadBufferData(m_SceneUniformBuffers[currentFrame], &cameraUBO, sizeof(cameraUBO), BufferUsageFlags::UniformBuffer);
+        ubo.sunLight.direction = glm::vec3(0.0f, -1.0f, 0.0f);
+        ubo.sunLight.intensity = 1.0f;
+        ubo.sunLight.color = glm::vec3(1.0f, 1.0f, 1.0f);
 
-        //auto bufferResource = m_ResourceManager->ResolveBuffer(m_SceneUniformBuffers[currentFrame]);
-        //uint8_t* destination = static_cast<uint8_t*>(bufferResource->mappedData);
-        //std::memcpy(destination, &cameraUBO, sizeof(cameraUBO));
+        ubo.cameraPos = glm::vec4(camera.GetPosition(), 1.0f);
+
+        m_ResourceManager->UploadBufferData(m_SceneUniformBuffers[currentFrame], &ubo, sizeof(ubo), BufferUsageFlags::UniformBuffer);
     }
 
     void VulkanSceneRenderer::RegisterPasses(RenderGraph& renderGraph, PerspectiveCamera& camera, TextureHandle colorTarget, TextureHandle depthTarget) {
@@ -196,6 +198,39 @@ namespace ZEngine {
 
             commandBuffer.drawIndexed(draw.indexCount, 1, 0, 0, 0);
         }
+    }
+
+    void VulkanSceneRenderer::RecordSkyboxPass(RHICommandList& cmdList, const Scope<Cubemap>& cubemap) {
+        auto& context = m_GraphicsDevice->GetContext();
+        const auto currentFrame = context.GetCurrentFrameIndex();
+        const auto& commandBuffer = context.GetCurrentFrame().commandBuffer;
+
+        auto vk_Cubemap = static_cast<VulkanCubemap*>(cubemap.get());
+
+        // Pipeline bind
+        commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, vk_Cubemap->GetNativePipeline());
+
+        // Identical to our record opaque pass code
+        auto pipelineLayout = m_BindlessManager->GetPipelineLayout();
+        auto bindlessSet = m_BindlessManager->GetDescriptorSet();
+        auto& sceneSet = m_SceneDescriptorSets;
+        // Descriptors bind
+        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelineLayout, 0, bindlessSet, nullptr);
+        commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelineLayout, 1, *sceneSet[currentFrame], nullptr);
+
+        // Push constant
+        CubemapData pushData{};
+        pushData.textureIndex = vk_Cubemap->GetTextureIndex();
+        pushData.samplerIndex = vk_Cubemap->GetSamplerIndex();
+
+        vk::ArrayProxy<const uint8_t> dataProxy(
+            sizeof(CubemapData),
+            reinterpret_cast<const uint8_t*>(&pushData)
+        );
+        commandBuffer.pushConstants(pipelineLayout, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0, dataProxy);
+
+        // Draw
+        commandBuffer.draw(36, 1, 0, 0);
     }
 
 }

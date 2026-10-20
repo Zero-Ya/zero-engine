@@ -2,54 +2,46 @@
 
 #include "ZEngine/Renderer/Cubemap.h"
 
-#include "ZEngine/Renderer/PipelineState.h"
+#include "ZEngine/RHI/RHICommon.h"
+#include "ZEngine/RHI/RHITypes.h"
 
 #include <vulkan/vulkan_raii.hpp>
 
 namespace ZEngine {
-	
-	class Texture2D;
-	class UniformBuffer;
+
+	class VulkanGraphicsDevice;
+	class VulkanResourceManager;
+	class VulkanBindlessManager;
 
 	class VulkanCubemap : public Cubemap {
 	public:
-		VulkanCubemap();
+		VulkanCubemap(const Scope<GraphicsDevice>& graphicsDevice, const Scope<BindlessDescriptorManager>& bindlessManager, const Scope<ResourceManager>& resourceManager);
 		virtual ~VulkanCubemap() = default;
 
 		virtual void Init(const PipelineSpecification& spec) override;
 
-		virtual void LoadCubemap(std::vector<std::string> faces) override;
-
-		virtual uint32_t GetWidth() const override { return m_Width; }
-		virtual uint32_t GetHeight() const override { return m_Height; }
+		virtual std::optional<CubemapData> LoadCubemap(std::vector<std::string> faces) override;
 
 		const vk::raii::Pipeline& GetNativePipeline() const { return m_Pipeline; }
-		const vk::PipelineLayout& GetRawNativeLayout() const { return m_PipelineLayout; }
 
-		void UpdateDescriptorSet();
-
-		const vk::raii::DescriptorSet& GetDescriptorSet() const { return m_DescriptorSet; }
+		const uint32_t GetTextureIndex() const { return m_TextureIndex; }
+		const uint32_t GetSamplerIndex() const { return m_SamplerIndex; }
 
 	private:
 		void CreatePipelineState(const PipelineSpecification& spec);
 
-		void CreateCubemapImageView(const vk::raii::Device& device, vk::Format format, uint32_t levelCount);
-		void CreateCubemapSampler(const vk::raii::Device& device, const vk::raii::PhysicalDevice& physicalDevice, float maxLod);
-
-		void AllocateDescriptorSet();
+		uint32_t RegisterTexture(TextureHandle handle, const TextureLayout& layout);
+		uint32_t RegisterSampler();
 
 	private:
-		uint32_t m_Width, m_Height;
-
-		vk::PipelineLayout m_PipelineLayout = nullptr;
 		vk::raii::Pipeline m_Pipeline = nullptr;
 
-		vk::raii::DescriptorSet m_DescriptorSet = nullptr;
+		uint32_t m_TextureIndex;
+		uint32_t m_SamplerIndex;
 
-		vk::raii::Image m_Image = nullptr;
-		vk::raii::DeviceMemory m_ImageMemory = nullptr;
-		vk::raii::ImageView m_ImageView = nullptr;
-		vk::raii::Sampler m_Sampler = nullptr;
+		VulkanGraphicsDevice*  m_GraphicsDevice  = nullptr;
+		VulkanResourceManager* m_ResourceManager = nullptr;
+		VulkanBindlessManager* m_BindlessManager = nullptr;
 	};
 
 }

@@ -171,7 +171,7 @@ namespace ZEngine {
             .addressModeU = addressModeU,
             .addressModeV = addressModeV,
             .addressModeW = vk::SamplerAddressMode::eRepeat
-            });
+        });
 
         auto bindlessIndex = m_BindlessManager->RegisterSampler(samplerHandle);
         return bindlessIndex;

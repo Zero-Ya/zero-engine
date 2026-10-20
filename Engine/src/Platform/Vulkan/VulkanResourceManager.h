@@ -61,10 +61,20 @@ namespace ZEngine {
                                uint32_t height,
                                size_t size,
                                const std::vector<vk::BufferImageCopy>& regions);
+
         void DestroyTexture(TextureHandle handle) override;
 
         SamplerHandle CreateSampler(const SamplerCreateInfo& info);
         void DestroySampler(SamplerHandle handle);
+
+        TextureHandle CreateCubemap(const TextureCreateInfo& info);
+        void UploadCubemapData(TextureHandle dstHandle,
+            void* pixelData,
+            uint32_t width,
+            uint32_t height,
+            vk::DeviceSize layerSize,
+            vk::DeviceSize imageSize,
+            const std::vector<vk::BufferImageCopy>& regions);
 
         // Mainly for vulkan command list
         VulkanBufferResource* ResolveBuffer(BufferHandle handle);

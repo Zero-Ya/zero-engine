@@ -6,10 +6,29 @@
 
 namespace ZEngine {
 
+    struct DirectionalLight {
+        glm::vec3 direction { 0.0f, -1.0f ,0.0f };
+        float intensity = 1.0f;
+
+        glm::vec3 color { 1.0f, 1.0f, 1.0f };
+        float padding = 0.0f;
+    };
+
     struct CameraData {
         glm::mat4 model;
         glm::mat4 view;
         glm::mat4 proj;
+    };
+
+    struct SceneUniformData {
+        CameraData camera;
+        DirectionalLight sunLight;
+        glm::vec4 cameraPos;
+    };
+
+    struct CubemapData {
+        uint32_t textureIndex;
+        uint32_t samplerIndex;
     };
 
     struct MeshPushConstants {
