@@ -102,6 +102,7 @@ VSOutput vertMain(uint vertexID : SV_VertexID) {
 
     // Strip translation from view matrix so skybox stays centered on camera
     float3x3 staticView = (float3x3)scene.camera.view;
+
     float4 clipPos = mul(scene.camera.proj, float4(mul(staticView, pos), 1.0));
 
     // Force z = w so that z/w = 1.0 (Far Plane) after perspective division

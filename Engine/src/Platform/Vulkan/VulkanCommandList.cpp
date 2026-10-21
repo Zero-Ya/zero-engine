@@ -35,11 +35,9 @@ namespace ZEngine {
          vk::RenderingAttachmentInfo colorAttachmentInfo {};
          colorAttachmentInfo.imageView = colorImageView;
          colorAttachmentInfo.imageLayout = ConvertLayout(TextureLayout::COLOR_ATTACHMENT);
-         colorAttachmentInfo.loadOp = vk::AttachmentLoadOp::eClear;
+         colorAttachmentInfo.loadOp = renderingInfo.colorAttachments[0].clearOnLoad ? vk::AttachmentLoadOp::eClear : vk::AttachmentLoadOp::eLoad;;
          colorAttachmentInfo.storeOp = vk::AttachmentStoreOp::eStore;
          colorAttachmentInfo.clearValue = vk::ClearColorValue{ 0.5f, 0.0f, 0.5f, 1.0f };
-         
-         //TransitionImageLayout(swapchainTexture, TextureLayout::UNDEFINED, TextureLayout::COLOR_ATTACHMENT);
 
         vk::ImageView depthImageView;
         if (renderingInfo.depthAttachment.texture.IsExternal()) {
@@ -54,12 +52,10 @@ namespace ZEngine {
         vk::RenderingAttachmentInfo depthAttachmentInfo {
             .imageView = depthImageView,
             .imageLayout = ConvertLayout(TextureLayout::DEPTH_ATTACHMENT),
-            .loadOp = vk::AttachmentLoadOp::eClear,
+            .loadOp = renderingInfo.depthAttachment.clearOnLoad ? vk::AttachmentLoadOp::eClear : vk::AttachmentLoadOp::eLoad,
             .storeOp = vk::AttachmentStoreOp::eStore,
             .clearValue = vk::ClearDepthStencilValue(1.0f, 0)
         };
-        
-        //TransitionImageLayout(depthTexture, TextureLayout::UNDEFINED, TextureLayout::DEPTH_ATTACHMENT);
 
         auto& swapchain = m_GraphicsDevice->GetSwapchain();
         const auto& extent = swapchain.GetExtent();

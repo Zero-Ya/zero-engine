@@ -51,8 +51,8 @@ public:
 		ZEngine::PipelineSpecification skyboxSpec { m_SkyboxShader, {}, false, false };
 
 		// Model loading
-		//m_Model = m_ModelLoader->LoadModel(ASSETS_DIR"/models/SponzaModel/Sponza.gltf").value();
-		m_Model = m_ModelLoader->LoadModel(ASSETS_DIR"/models/BistroModel/BistroExterior.gltf").value();
+		m_Model = m_ModelLoader->LoadModel(ASSETS_DIR"/models/SponzaModel/Sponza.gltf").value();
+		//m_Model = m_ModelLoader->LoadModel(ASSETS_DIR"/models/BistroModel/BistroExterior.gltf").value();
 
 		// Skybox
 		std::vector<std::string> skyboxTextures = {
@@ -85,44 +85,41 @@ public:
 
 		// Main pass
 		m_RenderGraph->AddPass(
-			"MainPass",
+			"OpaquePass",
 			[&](ZEngine::RenderGraphPassBuilder& builder) {
 				builder.WriteColor(m_SwapchainTextureHandle);
 				builder.WriteDepth(m_SwapchainDepthHandle);
 			},
 			[&](ZEngine::RHICommandList& command) {
-				ZEngine::ColorAttachmentInfo colorAttachmentInfo {
-					.texture = m_SwapchainTextureHandle,
-					.layout = ZEngine::TextureLayout::COLOR_ATTACHMENT
-				};
-
-				ZEngine::RenderingInfo renderingInfo {
-					.renderWidth = ZEngine::Application::Get().GetWindow().GetWidth(),
-					.renderHeight = ZEngine::Application::Get().GetWindow().GetHeight(),
-					.colorAttachments = std::vector(1, colorAttachmentInfo),
-					.colorAttachmentCount = 1,
-					.depthAttachment = m_SwapchainDepthHandle,
-					.hasDepth = true
-				};
-
-				command.BeginRendering(renderingInfo);
-
-				command.SetViewport(0, 0, ZEngine::Application::Get().GetWindow().GetWidth(), ZEngine::Application::Get().GetWindow().GetHeight());
-				command.SetScissor(0, 0, ZEngine::Application::Get().GetWindow().GetWidth(), ZEngine::Application::Get().GetWindow().GetHeight());
-				// SetClearColor
-
 				m_SceneRenderer->UpdateSceneBuffers(m_CameraController.GetCamera());
 				m_SceneRenderer->SetPipeline(m_ModelPipeline);
 				m_SceneRenderer->RecordOpaquePass(command);
-				m_SceneRenderer->RecordSkyboxPass(command, m_Cubemap);
+			}
+		);
 
-				// ImGui (Temporary)
+		m_RenderGraph->AddPass(
+			"SkyboxPass",
+			[&](ZEngine::RenderGraphPassBuilder& builder) {
+				builder.WriteColor(m_SwapchainTextureHandle);
+				builder.WriteDepth(m_SwapchainDepthHandle);
+			},
+			[&](ZEngine::RHICommandList& command) {
+				m_SceneRenderer->RecordSkyboxPass(command, m_Cubemap);
+			}
+		);
+
+		m_RenderGraph->AddPass(
+			"ImGuiPass",
+			[&](ZEngine::RenderGraphPassBuilder& builder) {
+				builder.WriteColor(m_SwapchainTextureHandle);
+				builder.WriteDepth(m_SwapchainDepthHandle); // Needed or no?
+			},
+			[&](ZEngine::RHICommandList& command) {
 				auto imGuiLayer = ZEngine::Application::Get().GetImGuiLayer();
+
 				imGuiLayer->Begin();
 				imGuiLayer->OnImGuiRender();
 				imGuiLayer->End();
-
-				command.EndRendering();
 			}
 		);
 

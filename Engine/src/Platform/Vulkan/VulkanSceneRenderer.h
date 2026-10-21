@@ -19,15 +19,15 @@ namespace ZEngine {
         );
         ~VulkanSceneRenderer();
 
-        // Frame Lifecycle
+        // Frame lifecycle
         void BeginFrame() override;
         void EndFrame() override;
 
-        // Hierarchical Model & Submesh Submission
+        // Hierarchical model and submesh submission
         void SubmitModel(const Model& model, const glm::mat4& worldTransform) override;
         void SubmitSubmesh(const Submesh& submesh, const glm::mat4& worldTransform) override;
 
-        // RenderGraph Pass Registration
+        // Render graph pass registration
         void RegisterPasses(RenderGraph& renderGraph, PerspectiveCamera& camera, TextureHandle colorTarget, TextureHandle depthTarget) override;
 
         void SetPipeline(const Ref<PipelineState>& pipeline) override;

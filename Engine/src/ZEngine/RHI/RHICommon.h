@@ -204,7 +204,7 @@ namespace ZEngine {
         TextureLayout layout = TextureLayout::COLOR_ATTACHMENT;
         //std::array<float, 4> clearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
         ClearColorValue clearColor { 1.0f, 0.0f, 0.0f, 1.0f };
-        bool clearOnLoad = true;
+        bool clearOnLoad = false;
     };
 
     struct DepthAttachmentInfo {
@@ -212,7 +212,7 @@ namespace ZEngine {
         TextureLayout layout = TextureLayout::DEPTH_ATTACHMENT;
         float clearDepth = 1.0f;
         uint32_t clearStencil = 0;
-        bool clearOnLoad = true;
+        bool clearOnLoad = false;
     };
 
     struct RenderingInfo {
