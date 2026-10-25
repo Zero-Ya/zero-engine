@@ -76,6 +76,8 @@ namespace ZEngine {
             vk::DeviceSize imageSize,
             const std::vector<vk::BufferImageCopy>& regions);
 
+        TextureHandle CreateShadowMap(const TextureCreateInfo& info);
+
         // Mainly for vulkan command list
         VulkanBufferResource* ResolveBuffer(BufferHandle handle);
         VulkanTextureResource* ResolveTexture(TextureHandle handle);

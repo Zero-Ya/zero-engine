@@ -52,7 +52,7 @@ namespace ZEngine {
 		vk::PipelineRasterizationStateCreateInfo rasterizerInfo { .depthClampEnable = vk::False,
 																  .rasterizerDiscardEnable = vk::False,
 																  .polygonMode = vk::PolygonMode::eFill,
-																  .cullMode = vk::CullModeFlagBits::eNone,
+																  .cullMode = vk::CullModeFlagBits::eBack,
 																  .frontFace = vk::FrontFace::eCounterClockwise,
 																  .depthBiasEnable = vk::False,
 																  .lineWidth = 1.0f };

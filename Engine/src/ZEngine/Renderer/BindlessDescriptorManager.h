@@ -7,10 +7,11 @@ namespace ZEngine {
 	class GraphicsDevice;
 	class ResourceManager;
 
-	constexpr uint32_t MAX_BINDLESS_TEXTURES = 1024;
-	constexpr uint32_t MAX_BINDLESS_SAMPLERS = 16;
-	constexpr uint32_t MAX_BINDLESS_STORAGES = 10;
-	constexpr uint32_t MAX_BINDLESS_UNIFORMS = 10;
+	constexpr uint32_t MAX_BINDLESS_TEXTURES   = 1024;
+	constexpr uint32_t MAX_BINDLESS_SAMPLERS   = 16;
+	constexpr uint32_t MAX_BINDLESS_STORAGES   = 10;
+	constexpr uint32_t MAX_COMPARISON_SAMPLERS = 16;
+	constexpr uint32_t MAX_BINDLESS_UNIFORMS   = 10;
 
 	class BindlessDescriptorManager {
 	public:

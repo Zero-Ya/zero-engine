@@ -25,7 +25,7 @@ namespace ZEngine {
         auto& device = context.GetDevice();
 
         // First descriptor sets (Set 0)
-        std::array<vk::DescriptorSetLayoutBinding, 3> bindingsSet0 {};
+        std::array<vk::DescriptorSetLayoutBinding, 4> bindingsSet0 {};
 
         // Binding 0: Texture array
         bindingsSet0[0].binding = 0;
@@ -45,10 +45,17 @@ namespace ZEngine {
         bindingsSet0[2].descriptorCount = 1;
         bindingsSet0[2].stageFlags = vk::ShaderStageFlagBits::eFragment;
 
+        // Binding 3: Comparison sampler array
+        bindingsSet0[3].binding = 3;
+        bindingsSet0[3].descriptorType = vk::DescriptorType::eSampler;
+        bindingsSet0[3].descriptorCount = MAX_COMPARISON_SAMPLERS;
+        bindingsSet0[3].stageFlags = vk::ShaderStageFlagBits::eFragment;
+
         // Enable Bindless flags for Texture/Sampler array bindings (0 and 1)
-        std::array<vk::DescriptorBindingFlags, 3> bindingFlags = {
+        std::array<vk::DescriptorBindingFlags, 4> bindingFlags = {
             vk::DescriptorBindingFlagBits::ePartiallyBound | vk::DescriptorBindingFlagBits::eUpdateAfterBind,
             vk::DescriptorBindingFlagBits::ePartiallyBound | vk::DescriptorBindingFlagBits::eUpdateAfterBind,
+            {},
             {}
         };
 
@@ -57,7 +64,7 @@ namespace ZEngine {
         vk::DescriptorSetLayoutCreateInfo layoutInfo0 { 
             .pNext = &bindingFlagsInfo,
             .flags = vk::DescriptorSetLayoutCreateFlagBits::eUpdateAfterBindPool,
-            .bindingCount = 3,
+            .bindingCount = 4,
             .pBindings = bindingsSet0.data() };
         m_Set0Layout = vk::raii::DescriptorSetLayout(device, layoutInfo0);
 
@@ -82,7 +89,7 @@ namespace ZEngine {
         // Create descriptor pool
         std::array<vk::DescriptorPoolSize, 4> poolSizes = {
             vk::DescriptorPoolSize{ vk::DescriptorType::eSampledImage, MAX_BINDLESS_TEXTURES },
-            vk::DescriptorPoolSize{ vk::DescriptorType::eSampler, MAX_BINDLESS_SAMPLERS },
+            vk::DescriptorPoolSize{ vk::DescriptorType::eSampler, MAX_BINDLESS_SAMPLERS + MAX_COMPARISON_SAMPLERS },
             vk::DescriptorPoolSize{ vk::DescriptorType::eStorageBuffer, MAX_BINDLESS_STORAGES },
             vk::DescriptorPoolSize{ vk::DescriptorType::eUniformBuffer, MAX_BINDLESS_UNIFORMS },
         };
@@ -124,7 +131,7 @@ namespace ZEngine {
         vk::PushConstantRange pushConstantRange(
             vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
             0,
-            sizeof(MeshPushConstants)
+            sizeof(PushConstantData)
         );
 
         vk::DescriptorSetLayout layouts[] = {m_Set0Layout, m_Set1Layout};
@@ -169,6 +176,23 @@ namespace ZEngine {
         vk::DescriptorImageInfo samplerInfo { .sampler = resource->sampler, .imageView = nullptr, .imageLayout = vk::ImageLayout::eUndefined };
         vk::WriteDescriptorSet descriptorWrite { .dstSet = *m_DescriptorSet,
                                                  .dstBinding = 1, // Binding 1
+                                                 .dstArrayElement = handle.GetIndex(),
+                                                 .descriptorCount = 1,
+                                                 .descriptorType = vk::DescriptorType::eSampler,
+                                                 .pImageInfo = &samplerInfo };
+        device.updateDescriptorSets(descriptorWrite, nullptr);
+        return handle.GetIndex();
+    }
+
+    uint32_t VulkanBindlessManager::RegisterCmpSampler(SamplerHandle handle) {
+        auto& context = m_GraphicsDevice->GetContext();
+        auto& device = context.GetDevice();
+
+        auto resource = m_ResourceManager->ResolveSampler(handle);
+
+        vk::DescriptorImageInfo samplerInfo { .sampler = resource->sampler, .imageView = nullptr, .imageLayout = vk::ImageLayout::eUndefined };
+        vk::WriteDescriptorSet descriptorWrite{ .dstSet = *m_DescriptorSet,
+                                                 .dstBinding = 3, // Binding 3
                                                  .dstArrayElement = handle.GetIndex(),
                                                  .descriptorCount = 1,
                                                  .descriptorType = vk::DescriptorType::eSampler,

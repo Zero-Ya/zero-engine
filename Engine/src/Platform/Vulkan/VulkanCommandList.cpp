@@ -1,8 +1,6 @@
 #include "VulkanCommandList.h"
 
 #include "VulkanGraphicsDevice.h"
-#include "VulkanSwapchain.h"
-
 #include "VulkanResourceManager.h"
 
 namespace ZEngine {
@@ -23,49 +21,51 @@ namespace ZEngine {
     void VulkanCommandList::BeginRendering(const RenderingInfo& renderingInfo) {
 
         vk::ImageView colorImageView;
-        if (renderingInfo.colorAttachments[0].texture.IsExternal()) {
-            auto colorTextureResource = m_ResourceManager->ResolveExternal(renderingInfo.colorAttachments[0].texture);
-            colorImageView = colorTextureResource->imageView;
-        }
-        else {
-            auto colorTextureResource = m_ResourceManager->ResolveTexture(renderingInfo.colorAttachments[0].texture);
-            colorImageView = colorTextureResource->imageView;
-        }
-
          vk::RenderingAttachmentInfo colorAttachmentInfo {};
-         colorAttachmentInfo.imageView = colorImageView;
-         colorAttachmentInfo.imageLayout = ConvertLayout(TextureLayout::COLOR_ATTACHMENT);
-         colorAttachmentInfo.loadOp = renderingInfo.colorAttachments[0].clearOnLoad ? vk::AttachmentLoadOp::eClear : vk::AttachmentLoadOp::eLoad;;
-         colorAttachmentInfo.storeOp = vk::AttachmentStoreOp::eStore;
-         colorAttachmentInfo.clearValue = vk::ClearColorValue{ 0.5f, 0.0f, 0.5f, 1.0f };
+
+        if (renderingInfo.hasColor) {
+            if (renderingInfo.colorAttachments[0].texture.IsExternal()) {
+                auto colorTextureResource = m_ResourceManager->ResolveExternal(renderingInfo.colorAttachments[0].texture);
+                colorImageView = colorTextureResource->imageView;
+            }
+            else {
+                auto colorTextureResource = m_ResourceManager->ResolveTexture(renderingInfo.colorAttachments[0].texture);
+                colorImageView = colorTextureResource->imageView;
+            }
+
+            colorAttachmentInfo.imageView = colorImageView;
+            colorAttachmentInfo.imageLayout = ConvertLayout(TextureLayout::COLOR_ATTACHMENT);
+            colorAttachmentInfo.loadOp = renderingInfo.colorAttachments[0].clearOnLoad ? vk::AttachmentLoadOp::eClear : vk::AttachmentLoadOp::eLoad;
+            colorAttachmentInfo.storeOp = vk::AttachmentStoreOp::eStore;
+            colorAttachmentInfo.clearValue = vk::ClearColorValue{ 0.0f, 0.0f, 0.0f, 1.0f };
+        }
 
         vk::ImageView depthImageView;
-        if (renderingInfo.depthAttachment.texture.IsExternal()) {
-            auto depthTextureResource = m_ResourceManager->ResolveExternal(renderingInfo.depthAttachment.texture);
-            depthImageView = depthTextureResource->imageView;
-        }
-        else {
-            auto depthTextureResource = m_ResourceManager->ResolveTexture(renderingInfo.depthAttachment.texture);
-            depthImageView = depthTextureResource->imageView;
-        }
+        vk::RenderingAttachmentInfo depthAttachmentInfo {};
 
-        vk::RenderingAttachmentInfo depthAttachmentInfo {
-            .imageView = depthImageView,
-            .imageLayout = ConvertLayout(TextureLayout::DEPTH_ATTACHMENT),
-            .loadOp = renderingInfo.depthAttachment.clearOnLoad ? vk::AttachmentLoadOp::eClear : vk::AttachmentLoadOp::eLoad,
-            .storeOp = vk::AttachmentStoreOp::eStore,
-            .clearValue = vk::ClearDepthStencilValue(1.0f, 0)
-        };
+        if (renderingInfo.hasDepth) {
+            if (renderingInfo.depthAttachment.texture.IsExternal()) {
+                auto depthTextureResource = m_ResourceManager->ResolveExternal(renderingInfo.depthAttachment.texture);
+                depthImageView = depthTextureResource->imageView;
+            }
+            else {
+                auto depthTextureResource = m_ResourceManager->ResolveTexture(renderingInfo.depthAttachment.texture);
+                depthImageView = depthTextureResource->imageView;
+            }
 
-        auto& swapchain = m_GraphicsDevice->GetSwapchain();
-        const auto& extent = swapchain.GetExtent();
+            depthAttachmentInfo.imageView = depthImageView;
+            depthAttachmentInfo.imageLayout = ConvertLayout(TextureLayout::DEPTH_ATTACHMENT);
+            depthAttachmentInfo.loadOp = renderingInfo.depthAttachment.clearOnLoad ? vk::AttachmentLoadOp::eClear : vk::AttachmentLoadOp::eLoad;
+            depthAttachmentInfo.storeOp = vk::AttachmentStoreOp::eStore;
+            depthAttachmentInfo.clearValue = vk::ClearDepthStencilValue(1.0f, 0);
+        }
 
         vk::RenderingInfo vkRenderingInfo {
-            .renderArea = vk::Rect2D{ vk::Offset2D{0, 0}, extent },
+            .renderArea = vk::Rect2D{ vk::Offset2D{0, 0}, { renderingInfo.renderWidth, renderingInfo.renderHeight } },
             .layerCount = 1,
-            .colorAttachmentCount = 1,
-            .pColorAttachments = &colorAttachmentInfo,
-            .pDepthAttachment = &depthAttachmentInfo
+            .colorAttachmentCount = renderingInfo.colorAttachmentCount,
+            .pColorAttachments = renderingInfo.hasColor ? &colorAttachmentInfo : nullptr,
+            .pDepthAttachment = renderingInfo.hasDepth ? &depthAttachmentInfo : nullptr
         };
 
         m_CommandBuffer.beginRendering(vkRenderingInfo);
@@ -81,7 +81,7 @@ namespace ZEngine {
     }
 
     void VulkanCommandList::SetScissor(int32_t x, int32_t y, uint32_t width, uint32_t height) {
-        vk::Rect2D scissor { { (int32_t)x, (int32_t)y }, {width, height} };
+        vk::Rect2D scissor { { (int32_t)x, (int32_t)y }, { width, height } };
         m_CommandBuffer.setScissor(0, { scissor });
     }
 
@@ -96,18 +96,22 @@ namespace ZEngine {
         auto [dstStage, dstAccess, newLayout] = MapStateToVulkan(newTextureLayout);
 
         vk::Image image; 
+        vk::ImageAspectFlags aspectMask;
+
         if (texture.IsExternal()) {
             auto colorTextureResource = m_ResourceManager->ResolveExternal(texture);
             image = colorTextureResource->image;
+            aspectMask = GetAspectFromFormat(colorTextureResource->format);
         }
         else {
             auto colorTextureResource = m_ResourceManager->ResolveTexture(texture);
             image = colorTextureResource->image;
+            aspectMask = GetAspectFromFormat(colorTextureResource->format);
         }
 
-        vk::ImageAspectFlags aspectMask = (newTextureLayout == TextureLayout::DEPTH_ATTACHMENT)
-            ? vk::ImageAspectFlagBits::eDepth
-            : vk::ImageAspectFlagBits::eColor;
+        //vk::ImageAspectFlags aspectMask = (newTextureLayout == TextureLayout::DEPTH_ATTACHMENT)
+        //    ? vk::ImageAspectFlagBits::eDepth
+        //    : vk::ImageAspectFlagBits::eColor;
 
         vk::ImageMemoryBarrier2 barrier = {
             .srcStageMask = srcStage,
@@ -200,6 +204,14 @@ namespace ZEngine {
             default:
                 ZE_ERROR("Unsupported layout!");
                 return {};
+        }
+    }
+
+    vk::ImageAspectFlags VulkanCommandList::GetAspectFromFormat(vk::Format format) {
+        switch (format) {
+            case vk::Format::eD32Sfloat: return vk::ImageAspectFlagBits::eDepth;
+            case vk::Format::eD24UnormS8Uint: return vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil;
+            default: return vk::ImageAspectFlagBits::eColor;
         }
     }
 

@@ -123,11 +123,14 @@ namespace ZEngine {
 				});
 
 		// Check if the physicalDevice supports the required features
-		auto features = physicalDevice.template getFeatures2<vk::PhysicalDeviceFeatures2,
+		auto features = physicalDevice.template getFeatures2<
+			vk::PhysicalDeviceFeatures2,
 			vk::PhysicalDeviceVulkan11Features,
 			vk::PhysicalDeviceVulkan13Features,
 			vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT>();
-		bool supportsRequiredFeatures = features.template get<vk::PhysicalDeviceFeatures2>().features.samplerAnisotropy &&
+		bool supportsRequiredFeatures = 
+			features.template get<vk::PhysicalDeviceFeatures2>().features.samplerAnisotropy &&
+			features.template get<vk::PhysicalDeviceFeatures2>().features.depthClamp &&
 			features.template get<vk::PhysicalDeviceVulkan13Features>().dynamicRendering &&
 			features.template get<vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT>().extendedDynamicState &&
 			features.template get<vk::PhysicalDeviceVulkan11Features>().shaderDrawParameters;
@@ -168,7 +171,7 @@ namespace ZEngine {
 						   vk::PhysicalDeviceVulkan11Features,
 						   vk::PhysicalDeviceVulkan12Features>
 		featureChain = {
-			{.features = {.samplerAnisotropy = true}},
+			{.features = {.depthClamp = true, .samplerAnisotropy = true}},
 			{.synchronization2 = true, .dynamicRendering = true},
 			{.extendedDynamicState = true},
 			// Vulkan 1.1 features

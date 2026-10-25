@@ -221,6 +221,7 @@ namespace ZEngine {
         std::vector<ColorAttachmentInfo> colorAttachments;
         uint32_t colorAttachmentCount = 0;
         DepthAttachmentInfo depthAttachment{};
+        bool hasColor = false;
         bool hasDepth = false;
     };
 

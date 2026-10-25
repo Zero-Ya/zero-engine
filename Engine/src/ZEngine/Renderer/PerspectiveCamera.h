@@ -4,6 +4,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include "ZEngine/Core/Frustum.h"
+
 namespace ZEngine {
 
 	class PerspectiveCamera {
@@ -22,6 +24,9 @@ namespace ZEngine {
 		void SetProjection(float fov, float aspectRatio, float zNear, float zFar);
 		void SetPosition(glm::vec3 pos);
 		void SetRotation(float pitch, float yaw) { m_Pitch = pitch; m_Yaw = yaw; UpdateCameraVectors(); }
+
+		void NormalizePlane(Plane& plane);
+		Frustum ExtractFrustum(const glm::mat4& viewProj);
 
 	private:
 		void RecalculateProjection();

@@ -27,17 +27,23 @@ namespace ZEngine {
         void SubmitModel(const Model& model, const glm::mat4& worldTransform) override;
         void SubmitSubmesh(const Submesh& submesh, const glm::mat4& worldTransform) override;
 
+        void UpdateDrawQueue(PerspectiveCamera& camera) override;
+        void UpdateShadowDrawQueue(const glm::mat4& lightViewProj) override;
+
         // Render graph pass registration
         void RegisterPasses(RenderGraph& renderGraph, PerspectiveCamera& camera, TextureHandle colorTarget, TextureHandle depthTarget) override;
 
         void SetPipeline(const Ref<PipelineState>& pipeline) override;
 
-        void RecordOpaquePass(RHICommandList& cmdList) override;
+        void RecordShadowPass(RHICommandList& cmdList, const Ref<ShadowMap>& shadowMap, const glm::mat4& lightSpaceMatrix) override;
+        void RecordOpaquePass(RHICommandList& cmdList, const Ref<ShadowMap>& shadowMap) override;
         void RecordSkyboxPass(RHICommandList& cmdList, const Scope<Cubemap>& cubemap) override;
 
     private:
         void SubmitNodeRecursive(const std::shared_ptr<Node>& node, const glm::mat4& parentMatrix, const Model& model);
-        void UpdateSceneBuffers(PerspectiveCamera& camera) override;
+
+        void UpdateSceneBuffers(const DirectionalLight& lighting, PerspectiveCamera& camera, const glm::mat4& lightSpaceMatrix) override;
+        glm::mat4 ComputeLightSpaceMatrix(const DirectionalLight& lighting, PerspectiveCamera& camera) override;
 
         VulkanGraphicsDevice* m_GraphicsDevice = nullptr;
         VulkanResourceManager* m_ResourceManager = nullptr;
@@ -48,6 +54,8 @@ namespace ZEngine {
 
         std::vector<DrawCommand> m_OpaqueDrawQueue;
 
+        std::vector<DrawCommand> m_VisibleDrawQueue;
+        std::vector<DrawCommand> m_ShadowVisibleDrawQueue;
     };
 
 }

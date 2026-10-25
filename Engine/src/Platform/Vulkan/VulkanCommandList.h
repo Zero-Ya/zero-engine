@@ -49,17 +49,9 @@ namespace ZEngine {
         void Draw(uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t firstVertex = 0, uint32_t firstInstance = 0) override;
 
     private:
-        //void TransitionImageLayout(vk::Image               image,
-        //                           vk::ImageLayout         old_layout,
-        //                           vk::ImageLayout         new_layout,
-        //                           vk::AccessFlags2        src_access_mask,
-        //                           vk::AccessFlags2        dst_access_mask,
-        //                           vk::PipelineStageFlags2 src_stage_mask,
-        //                           vk::PipelineStageFlags2 dst_stage_mask,
-        //                           vk::ImageAspectFlags    image_aspect_flags);
-
         vk::ImageLayout ConvertLayout(TextureLayout layout) const;
         VulkanStateMapping MapStateToVulkan(TextureLayout layout);
+        vk::ImageAspectFlags GetAspectFromFormat(vk::Format format);
 
         vk::CommandBuffer m_CommandBuffer = nullptr;
 

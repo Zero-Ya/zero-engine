@@ -272,6 +272,21 @@ namespace ZEngine {
                 }
             }
 
+            // Assign AABB bounds
+            // Initialize bounds to extreme values
+            glm::vec3 minBounds(std::numeric_limits<float>::max());
+            glm::vec3 maxBounds(std::numeric_limits<float>::lowest());
+
+            // Compute local AABB from vertices
+            for (const auto& vertex : vertices) {
+                minBounds = glm::min(minBounds, vertex.position);
+                maxBounds = glm::max(maxBounds, vertex.position);
+            }
+            submesh.localAABB.min = minBounds;
+            submesh.localAABB.max = maxBounds;
+
+            
+
             engineMesh.primitives.push_back(submesh);
         }
     }

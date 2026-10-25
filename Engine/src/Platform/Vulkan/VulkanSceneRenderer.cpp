@@ -7,7 +7,10 @@
 #include "VulkanContext.h"
 #include "VulkanPipelineState.h"
 
+#include "VulkanShadowMap.h"
 #include "VulkanCubemap.h"
+
+#include "ZEngine/Core/Frustum.h"
 
 namespace ZEngine {
 
@@ -110,6 +113,7 @@ namespace ZEngine {
         cmd.vertexBuffer = submesh.vertexBuffer;
         cmd.indexBuffer = submesh.indexBuffer;
         cmd.indexCount = submesh.indexCount;
+        cmd.localAABB = submesh.localAABB;
 
         // Populate Push Constants
         cmd.pushConstants.modelMatrix = worldTransform;
@@ -121,7 +125,54 @@ namespace ZEngine {
         m_OpaqueDrawQueue.push_back(cmd);
     }
 
-    void VulkanSceneRenderer::UpdateSceneBuffers(PerspectiveCamera& camera) {
+    void VulkanSceneRenderer::UpdateDrawQueue(PerspectiveCamera& camera) {
+        m_VisibleDrawQueue.clear();
+
+        // Extract camera frustum planes
+        glm::mat4 viewProj = camera.GetProjectionMatrix() * camera.GetViewMatrix();
+        Frustum camFrustum = camera.ExtractFrustum(viewProj);
+
+        // Frustum cull
+        for (const auto& pending : m_OpaqueDrawQueue) {
+            AABB worldAABB = pending.localAABB.Transform(pending.pushConstants.modelMatrix);
+
+            if (camFrustum.IsOnFrustum(worldAABB)) {
+                DrawCommand finalCmd;
+                finalCmd.vertexBuffer = pending.vertexBuffer;
+                finalCmd.indexBuffer = pending.indexBuffer;
+                finalCmd.indexCount = pending.indexCount;
+                finalCmd.pushConstants = pending.pushConstants;
+
+                m_VisibleDrawQueue.push_back(finalCmd);
+            }
+        }
+
+        m_OpaqueDrawQueue.clear();
+    }
+
+    void VulkanSceneRenderer::UpdateShadowDrawQueue(const glm::mat4& lightViewProj) {
+        m_ShadowVisibleDrawQueue.clear();
+
+        // Extract frustum planes
+        Frustum lightFrustum = Frustum::ExtractFrustumFromMatrix(lightViewProj);
+
+        // Frustum culll
+        for (const auto& pending : m_OpaqueDrawQueue) {
+            AABB worldAABB = pending.localAABB.Transform(pending.pushConstants.modelMatrix);
+
+            if (lightFrustum.IsOnFrustum(worldAABB)) {
+                DrawCommand shadowCmd;
+                shadowCmd.vertexBuffer = pending.vertexBuffer;
+                shadowCmd.indexBuffer = pending.indexBuffer;
+                shadowCmd.indexCount = pending.indexCount;
+                shadowCmd.pushConstants = pending.pushConstants;
+
+                m_ShadowVisibleDrawQueue.push_back(shadowCmd);
+            }
+        }
+    }
+
+    void VulkanSceneRenderer::UpdateSceneBuffers(const DirectionalLight& lighting, PerspectiveCamera& camera, const glm::mat4& lightSpaceMatrix) {
         auto& context = m_GraphicsDevice->GetContext();
         auto currentFrame = context.GetCurrentFrameIndex();
 
@@ -130,18 +181,20 @@ namespace ZEngine {
         ubo.camera.view = camera.GetViewMatrix();
         ubo.camera.proj = camera.GetProjectionMatrix();
 
-        ubo.sunLight.direction = glm::vec3(0.0f, -1.0f, 0.0f);
-        ubo.sunLight.intensity = 1.0f;
-        ubo.sunLight.color = glm::vec3(1.0f, 1.0f, 1.0f);
+        ubo.sunLight.direction = normalize(lighting.direction);
+        ubo.sunLight.intensity = lighting.intensity;
+        ubo.sunLight.color = lighting.color;
 
         ubo.cameraPos = glm::vec4(camera.GetPosition(), 1.0f);
+
+        ubo.lightSpaceMatrix = lightSpaceMatrix;
 
         m_ResourceManager->UploadBufferData(m_SceneUniformBuffers[currentFrame], &ubo, sizeof(ubo), BufferUsageFlags::UniformBuffer);
     }
 
     void VulkanSceneRenderer::RegisterPasses(RenderGraph& renderGraph, PerspectiveCamera& camera, TextureHandle colorTarget, TextureHandle depthTarget) {
         // Update UBO data for the active frame
-        UpdateSceneBuffers(camera);
+        //UpdateSceneBuffers(camera);
 
         // Register Opaque Render Pass into the Handle-based RenderGraph using the fluid builder
         renderGraph.AddPass(
@@ -152,7 +205,7 @@ namespace ZEngine {
             },
             [this](RHICommandList& cmdList) {
                 // Execute drawing commands
-                RecordOpaquePass(cmdList);
+                //RecordOpaquePass(cmdList);
             }
         );
     }
@@ -165,11 +218,12 @@ namespace ZEngine {
         commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, vulkanPipeline->GetNativePipeline());
     }
 
-    void VulkanSceneRenderer::RecordOpaquePass(RHICommandList& cmdList) {
+    void VulkanSceneRenderer::RecordOpaquePass(RHICommandList& cmdList, const Ref<ShadowMap>& shadowMap) {
         auto& context = m_GraphicsDevice->GetContext();
         const auto currentFrame = context.GetCurrentFrameIndex();
         const auto& commandBuffer = context.GetCurrentFrame().commandBuffer;
 
+        auto vk_ShadowMap = static_cast<VulkanShadowMap*>(shadowMap.get());
         auto pipelineLayout = m_BindlessManager->GetPipelineLayout();
 
         // Bind global bindless Set 0 (binding 0: textures, binding 1: samplers...)
@@ -181,13 +235,79 @@ namespace ZEngine {
         commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelineLayout, 1, *sceneSet[currentFrame], nullptr);
 
         // Execute draw calls for all submitted submesh commands
-        for (const auto& draw : m_OpaqueDrawQueue) {
+        for (const auto& draw : m_VisibleDrawQueue) {
+
+            ShadowMapData shadowMapData {
+                .textureIndex = vk_ShadowMap->GetTextureIndex(),
+                .samplerIndex = vk_ShadowMap->GetSamplerIndex()
+            };
+
+            PushConstantData pushConstants {
+                .meshConstants = draw.pushConstants,
+                .shadowMapData = shadowMapData
+            };
 
             vk::ArrayProxy<const uint8_t> dataProxy(
-                sizeof(MeshPushConstants),
-                reinterpret_cast<const uint8_t*>(&draw.pushConstants)
+                sizeof(PushConstantData),
+                reinterpret_cast<const uint8_t*>(&pushConstants)
             );
             commandBuffer.pushConstants(pipelineLayout, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0, dataProxy);
+
+            auto vertexBuffer = m_ResourceManager->ResolveBuffer(draw.vertexBuffer);
+            vk::DeviceSize offset = 0;
+            commandBuffer.bindVertexBuffers(0, { vertexBuffer->buffer }, { offset });
+
+            auto indexBuffer = m_ResourceManager->ResolveBuffer(draw.indexBuffer);
+            commandBuffer.bindIndexBuffer(indexBuffer->buffer, 0, vk::IndexType::eUint32);
+
+            commandBuffer.drawIndexed(draw.indexCount, 1, 0, 0, 0);
+        }
+    }
+
+    glm::mat4 VulkanSceneRenderer::ComputeLightSpaceMatrix(const DirectionalLight& lighting, PerspectiveCamera& camera) {
+        // Anchor the light target to the camera's position (or focus point)
+        glm::vec3 lightTarget = camera.GetPosition();
+        
+        // Position the light source back from the camera along the light direction
+        float lightDistance = 50.0f;
+        glm::vec3 lightPosition = lightTarget - (glm::normalize(lighting.direction) * lightDistance);
+        
+        // Create light view matrix
+        glm::vec3 up = (std::abs(glm::normalize(lighting.direction).y) > 0.99f) ? glm::vec3(0.0f, 0.0f, 1.0f) : glm::vec3(0.0f, 1.0f, 0.0f);
+        glm::mat4 lightView = glm::lookAt(lightPosition, lightTarget, up);
+        
+        // Orthographic bounds
+        float orthoSize = 100.0f;
+        float nearPlane = -50.0f; // Negative so that objects behind light targets aren't clipped
+        float farPlane = 150.0f;
+        
+        glm::mat4 lightProj = glm::orthoZO(-orthoSize, orthoSize, -orthoSize, orthoSize, nearPlane, farPlane);
+        lightProj[1][1] *= -1.0f; // Vulkan Y-inversion
+        
+        return lightProj * lightView;
+    }
+
+    void VulkanSceneRenderer::RecordShadowPass(RHICommandList& cmdList, const Ref<ShadowMap>& shadowMap, const glm::mat4& lightSpaceMatrix) {
+        auto& context = m_GraphicsDevice->GetContext();
+        const auto currentFrame = context.GetCurrentFrameIndex();
+        const auto& commandBuffer = context.GetCurrentFrame().commandBuffer;
+
+        auto vk_ShadowMap = static_cast<VulkanShadowMap*>(shadowMap.get());
+        auto pipelineLayout = vk_ShadowMap->GetPipelineLayout();
+
+        // Bind shadow depth-only pipeline
+        commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, vk_ShadowMap->GetPipeline());
+
+        for (const auto& draw : m_VisibleDrawQueue) {
+            ShadowPushConstants pushConstants {};
+            pushConstants.lightSpaceMatrix = lightSpaceMatrix;
+            pushConstants.modelMatrix = draw.pushConstants.modelMatrix;
+
+            vk::ArrayProxy<const uint8_t> dataProxy(
+                sizeof(ShadowPushConstants),
+                reinterpret_cast<const uint8_t*>(&pushConstants)
+            );
+            commandBuffer.pushConstants(pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, dataProxy);
 
             auto vertexBuffer = m_ResourceManager->ResolveBuffer(draw.vertexBuffer);
             vk::DeviceSize offset = 0;

@@ -14,7 +14,7 @@ namespace ZEngine {
     PerspectiveCameraController::PerspectiveCameraController(float aspectRatio)
         : m_AspectRatio(aspectRatio),
           m_Camera(45.0f, aspectRatio, 0.1f, 1000.0f),
-          m_MovementSpeed(10.0f),
+          m_MovementSpeed(1.0f),
           m_MouseSensitivity(0.1f),
           m_Zoom(45.0f)
     {}
@@ -68,7 +68,7 @@ namespace ZEngine {
         if (Input::IsKeyPressed(ZE_KEY_LEFT_SHIFT))
             m_MovementSpeed = 25.0f;
         if (Input::IsKeyPressed(ZE_KEY_LEFT_CONTROL))
-            m_MovementSpeed = 10.0f;
+            m_MovementSpeed = 1.0f;
 
         m_Camera.SetPosition(m_CameraPosition);
     }

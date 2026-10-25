@@ -11,7 +11,6 @@ public:
 	virtual void OnDetach() override;
 
 	void OnUpdate(ZEngine::Timestep ts) override;
-	virtual void OnImGuiRender() override;
 	void OnEvent(ZEngine::Event& e) override;
 
 private:

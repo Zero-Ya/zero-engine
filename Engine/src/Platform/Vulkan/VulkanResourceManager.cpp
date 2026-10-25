@@ -340,6 +340,72 @@ namespace ZEngine {
         DestroyBuffer(stagingHandle);
     }
 
+    TextureHandle VulkanResourceManager::CreateShadowMap(const TextureCreateInfo& info) {
+        auto& context = m_GraphicsDevice->GetContext();
+        auto& device = context.GetDevice();
+        auto& physicalDevice = context.GetPhysicalDevice();
+
+        auto format = ConvertTextureFormat(info.format);
+        auto width = info.width;
+        auto height = info.height;
+        auto usage = ConvertTextureUsageFlags(info.usageFlags);
+
+        // Depth image creation
+        vk::ImageCreateInfo imageInfo{ .flags = {},
+                           .imageType = vk::ImageType::e2D,
+                           .format = format,
+                           .extent = vk::Extent3D { width, height, 1 },
+                           .mipLevels = 1,
+                           .arrayLayers = 1,
+                           .samples = vk::SampleCountFlagBits::e1,
+                           .tiling = vk::ImageTiling::eOptimal,
+                           .usage = usage,
+                           .sharingMode = vk::SharingMode::eExclusive };
+        auto image = vk::raii::Image(device, imageInfo);
+
+        // Allocate device local GPU memory
+        auto memReqs = image.getMemoryRequirements();
+        auto memProps = physicalDevice.getMemoryProperties();
+
+        uint32_t memoryTypeIndex = UINT32_MAX;
+        for (uint32_t i = 0; i < memProps.memoryTypeCount; ++i) {
+            if ((memReqs.memoryTypeBits & (1 << i)) &&
+                (memProps.memoryTypes[i].propertyFlags & vk::MemoryPropertyFlagBits::eDeviceLocal)) {
+                memoryTypeIndex = i;
+                break;
+            }
+        }
+
+        if (memoryTypeIndex == UINT32_MAX) {
+            throw std::runtime_error("Failed to find suitable DeviceLocal memory for ShadowMap!");
+        }
+
+        vk::MemoryAllocateInfo allocInfo{ .allocationSize = memReqs.size, .memoryTypeIndex = memoryTypeIndex };
+
+        auto memory = vk::raii::DeviceMemory(device, allocInfo);
+        image.bindMemory(*memory, 0);
+
+        // Depth imageView
+        vk::ImageViewCreateInfo viewInfo {
+            .image = *image,
+            .viewType = vk::ImageViewType::e2D,
+            .format = format,
+            .subresourceRange = { .aspectMask = vk::ImageAspectFlagBits::eDepth, .baseMipLevel = 0, .levelCount = 1, .baseArrayLayer = 0, .layerCount = 1} };
+        auto imageView = vk::raii::ImageView(device, viewInfo);
+
+        // Create texture resource for texture handle
+        VulkanTextureResource resource {
+            .image = std::move(image),
+            .imageView = std::move(imageView),
+            .memory = std::move(memory),
+            .format = format,
+            .width = width,
+            .height = height
+        };
+
+        return m_TexturePool.Allocate(std::move(resource));
+    }
+
     VulkanBufferResource* VulkanResourceManager::ResolveBuffer(BufferHandle handle) {
         return m_BufferPool.Get(handle);
     }

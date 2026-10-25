@@ -6,6 +6,8 @@
 #include "ZEngine/Events/KeyEvent.h"
 #include "ZEngine/Events/MouseEvent.h"
 
+#include "ZEngine/Asset/ShaderTypes.h"
+
 namespace ZEngine {
 	class VulkanImGuiUtil;
 	class RenderCommandBuffer;
@@ -17,7 +19,7 @@ namespace ZEngine {
 
 		virtual void OnAttach() override;
 		virtual void OnDetach() override;
-		virtual void OnImGuiRender() override;
+		void OnImGuiRender(DirectionalLight& directionalLight);
 
 		void Begin();
 		void End();

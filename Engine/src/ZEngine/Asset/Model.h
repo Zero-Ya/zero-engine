@@ -1,7 +1,9 @@
 #pragma once
 
-#include "ZEngine/Asset/ShaderTypes.h"
+#include "ShaderTypes.h"
 #include "Vertex.h"
+
+#include "ZEngine/Core/AABB.h"
 
 namespace ZEngine {
 
@@ -13,6 +15,7 @@ namespace ZEngine {
         uint32_t vertexCount = 0;
 
         MaterialData material;
+        AABB localAABB;
     };
 
     // A Mesh contains multiple primitives (submeshes)

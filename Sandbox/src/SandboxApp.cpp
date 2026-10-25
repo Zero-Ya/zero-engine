@@ -34,13 +34,18 @@ public:
 
 		// Shader
 		auto m_BistroShader = m_ShaderLibrary.Load("Model Shader", "ModelShader.spv");
+		auto m_ShadowShader = m_ShaderLibrary.Load("Shadow Shader", "ShadowShader.spv");
 		auto m_SkyboxShader = m_ShaderLibrary.Load("Skybox Shader", "SkyboxShader.spv");
 
-		// Model layout for pipeline
+		// Layouts for pipeline states
 		ZEngine::BufferLayout modelLayout = {
 			{ ZEngine::ShaderDataType::Float3, "position" },
 			{ ZEngine::ShaderDataType::Float3, "normal" },
 			{ ZEngine::ShaderDataType::Float2, "uv" }
+		};
+
+		ZEngine::BufferLayout shadowLayout = {
+			{ ZEngine::ShaderDataType::Float3, "position"}
 		};
 
 		// Model pipeline state
@@ -50,8 +55,15 @@ public:
 		// Skybox pipeline state
 		ZEngine::PipelineSpecification skyboxSpec { m_SkyboxShader, {}, false, false };
 
+		// Shadow map and pipeline state
+		ZEngine::PipelineSpecification shadowSpec{ m_ShadowShader, shadowLayout, false, false };
+		m_ShadowMap = ZEngine::ShadowMap::Create(graphicsDevice, bindlessManager, resourceManager);
+		m_ShadowMapTexture = m_ShadowMap->Init(shadowSpec);
+
 		// Model loading
 		m_Model = m_ModelLoader->LoadModel(ASSETS_DIR"/models/SponzaModel/Sponza.gltf").value();
+		//m_Model = m_ModelLoader->LoadModel(ASSETS_DIR"/models/AutumnHouseModel/scene.gltf").value();
+		//m_Model = m_ModelLoader->LoadModel(ASSETS_DIR"/models/ChessGameModel/glTF/ABeautifulGame.gltf").value();
 		//m_Model = m_ModelLoader->LoadModel(ASSETS_DIR"/models/BistroModel/BistroExterior.gltf").value();
 
 		// Skybox
@@ -66,6 +78,13 @@ public:
 		m_Cubemap = ZEngine::Cubemap::Create(graphicsDevice, bindlessManager, resourceManager);
 		m_Cubemap->LoadCubemap(skyboxTextures);
 		m_Cubemap->Init(skyboxSpec);
+
+		// Directional lighting
+		m_DirectionalLight = {
+			.direction = glm::vec3(0.0f, -1.0f, -0.5f),
+			.intensity = 2.0f,
+			.color = glm::vec3(1.0f, 1.0f, 1.0f)
+		};
 	}
 
 	void OnUpdate(ZEngine::Timestep ts) override {
@@ -82,18 +101,33 @@ public:
 
 		m_SceneRenderer->BeginFrame();
 		m_SceneRenderer->SubmitModel(m_Model, glm::mat4(1.0f));
+		m_SceneRenderer->UpdateDrawQueue(m_CameraController.GetCamera());
+		// Shadow pass
+		m_RenderGraph->AddPass("ShadowPass",
+			[&](ZEngine::RenderGraphPassBuilder& builder) {
+				builder.WriteDepth(m_ShadowMapTexture);
+			},
+			[&](ZEngine::RHICommandList& command) {
+				glm::mat4 lightSpaceMatrix = m_SceneRenderer->ComputeLightSpaceMatrix(m_DirectionalLight, m_CameraController.GetCamera());
+				m_SceneRenderer->RecordShadowPass(command, m_ShadowMap, lightSpaceMatrix);
+			}
+		);
 
 		// Main pass
 		m_RenderGraph->AddPass(
 			"OpaquePass",
 			[&](ZEngine::RenderGraphPassBuilder& builder) {
+				builder.Read(m_ShadowMapTexture);
+
 				builder.WriteColor(m_SwapchainTextureHandle);
 				builder.WriteDepth(m_SwapchainDepthHandle);
 			},
 			[&](ZEngine::RHICommandList& command) {
-				m_SceneRenderer->UpdateSceneBuffers(m_CameraController.GetCamera());
+				glm::mat4 lightSpaceMatrix = m_SceneRenderer->ComputeLightSpaceMatrix(m_DirectionalLight, m_CameraController.GetCamera());
+				m_SceneRenderer->UpdateSceneBuffers(m_DirectionalLight, m_CameraController.GetCamera(), lightSpaceMatrix);
+
 				m_SceneRenderer->SetPipeline(m_ModelPipeline);
-				m_SceneRenderer->RecordOpaquePass(command);
+				m_SceneRenderer->RecordOpaquePass(command, m_ShadowMap);
 			}
 		);
 
@@ -112,13 +146,13 @@ public:
 			"ImGuiPass",
 			[&](ZEngine::RenderGraphPassBuilder& builder) {
 				builder.WriteColor(m_SwapchainTextureHandle);
-				builder.WriteDepth(m_SwapchainDepthHandle); // Needed or no?
+				builder.WriteDepth(m_SwapchainDepthHandle);
 			},
 			[&](ZEngine::RHICommandList& command) {
 				auto imGuiLayer = ZEngine::Application::Get().GetImGuiLayer();
 
 				imGuiLayer->Begin();
-				imGuiLayer->OnImGuiRender();
+				imGuiLayer->OnImGuiRender(m_DirectionalLight);
 				imGuiLayer->End();
 			}
 		);
@@ -146,11 +180,14 @@ private:
 	ZEngine::ShaderLibrary m_ShaderLibrary;
 	ZEngine::Ref<ZEngine::PipelineState> m_ModelPipeline;
 	ZEngine::Model m_Model;
+	ZEngine::DirectionalLight m_DirectionalLight;
 
 	ZEngine::TextureHandle m_SwapchainTextureHandle;
 	ZEngine::TextureHandle m_SwapchainDepthHandle;
+	ZEngine::TextureHandle m_ShadowMapTexture;
 
 	ZEngine::Scope<ZEngine::ModelLoader> m_ModelLoader;
+	ZEngine::Ref<ZEngine::ShadowMap> m_ShadowMap;
 	ZEngine::Scope<ZEngine::Cubemap> m_Cubemap;
 	ZEngine::Scope<ZEngine::RenderGraph> m_RenderGraph;
 	ZEngine::Scope<ZEngine::SceneRenderer> m_SceneRenderer;

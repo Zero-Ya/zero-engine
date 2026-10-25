@@ -24,6 +24,18 @@ namespace ZEngine {
         CameraData camera;
         DirectionalLight sunLight;
         glm::vec4 cameraPos;
+
+        glm::mat4 lightSpaceMatrix;
+    };
+
+    struct ShadowMapData {
+        uint32_t textureIndex;
+        uint32_t samplerIndex;
+    };
+
+    struct ShadowPushConstants {
+        glm::mat4 lightSpaceMatrix;
+        glm::mat4 modelMatrix;
     };
 
     struct CubemapData {
@@ -37,6 +49,11 @@ namespace ZEngine {
         uint32_t normalTextureIndex;
         uint32_t roughnessTextureIndex;
         uint32_t samplerIndex;
+    };
+
+    struct PushConstantData {
+        MeshPushConstants meshConstants;
+        ShadowMapData shadowMapData;
     };
 
     struct MaterialData {

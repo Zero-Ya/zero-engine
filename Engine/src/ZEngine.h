@@ -25,6 +25,7 @@
 #include "ZEngine/Renderer/Buffer.h"
 #include "ZEngine/Renderer/Shader.h"
 #include "ZEngine/Renderer/PipelineState.h"
+#include "ZEngine/Renderer/ShadowMap.h"
 #include "ZEngine/Renderer/Cubemap.h"
 
 #include "ZEngine/Renderer/ResourceManager.h"

@@ -11,9 +11,9 @@ namespace ZEngine {
         Material = 3,
     };
 
-    struct PushConstantData {
-        glm::mat4 transform { 1.0f };
-    };
+    //struct PushConstantData {
+    //    glm::mat4 transform { 1.0f };
+    //};
 
     class LayoutManager {
     public:

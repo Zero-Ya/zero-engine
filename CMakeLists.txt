@@ -52,6 +52,7 @@ endif()
 set(SHADER_SOURCES
 	${ASSETS_DIR}/shaders/Shader.slang
 	${ASSETS_DIR}/shaders/FlatShader.slang
+	${ASSETS_DIR}/shaders/ShadowShader.slang
 	${ASSETS_DIR}/shaders/SkyboxShader.slang
 	${ASSETS_DIR}/shaders/ModelShader.slang
 )

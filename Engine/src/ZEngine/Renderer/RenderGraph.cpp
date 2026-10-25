@@ -22,8 +22,6 @@ namespace ZEngine {
             }
 
             ZEngine::RenderingInfo renderingInfo{};
-            renderingInfo.renderWidth = ZEngine::Application::Get().GetWindow().GetWidth();
-            renderingInfo.renderHeight = ZEngine::Application::Get().GetWindow().GetHeight();
 
             // Resolve and insert barrier transitions for Writes
             for (const auto& write : pass.writes) {
@@ -38,6 +36,7 @@ namespace ZEngine {
                     if (pass.name == "OpaquePass") colorAttachmentInfo.clearOnLoad = true;
                     renderingInfo.colorAttachmentCount = 1;
                     renderingInfo.colorAttachments = std::vector(1, colorAttachmentInfo);
+                    renderingInfo.hasColor = true;
                 }
 
                 if (write.layout == TextureLayout::DEPTH_ATTACHMENT) {
@@ -46,8 +45,8 @@ namespace ZEngine {
                     };
 
                     if (pass.name == "OpaquePass" || pass.name == "ShadowPass") depthAttachementInfo.clearOnLoad = true;
-                    renderingInfo.hasDepth = true;
                     renderingInfo.depthAttachment = depthAttachementInfo;
+                    renderingInfo.hasDepth = true;
                 }
 
                 if (auto it = m_ResourceLayouts.find(id); it != m_ResourceLayouts.end()) {
@@ -60,13 +59,22 @@ namespace ZEngine {
                 }
             }
 
+            if (pass.name == "ShadowPass") {
+                renderingInfo.renderWidth = 2048;
+                renderingInfo.renderHeight = 2048;
+            }
+            else {
+                renderingInfo.renderWidth = ZEngine::Application::Get().GetWindow().GetWidth();
+                renderingInfo.renderHeight = ZEngine::Application::Get().GetWindow().GetHeight();
+            }
+
             // Dynamic rendering
             // ...this part can be made better
             if (renderingInfo.colorAttachmentCount != 0 || renderingInfo.hasDepth)
                 cmdList.BeginRendering(renderingInfo);
 
-            cmdList.SetViewport(0, 0, ZEngine::Application::Get().GetWindow().GetWidth(), ZEngine::Application::Get().GetWindow().GetHeight());
-            cmdList.SetScissor(0, 0, ZEngine::Application::Get().GetWindow().GetWidth(), ZEngine::Application::Get().GetWindow().GetHeight());
+            cmdList.SetViewport(0, 0, renderingInfo.renderWidth, renderingInfo.renderHeight);
+            cmdList.SetScissor(0, 0, renderingInfo.renderWidth, renderingInfo.renderHeight);
             // SetClearColor
 
             // Execute pass recording

@@ -18,12 +18,15 @@ namespace ZEngine {
         void UnregisterTexture(uint32_t bindlessIndex);
 
         uint32_t RegisterSampler(SamplerHandle handle);
+        uint32_t RegisterCmpSampler(SamplerHandle handle);
         void UnregisterSampler(uint32_t bindlessIndex);
 
         void UpdateSceneBuffer(vk::Buffer sceneBuffer, vk::DeviceSize size);
 
         void SetResourceManager(const Scope<ResourceManager>& resourceManager) override;
 
+        vk::DescriptorSetLayout GetSet0Layout() const { return m_Set0Layout; }
+        vk::DescriptorSetLayout GetSet1Layout() const { return m_Set0Layout; }
         vk::DescriptorSet GetDescriptorSet() const { return *m_DescriptorSet; }
         vk::PipelineLayout GetPipelineLayout() const { return *m_PipelineLayout; }
 
