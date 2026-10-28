@@ -3,10 +3,11 @@ A simple graphics/game engine built with C++ and Vulkan API, featuring a custom 
 
 ***
 
-![AutumnHouse](./Resources/AutumnHouse1.png)
+![AutumnHouse](https://github.com/Zero-Ya/zero-engine/blob/master/Resources/AutumnHouse1.PNG)
 *Scene 1: Autumn house by Zhenya, with lighting, shadow maps and skybox in the background.*
+<br><br>
 
-![Sponza](./Resources/Sponza.png)
+![Sponza](https://github.com/Zero-Ya/zero-engine/blob/master/Resources/Sponza.PNG)
 *Scene 2: Sponza model with directional lighting and shadow maps.*
 
 ***
@@ -75,7 +76,7 @@ The executable file `Sandbox.exe` can be found in `/build/debug/bin/Debug` (or `
 
 ## Roadmap
 
-Plans for the Project:
+Future Plans for the Project:
 1. PBR material and lighting.
 2. Cascaded Shadow Maps.
 3. Scene management
