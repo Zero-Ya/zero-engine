@@ -24,6 +24,9 @@ file(GLOB_RECURSE MAIN_SOURCES CONFIGURE_DEPENDS
 	"src/Platform/Vulkan/*.cpp"
 )
 
+# Visual studio filters
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES ${MAIN_SOURCES})
+
 # Only compile if the OS is Windows
 if(WIN32)
     file(GLOB_RECURSE WINDOWS_SOURCES
@@ -75,3 +78,8 @@ target_link_libraries(Engine PRIVATE fastgltf::fastgltf)
 
 # 
 target_compile_definitions(Engine PRIVATE VULKAN_HPP_NO_STRUCT_CONSTRUCTORS)
+
+# Group dependencies
+set_target_properties(glfw PROPERTIES FOLDER "Dependencies")
+set_target_properties(ktx PROPERTIES FOLDER "Dependencies")
+set_target_properties(fastgltf PROPERTIES FOLDER "Dependencies")

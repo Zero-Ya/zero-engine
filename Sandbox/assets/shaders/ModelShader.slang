@@ -140,8 +140,8 @@ float CalculateShadow(float4 lightSpacePos, float3 normal, float3 lightDir) {
     }
 
     // Dynamic bias based on surface angle to prevent shadow acne
-    float bias = max(0.005f * (1.0f - dot(normal, lightDir)), 0.0005f);
-    float currentDepth = projCoords.z - bias;
+    float bias = 0.0005f; // Adjust based on scene scale
+    float currentDepth = projCoords.z - bias; 
 
     // PCF 3x3 soft shadows using SampleCmp directly
     float shadow = 0.0f;

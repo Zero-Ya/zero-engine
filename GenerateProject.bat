@@ -1,10 +1,14 @@
 @echo off
+cd /d %~dp0
 
-REM
-set CMAKE_CMD=cmake -G "Visual Studio 17 2022" -A x64 -B ./build .
+echo [INFO] Configuring ZEngine using CMake Presets (Debug)...
+cmake --preset debug
 
-REM
-echo %CMAKE_CMD%
-%CMAKE_CMD%
+if %ERRORLEVEL% NEQ 0 (
+    echo [ERROR] CMake generation failed! Please ensure the Vulkan SDK is installed.
+    pause
+    exit /b %ERRORLEVEL%
+)
 
+echo [SUCCESS] Project files generated successfully inside the /build folder!
 pause

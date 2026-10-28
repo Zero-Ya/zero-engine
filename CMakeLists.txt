@@ -3,6 +3,11 @@ cmake_minimum_required(VERSION 3.23)
 
 project(zero-engine)
 
+# Build output directories (Debug / Release)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/$<CONFIG>)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/$<CONFIG>)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/$<CONFIG>)
+
 # Standards
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -50,15 +55,21 @@ if(MSVC)
 endif()
 
 set(SHADER_SOURCES
-	${ASSETS_DIR}/shaders/Shader.slang
-	${ASSETS_DIR}/shaders/FlatShader.slang
 	${ASSETS_DIR}/shaders/ShadowShader.slang
 	${ASSETS_DIR}/shaders/SkyboxShader.slang
 	${ASSETS_DIR}/shaders/ModelShader.slang
 )
 set(SPIRV_FILES "")
 set(ENTRY_POINTS -entry vertMain -entry fragMain)
-set(SLANGC_EXECUTABLE C:/VulkanSDK/1.4.335.0/bin/slangc.exe)
+
+# Vulkan path
+if(DEFINED ENV{VULKAN_SDK})
+    set(SLANGC_EXECUTABLE "$ENV{VULKAN_SDK}/bin/slangc.exe")
+else()
+    set(SLANGC_EXECUTABLE "slangc") # Fallback to system PATH
+endif()
+
+message(STATUS "Using Slang Compiler: ${SLANGC_EXECUTABLE}")
 
 # Shader spirv compilation
 foreach(SHADER_FILE ${SHADER_SOURCES})
@@ -79,3 +90,8 @@ add_custom_target(shader_spirv_compile ALL DEPENDS ${SPIRV_FILES})
 # Make sure the shaders compile each time they change
 add_dependencies(Engine shader_spirv_compile)
 add_dependencies(Sandbox shader_spirv_compile)
+
+# Group main application targets and tools
+set_target_properties(Engine PROPERTIES FOLDER "Core")
+set_target_properties(Sandbox PROPERTIES FOLDER "Core")
+set_target_properties(shader_spirv_compile PROPERTIES FOLDER "Tools")

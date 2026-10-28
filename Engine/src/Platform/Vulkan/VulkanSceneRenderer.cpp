@@ -235,7 +235,7 @@ namespace ZEngine {
         commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelineLayout, 1, *sceneSet[currentFrame], nullptr);
 
         // Execute draw calls for all submitted submesh commands
-        for (const auto& draw : m_VisibleDrawQueue) {
+        for (const auto& draw : m_OpaqueDrawQueue) { // Supposed to be m_VisibleDrawQueue
 
             ShadowMapData shadowMapData {
                 .textureIndex = vk_ShadowMap->GetTextureIndex(),
@@ -298,7 +298,7 @@ namespace ZEngine {
         // Bind shadow depth-only pipeline
         commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, vk_ShadowMap->GetPipeline());
 
-        for (const auto& draw : m_VisibleDrawQueue) {
+        for (const auto& draw : m_OpaqueDrawQueue) { // Supposed to be m_VisibleDrawQueue
             ShadowPushConstants pushConstants {};
             pushConstants.lightSpaceMatrix = lightSpaceMatrix;
             pushConstants.modelMatrix = draw.pushConstants.modelMatrix;

@@ -4,9 +4,6 @@
 #include "VulkanGraphicsDevice.h"
 #include "VulkanSwapchain.h"
 
-#include "ZEngine/Renderer/LayoutManager.h"
-#include "ZEngine/Renderer/DescriptorAllocator.h"
-
 namespace {
 
 	std::vector<const char*> getRequiredInstanceExtensions(bool enableValidationLayers);
@@ -28,9 +25,6 @@ namespace ZEngine {
 		PickPhysicalDevice();
 		CreateLogicalDevice();
 		//CreateFrameResources();
-
-		m_LayoutManager = LayoutManager::Create();
-		m_DescriptorAllocator = DescriptorAllocator::Create();
 
 		ZE_CORE_INFO("Vulkan Context created!");
 	}

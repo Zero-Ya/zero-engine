@@ -61,8 +61,8 @@ public:
 		m_ShadowMapTexture = m_ShadowMap->Init(shadowSpec);
 
 		// Model loading
-		m_Model = m_ModelLoader->LoadModel(ASSETS_DIR"/models/SponzaModel/Sponza.gltf").value();
-		//m_Model = m_ModelLoader->LoadModel(ASSETS_DIR"/models/AutumnHouseModel/scene.gltf").value();
+		m_Model = m_ModelLoader->LoadModel(ASSETS_DIR"/models/AutumnHouseModel/scene.gltf").value();
+		//m_Model = m_ModelLoader->LoadModel(ASSETS_DIR"/models/SponzaModel/Sponza.gltf").value();
 		//m_Model = m_ModelLoader->LoadModel(ASSETS_DIR"/models/ChessGameModel/glTF/ABeautifulGame.gltf").value();
 		//m_Model = m_ModelLoader->LoadModel(ASSETS_DIR"/models/BistroModel/BistroExterior.gltf").value();
 
@@ -81,7 +81,7 @@ public:
 
 		// Directional lighting
 		m_DirectionalLight = {
-			.direction = glm::vec3(0.0f, -1.0f, -0.5f),
+			.direction = glm::vec3(0.2f, -1.0f, -0.5f),
 			.intensity = 2.0f,
 			.color = glm::vec3(1.0f, 1.0f, 1.0f)
 		};
@@ -101,7 +101,7 @@ public:
 
 		m_SceneRenderer->BeginFrame();
 		m_SceneRenderer->SubmitModel(m_Model, glm::mat4(1.0f));
-		m_SceneRenderer->UpdateDrawQueue(m_CameraController.GetCamera());
+		//m_SceneRenderer->UpdateDrawQueue(m_CameraController.GetCamera());
 		// Shadow pass
 		m_RenderGraph->AddPass("ShadowPass",
 			[&](ZEngine::RenderGraphPassBuilder& builder) {

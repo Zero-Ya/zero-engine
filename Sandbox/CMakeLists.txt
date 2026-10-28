@@ -9,9 +9,7 @@ add_executable(Sandbox)
 #	)
 #endfunction ()
 
-target_sources(Sandbox PRIVATE
-	src/SandboxApp.cpp
- "src/Sandbox2D.h" "src/Sandbox2D.cpp")
+target_sources(Sandbox PRIVATE src/SandboxApp.cpp)
 
 # Link sandbox with engine
 target_link_libraries(Sandbox PRIVATE Engine)

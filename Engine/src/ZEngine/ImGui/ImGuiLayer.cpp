@@ -49,7 +49,7 @@ namespace ZEngine {
         static float sunAngle = 0.0f;
         if (ImGui::SliderFloat("Sun Orbit Angle", &sunAngle, -1.0f, 1.0f)) {
             glm::mat4 rot = glm::rotate(glm::mat4(1.0f), sunAngle, glm::vec3(1.0f, 0.0f, 0.0f)); // Rotate around X-axis
-            directionalLight.direction = glm::normalize(glm::vec3(rot * glm::vec4(0.0f, -1.0f, -0.5f, 0.0f)));
+            directionalLight.direction = glm::normalize(glm::vec3(rot * glm::vec4(0.2f, -1.0f, -0.5f, 0.0f)));
         }
 
         ImGui::ColorEdit3("Sun Color", &directionalLight.color.x);

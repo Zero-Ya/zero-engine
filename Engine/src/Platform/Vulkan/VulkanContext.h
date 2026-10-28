@@ -14,9 +14,6 @@ namespace ZEngine {
 		constexpr bool enableValidationLayers = false;
 	#endif
 
-	class LayoutManager;
-	class DescriptorAllocator;
-
 	struct FrameData {
 		vk::raii::CommandPool commandPool = nullptr;
 		vk::raii::CommandBuffer commandBuffer = nullptr;
@@ -39,9 +36,6 @@ namespace ZEngine {
 		vk::raii::Device&		  GetDevice()			 { return m_Device; }
 		uint32_t				  GetQueueIndex() const  { return m_QueueIndex; }
 		vk::raii::Queue			  GetGraphicsQueue()	 { return m_GraphicsQueue; }
-
-		Scope<LayoutManager>& GetLayoutManager() { return m_LayoutManager; }
-		Scope<DescriptorAllocator>& GetDescriptorAllocator() { return m_DescriptorAllocator; }
 
 		void BeginFrame();
 		void EndFrame(uint32_t imageIndex);
@@ -77,9 +71,6 @@ namespace ZEngine {
 
 		uint32_t						 m_QueueIndex		= 0;
 		vk::raii::Queue					 m_GraphicsQueue	= nullptr;
-
-		Scope<LayoutManager> m_LayoutManager;
-		Scope<DescriptorAllocator> m_DescriptorAllocator;
 
 		std::array<FrameData, MAX_FRAMES_IN_FLIGHT> m_Frames;
 		uint32_t m_CurrentFrameIndex = 0;
