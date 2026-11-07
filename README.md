@@ -12,7 +12,7 @@ A simple graphics/game engine built with C++ and Vulkan API, featuring a custom 
 
 ***
 
-## Features & Architectures
+## Features & Architecture
 
 * **Platform & API Abstraction:**
   * **Render Hardware Interface (RHI):** Decoupled renderer API layer for clean engine-to-GPU abstraction.

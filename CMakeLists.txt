@@ -58,11 +58,12 @@ set(SHADER_SOURCES
 	${ASSETS_DIR}/shaders/ShadowShader.slang
 	${ASSETS_DIR}/shaders/SkyboxShader.slang
 	${ASSETS_DIR}/shaders/ModelShader.slang
+	${ASSETS_DIR}/shaders/ModelShader2.slang
 )
 set(SPIRV_FILES "")
 set(ENTRY_POINTS -entry vertMain -entry fragMain)
 
-# Vulkan path
+# Vulkan find slangc
 if(DEFINED ENV{VULKAN_SDK})
     set(SLANGC_EXECUTABLE "$ENV{VULKAN_SDK}/bin/slangc.exe")
 else()

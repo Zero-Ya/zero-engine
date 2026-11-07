@@ -36,7 +36,13 @@ if(WIN32)
     list(APPEND MAIN_SOURCES ${WINDOWS_SOURCES})
 endif()
 
-target_sources(Engine PRIVATE ${MAIN_SOURCES} ${DEPEN_FILES} "src/ZEngine.h" "src/zepch.h")
+target_sources(Engine PRIVATE 
+	${MAIN_SOURCES}
+	${DEPEN_FILES}
+
+	"src/ZEngine.h"
+	"src/zepch.h"
+)
 
 # Precompiled headers
 target_precompile_headers(Engine PRIVATE
@@ -53,7 +59,7 @@ target_include_directories(Engine PRIVATE
 	dependencies/glm
 	dependencies/stb
 	dependencies/fastgltf/include
-	dependencies/ktx/lib/include
+	dependencies/ktx_precompiled/include
 )
 
 # GLFW
@@ -69,8 +75,7 @@ find_package(Vulkan REQUIRED)
 target_link_libraries(Engine PRIVATE Vulkan::Vulkan)
 
 # KTX
-add_subdirectory(dependencies/ktx)
-target_link_libraries(Engine PRIVATE ktx)
+target_link_libraries(Engine PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/ktx_precompiled/$<CONFIG>/ktx.lib)
 
 # fastgltf
 add_subdirectory(dependencies/fastgltf)
@@ -81,5 +86,4 @@ target_compile_definitions(Engine PRIVATE VULKAN_HPP_NO_STRUCT_CONSTRUCTORS)
 
 # Group dependencies
 set_target_properties(glfw PROPERTIES FOLDER "Dependencies")
-set_target_properties(ktx PROPERTIES FOLDER "Dependencies")
 set_target_properties(fastgltf PROPERTIES FOLDER "Dependencies")
