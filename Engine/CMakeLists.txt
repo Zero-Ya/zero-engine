@@ -24,9 +24,6 @@ file(GLOB_RECURSE MAIN_SOURCES CONFIGURE_DEPENDS
 	"src/Platform/Vulkan/*.cpp"
 )
 
-# Visual studio filters
-source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES ${MAIN_SOURCES})
-
 # Only compile if the OS is Windows
 if(WIN32)
     file(GLOB_RECURSE WINDOWS_SOURCES
@@ -35,6 +32,9 @@ if(WIN32)
     )
     list(APPEND MAIN_SOURCES ${WINDOWS_SOURCES})
 endif()
+
+# Visual studio filters
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES ${MAIN_SOURCES})
 
 target_sources(Engine PRIVATE 
 	${MAIN_SOURCES}
@@ -64,11 +64,7 @@ target_include_directories(Engine PRIVATE
 
 # GLFW
 add_subdirectory(dependencies/GLFW)
-
-# Link static libs
-target_link_libraries(Engine PRIVATE
-	glfw
-)
+target_link_libraries(Engine PRIVATE glfw)
 
 # Vulkan
 find_package(Vulkan REQUIRED)

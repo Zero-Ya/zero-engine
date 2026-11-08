@@ -16,9 +16,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_subdirectory(Engine)
 add_subdirectory(Sandbox)
 
-# Set startup project
-set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Sandbox)
-
 # Preprocessor definitions
 set(ASSETS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Sandbox/assets)
 target_compile_definitions(Engine PRIVATE
@@ -86,7 +83,8 @@ foreach(SHADER_FILE ${SHADER_SOURCES})
 	list(APPEND SPIRV_FILES ${SPIRV_OUTPUT})
 endforeach()
 
-add_custom_target(shader_spirv_compile ALL DEPENDS ${SPIRV_FILES})
+add_custom_target(shader_spirv_compile DEPENDS ${SPIRV_FILES})
+add_dependencies(Sandbox shader_spirv_compile) 
 
 # Make sure the shaders compile each time they change
 add_dependencies(Engine shader_spirv_compile)
