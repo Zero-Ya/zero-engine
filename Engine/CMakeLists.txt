@@ -59,11 +59,18 @@ target_include_directories(Engine PRIVATE
 	dependencies/glm
 	dependencies/stb
 	dependencies/fastgltf/include
+	#dependencies/ktx/lib/include
 	dependencies/ktx_precompiled/include
 )
 
 # GLFW
-add_subdirectory(dependencies/GLFW)
+# Disable internal extra targets for GLFW
+set(GLFW_BUILD_EXAMPLES OFF CACHE INTERNAL "")
+set(GLFW_BUILD_TESTS OFF CACHE INTERNAL "")
+set(GLFW_BUILD_DOCS OFF CACHE INTERNAL "")
+set(GLFW_INSTALL OFF CACHE INTERNAL "")
+
+add_subdirectory(dependencies/GLFW EXCLUDE_FROM_ALL)
 target_link_libraries(Engine PRIVATE glfw)
 
 # Vulkan
@@ -71,15 +78,29 @@ find_package(Vulkan REQUIRED)
 target_link_libraries(Engine PRIVATE Vulkan::Vulkan)
 
 # KTX
+# Disable internal extra targets for KTX
+set(KTX_FEATURE_TESTS OFF CACHE INTERNAL "")
+set(KTX_FEATURE_DOCS OFF CACHE INTERNAL "")
+set(KTX_FEATURE_APPS OFF CACHE INTERNAL "")
+
+#add_subdirectory(dependencies/ktx EXCLUDE_FROM_ALL)
+#target_link_libraries(Engine PRIVATE ktx)
 target_link_libraries(Engine PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/ktx_precompiled/$<CONFIG>/ktx.lib)
 
 # fastgltf
-add_subdirectory(dependencies/fastgltf)
+# Disable internal extra targets for fastgltf
+set(FASTGLTF_ENABLE_TESTS OFF CACHE INTERNAL "")
+set(FASTGLTF_ENABLE_EXAMPLES OFF CACHE INTERNAL "")
+
+add_subdirectory(dependencies/fastgltf EXCLUDE_FROM_ALL)
 target_link_libraries(Engine PRIVATE fastgltf::fastgltf)
 
 # 
 target_compile_definitions(Engine PRIVATE VULKAN_HPP_NO_STRUCT_CONSTRUCTORS)
 
 # Group dependencies
-set_target_properties(glfw PROPERTIES FOLDER "Dependencies")
-set_target_properties(fastgltf PROPERTIES FOLDER "Dependencies")
+set_target_properties(glfw PROPERTIES FOLDER "Dependencies" VS_GLOBAL_DebuggerFlavor "None")
+#set_target_properties(ktx PROPERTIES FOLDER "Dependencies" VS_GLOBAL_DebuggerFlavor "None")
+if (TARGET fastgltf)
+	set_target_properties(fastgltf PROPERTIES FOLDER "Dependencies" VS_GLOBAL_DebuggerFlavor "None")
+endif()
